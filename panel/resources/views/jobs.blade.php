@@ -153,6 +153,7 @@
 @endsection
 
 @section('script_by_page')
+    <script>var google_api_key = "{{$google_api_key->value}}";</script>
     <script src="{{env('APP_URL')}}/assets/js/local/job.js"></script>
     <script src="{{env('APP_URL')}}/assets/js/local/jobdetail.js"></script>
     <script src="{{env('APP_URL')}}/assets/js/local/geolocalizacion.js"></script>

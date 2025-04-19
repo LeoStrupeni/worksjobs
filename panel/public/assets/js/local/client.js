@@ -6,6 +6,11 @@ $(document).ready(function() {
         $('#description').val('');
         $('#createclient').modal('show')}
     );
+    $('body').on('click','.excel',function(){ 
+        $('#excelclient').modal('show')}
+    );
+    
+
     $('body').on('click','.update',function(){ 
         $('#formeditclient').attr('action',app_url+"/client/"+$(this).data('id'));
 
@@ -85,6 +90,64 @@ $(document).ready(function() {
             $('#modal-body-show-client-roller').addClass('d-none');
         });
     });
+    $('body').on('click','.readaddress',function(){ 
+        client_id=$(this).data('id');
+        client = $(this).data('name');
+        form = document.getElementById("formnewaddressclient");
+        $( form.elements ).each(function( index ) {
+            if($(this).attr('name') != '_method' 
+                && $(this).attr('name') != '_token' 
+                && $(this).attr('name') != 'country'
+            ){
+                $(this).val('');
+            } 
+        });
+        $('#addressclient').modal('show');
+
+        $('#tableaddress_roller').removeClass('d-none');
+        $('#tableaddress_body').empty();
+        $('#tableaddress_body').addClass('d-none');
+        $('#tableaddress_error').addClass('d-none');
+        $('#tableaddress_sindatos').addClass('d-none');
+        $('#titleaddressclient').text('Domicilios de '+client);
+    
+        $('#client_id').val(client_id);
+
+        $('#formnewaddressclient').attr('action',app_url+"/client/address");
+
+        $.ajax({contenttype : 'application/json; charset=utf-8',
+            url : $('meta[name="app_url"]').attr('content')+'/client/address/'+client_id,
+            type : 'GET',
+            done : function(response) { $('#tableaddress_error').removeClass('d-none'); },
+            error : function(jqXHR,textStatus,errorThrown) { $('#tableaddress_error').removeClass('d-none'); },
+            success : function(data) {
+                body='';
+                const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
+                $.each(data, function (key, val) {
+                    body += `<tr id="${val.id}">
+                        <td class="align-middle">${val.country ?? ''}</td>
+                        <td class="align-middle">${val.state ?? ''}</td>
+                        <td class="align-middle">${val.cp ?? ''}</td>
+                        <td class="align-middle">${val.city ?? ''}</td>
+                        <td class="align-middle">${val.address_street ?? ''}</td>
+                        <td class="align-middle">${val.address_nro ?? ''}</td>
+                        <td class="align-middle">${val.address_apartament ?? ''}</td>
+                        <td class="align-middle">${val.address_detail ?? ''}</td>
+
+                        <td class="align-middle">
+                            <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-link deleteaddres">
+                                <i class="flaticon-delete"></i>
+                            </a>
+                        </td>
+                    </tr>`;
+                });
+                $('#tableaddress_body').append(body);
+                $('#tableaddress_body').removeClass('d-none');
+            }
+        }).always(function() {
+            $('#tableaddress_roller').addClass('d-none');
+        });
+    });
     $('body').on('click','.delete',function(){ 
         rolid=$(this).data('id');
         Swal.fire({
@@ -95,12 +158,29 @@ $(document).ready(function() {
             confirmButtonText: "Borrar",
             cancelButtonText: `Cancelar`,
         }).then((result) => {
-            if (result.dismiss != 'cancel') {
+            if (result.value) {
                 $('#formdestroy').attr('action',app_url+"/client/"+$(this).data('id'));
                 $('#formdestroy').submit();
             }
         });
     });
+    $('body').on('click','.deleteaddres',function(){ 
+        rolid=$(this).data('id');
+        Swal.fire({
+            title: "Borrar Domicilio",
+            html: "Esta seguro que desea domicilio del Cliente?<br>No podrá revertir el cambio.",
+            type: "question",
+            showCancelButton: true,
+            confirmButtonText: "Borrar",
+            cancelButtonText: `Cancelar`,
+        }).then((result) => {
+            if (result.value) {
+                $('#formdestroyaddress').attr('action',app_url+"/client/address/"+$(this).data('id'));
+                $('#formdestroyaddress').submit();
+            }
+        });
+    });
+    
     $('body').on('click',"#btn-create-client",function () {
         var error = 0
         form = document.getElementById("formnewclient");
@@ -120,6 +200,26 @@ $(document).ready(function() {
             document.getElementById("formnewclient").submit();
         }
     });
+    $('body').on('click',"#btn-create-addressclient",function () {
+        var error = 0
+        form = document.getElementById("formnewaddressclient");
+
+        $( form.getElementsByClassName('validate') ).each(function( index ) {
+            if($( this ).val() == ''){
+                $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
+                error++;
+            } else {
+                $( this ).css('box-shadow', '');
+            }
+        });
+
+        if (error > 0) {
+            toastr["error"]("Debe completar los datos correctamente.")
+        } else {
+            document.getElementById("formnewaddressclient").submit();
+        }
+    });
+    
     $('body').on('click',"#btn-update-client",function () {
         var error = 0
 
@@ -182,7 +282,7 @@ function tableregister(data, page, callpaginas, url_query){
 
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}">
-            <td class="align-middle">${val.first_name} ${val.last_name}</td>
+            <td class="align-middle">${val.first_name} ${val.last_name ?? ''}</td>
             <td class="align-middle">${val.tipodoc} - ${val.num_doc}</td>
             <td class="align-middle">${val.email ?? ''}</td>
             <td class="align-middle">${val.phone1 ?? ''}</td>
@@ -197,6 +297,9 @@ function tableregister(data, page, callpaginas, url_query){
                         if( data.permissions.includes('read') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read">
                                 <i class="flaticon-eye"></i> Ver
+                            </a></li>
+                            <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item readaddress" data-name="${val.first_name} ${val.last_name ?? ''}">
+                                <i class="flaticon-car"></i> Domicilios
                             </a></li>`
                         }
 
@@ -207,7 +310,7 @@ function tableregister(data, page, callpaginas, url_query){
                         }
 
                         if ( data.permissions.includes('delete') ){
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_names}">
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_name ?? ''}">
                                 <i class="flaticon-delete"></i> Eliminar
                             </a></li>`
                         }

@@ -62,8 +62,8 @@ $(document).ready(function() {
                             $(this).css('box-shadow', 'inset 0px 0px 1px 1px green');
                         }
                     });
-
-                    var urlmap="https://www.google.com/maps/embed/v1/place?key=AIzaSyAexxfMyLUL0Z4Ur_OeS_yMSam5ZsGH6F0&q=";
+=";
+                    var urlmap="https://www.google.com/maps/embed/v1/place?key="+google_api_key+"&q=";
                     if(index == 'arrival_coords' || index == 'closed_coords'){
                         if (value != null) {
                             $(form.getElementsByClassName(index)[0]).attr('src',urlmap+value);
