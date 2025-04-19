@@ -36,6 +36,7 @@
                         <button type="button" class="btn btn-danger float-end mx-1" onclick="callregister('/client/table',1,$('#table_limit').val(),$('#table_order').val(),'si')"><i class="fa-solid fa-arrows-rotate"></i></button>
                         @if (in_array('create',Session::get('user')['permissions']['clients']))
                             <button type="button" class="btn btn-success float-end mx-1 create"><i class="fa-solid fa-plus"></i></button>
+                            <button type="button" class="btn btn-success float-end mx-1 excel"><i class="fa-solid fa-file-excel"></i></button>
                         @endif
                     </div>
                 </div>
@@ -45,7 +46,7 @@
                 @include('Layout.errors')
 
                 <div class="row my-3 align-items-center justify-content-between">
-                    <div class="col-3 col-xl-1">
+                    <div class="col-3 col-xl-2">
                         <select class="form-select" id="table_limit">
                             <option value="10">10</option>
                             <option value="20">20</option>
@@ -148,6 +149,8 @@
     @include('client.edit')
     @include('client.show')
     @include('client.destroy')
+    @include('client.excel')
+    @include('client.address')
 @endsection
 
 @section('script_by_page')

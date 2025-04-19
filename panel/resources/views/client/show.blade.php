@@ -28,15 +28,19 @@
             </div>
             <div class="modal-body d-none" id="modal-body-show-client">
                 <form id="formshowclient">
-                    <div class="mb-2">
-                        <label for="first_name" class="form-label mb-0 ps-3 fw-bold">Nombre / Razón Social</label>
-                        <input type="text" class="form-control" name="first_name" readonly>
-                    </div>
-                    <div class="mb-2">
-                        <label for="last_names" class="form-label mb-0 ps-3 fw-bold">Apellido</label>
-                        <input type="text" class="form-control" name="last_names" readonly>
-                    </div>
                     <div class="row">
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="first_name" class="form-label mb-0 ps-3 fw-bold">Nombre / Razón Social</label>
+                                <input type="text" class="form-control" name="first_name" readonly>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="last_names" class="form-label mb-0 ps-3 fw-bold">Apellido</label>
+                                <input type="text" class="form-control" name="last_names" readonly>
+                            </div>
+                        </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
                                 <label for="type_doc" class="form-label mb-0 ps-3 fw-bold">Tipo Doc</label>
@@ -49,13 +53,12 @@
                                 <input type="text" class="form-control" name="num_doc" readonly>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <label for="email" class="form-label mb-0 ps-3 fw-bold">E-mail</label>
-                        <input type="text" class="form-control" name="email" readonly>
-                    </div>
-                    <div class="row">
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="email" class="form-label mb-0 ps-3 fw-bold">E-mail</label>
+                                <input type="text" class="form-control" name="email" readonly>
+                            </div>
+                        </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
                                 <label for="phone1" class="form-label mb-0 ps-3 fw-bold">Teléfono 1</label>
@@ -82,6 +85,12 @@
                         </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
+                                <label for="cp" class="form-label mb-0 ps-3 fw-bold">CP</label>
+                                <input type="text" class="form-control" name="cp" readonly>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
                                 <label for="city" class="form-label mb-0 ps-3 fw-bold">Ciudad</label>
                                 <input type="text" class="form-control" name="city" readonly>
                             </div>
@@ -104,10 +113,18 @@
                                 <input type="text" class="form-control" name="address_apartament" readonly>
                             </div>
                         </div>
-                    </div>
-                    <div class="mb-2">
-                        <label for="address_detail" class="form-label mb-0 ps-3 fw-bold">Descripcion</label>
-                        <input type="text" class="form-control" name="address_detail" readonly>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="address_detail" class="form-label mb-0 ps-3 fw-bold">Descripcion</label>
+                                <input type="text" class="form-control" name="address_detail" readonly>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="other_obs" class="form-label mb-0 ps-3 fw-bold">Observaciones</label>
+                                <input type="text" class="form-control" name="other_obs" readonly>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>

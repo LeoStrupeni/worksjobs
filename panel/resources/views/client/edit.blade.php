@@ -30,15 +30,19 @@
                 <form action="" method="POST" id="formeditclient">
                     @csrf
                     @method("PUT")
-                    <div class="mb-2">
-                        <label for="first_name" class="form-label mb-0 ps-3 fw-bold">Nombre / Razón Social</label>
-                        <input type="text" class="form-control validate" name="first_name" required value="{{ old('first_name') }}">
-                    </div>
-                    <div class="mb-2">
-                        <label for="last_names" class="form-label mb-0 ps-3 fw-bold">Apellido</label>
-                        <input type="text" class="form-control" name="last_names" value="{{ old('last_names') }}">
-                    </div>
                     <div class="row">
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="first_name" class="form-label mb-0 ps-3 fw-bold">Nombre / Razón Social</label>
+                                <input type="text" class="form-control validate" name="first_name" required value="{{ old('first_name') }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="last_names" class="form-label mb-0 ps-3 fw-bold">Apellido</label>
+                                <input type="text" class="form-control" name="last_names" value="{{ old('last_names') }}">
+                            </div>
+                        </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
                                 <label for="type_doc" class="form-label mb-0 ps-3 fw-bold">Tipo Doc</label>
@@ -55,13 +59,12 @@
                                 <input type="text" class="form-control validate" name="num_doc" required value="{{ old('num_doc') }}">
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <label for="email" class="form-label mb-0 ps-3 fw-bold">E-mail</label>
-                        <input type="text" class="form-control" name="email" value="{{ old('email') }}">
-                    </div>
-                    <div class="row">
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="email" class="form-label mb-0 ps-3 fw-bold">E-mail</label>
+                                <input type="text" class="form-control" name="email" value="{{ old('email') }}">
+                            </div>
+                        </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
                                 <label for="phone1" class="form-label mb-0 ps-3 fw-bold">Teléfono 1</label>
@@ -94,6 +97,12 @@
                         </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
+                                <label for="cp" class="form-label mb-0 ps-3 fw-bold">CP</label>
+                                <input type="text" class="form-control" name="cp" value="{{ old('cp') }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
                                 <label for="city" class="form-label mb-0 ps-3 fw-bold">Ciudad</label>
                                 <input type="text" class="form-control" name="city" value="{{ old('city') }}">
                             </div>
@@ -116,10 +125,18 @@
                                 <input type="text" class="form-control" name="address_apartament" value="{{ old('address_apartament') }}">
                             </div>
                         </div>
-                    </div>
-                    <div class="mb-2">
-                        <label for="address_detail" class="form-label mb-0 ps-3 fw-bold">Descripcion</label>
-                        <input type="text" class="form-control" name="address_detail" value="{{ old('address_detail') }}">
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="address_detail" class="form-label mb-0 ps-3 fw-bold">Descripcion</label>
+                                <input type="text" class="form-control" name="address_detail" value="{{ old('address_detail') }}">
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <div class="mb-2">
+                                <label for="other_obs" class="form-label mb-0 ps-3 fw-bold">Observaciones</label>
+                                <input type="text" class="form-control" name="other_obs" value="{{ old('other_obs') }}">
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>

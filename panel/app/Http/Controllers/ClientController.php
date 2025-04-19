@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Clients_Addres;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -125,10 +126,12 @@ class ClientController extends Controller
             'country' => $request->country,
             'state' => $request->state,
             'city' => $request->city,
+            'cp' => $request->cp,
             'address_street' => $request->address_street,
             'address_nro' => $request->address_nro,
             'address_apartament' => $request->address_apartament,
             'address_detail' => $request->address_detail,
+            'other_obs' => $request->other_obs,
         ]);
 
         return redirect()->route('client.index');
@@ -207,6 +210,12 @@ class ClientController extends Controller
         if(isset($request->address_detail) && $request->address_detail != $client->address_detail){
             $datos['address_detail'] = $request->address_detail;
         }
+        if(isset($request->cp) && $request->cp != $client->cp){
+            $datos['cp'] = $request->cp;
+        }
+        if(isset($request->other_obs) && $request->other_obs != $client->other_obs){
+            $datos['other_obs'] = $request->other_obs;
+        }
         
         if(count($datos) > 0){
             Client::where('id',$id)->update($datos);
@@ -223,4 +232,49 @@ class ClientController extends Controller
 
         return redirect()->route('client.index');
     }
+
+    public function getAddress($client_id)
+    {
+        $adress = Clients_Addres::where('client_id',$client_id)->get();
+        return $adress;
+    }
+
+    public function postAddress(Request $request)
+    {
+        $request->validate([
+            'client_id' => ['required'],
+            'country' => ['required'],
+            'state' => ['required'],
+            'cp' => ['required'],
+            'city' => ['required'],
+            'address_street' => ['required'],
+        ],
+        [
+            'required' => 'El campo es requerido.',
+            'string' => 'El campo debe ser de tipo alfanumérico.',
+        ]);
+
+        Clients_Addres::create([
+            'client_id' => $request->client_id,
+            'country' => $request->country,
+            'state' => $request->state,
+            'cp' => $request->cp,
+            'city' => $request->city,
+            'address_street' => $request->address_street,
+            'address_nro' => $request->address_nro,
+            'address_apartament' => $request->address_apartament,
+            'address_detail' => $request->address_detail,
+        ]);
+
+        return redirect()->route('client.index');
+    }
+    public function detroyAddress($id)
+    {
+        Clients_Addres::find($id)->update([
+            'deleted_at' => Carbon::now()
+        ]);
+
+        return redirect()->route('client.index');
+    }
+    
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\PermissionController;
@@ -44,6 +45,11 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::resource('/client',ClientController::class);
     Route::post('/client/table', [ClientController::class,'getDataTable']);
+    Route::post('/client/excel', [ExcelController::class,'importaClientsExcel'])->name('importaExcelClient');
+
+    Route::get('/client/address/{id}', [ClientController::class,'getAddress']);
+    Route::post('/client/address', [ClientController::class,'postAddress']);
+    Route::delete('/client/address/{id}', [ClientController::class,'detroyAddress']);
 
     Route::resource('/jobs',JobController::class);
     Route::post('/jobs/table', [JobController::class,'getDataTable']);

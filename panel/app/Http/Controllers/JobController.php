@@ -21,7 +21,8 @@ class JobController extends Controller
                 return redirect()->route('logout');     
             }
             $clients = Client::all();
-            return view("jobs", compact("clients"));
+            $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
+            return view("jobs", compact("clients","google_api_key"));
         }
        
         return redirect()->route('login');

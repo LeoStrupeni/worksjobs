@@ -49,8 +49,8 @@ class HomeController extends Controller
             }
 
             $clients = Client::all();
-
-            return view("home", compact("jobs","clients"));
+            $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
+            return view("home", compact("jobs","clients","google_api_key"));
         }
         return redirect()->route('login');
     }
