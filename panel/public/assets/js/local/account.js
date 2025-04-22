@@ -218,7 +218,7 @@ function tableregister(data, page, callpaginas, url_query){
                         }
 
                         if ( data.permissions.includes('delete') ){
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_names}">
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_name}">
                                 <i class="flaticon-delete"></i> Eliminar
                             </a></li>`
                         }

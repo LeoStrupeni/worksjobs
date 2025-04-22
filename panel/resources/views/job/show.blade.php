@@ -29,13 +29,19 @@
             <div class="modal-body" id="modal-body-show-job">
                 <form id="formshowjob">
                     <div class="row">
-                        <div class="col-6">
+                        <div class="col-12 col-md-4">
                             <div class="mb-2">
                                 <label for="client_name" class="form-label mb-0 ps-3 fw-bold">Cliente</label>
                                 <input type="text" class="form-control" name="client_name" readonly>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-12 col-md-4">
+                            <div class="mb-2">
+                                <label for="client_addres_name" class="form-label mb-0 ps-3 fw-bold">Domicilio</label>
+                                <input type="text" class="form-control" name="client_addres_name" readonly>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
                             <div class="mb-2">
                                 <label for="visit_datetime" class="form-label mb-0 ps-3 fw-bold">Fecha y hora de visita</label>
                                 <input type="datetime-local" class="form-control validate" name="visit_datetime" readonly>
@@ -84,6 +90,9 @@
                                 <input type="datetime-local" class="form-control validate" name="closed_datetime" readonly>
                             </div>
                         </div>
+                    </div>
+                    <div id="lightgalleryShow" class="row justify-content-start">
+
                     </div>
                 </form>
             </div>

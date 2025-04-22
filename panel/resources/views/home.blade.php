@@ -27,12 +27,14 @@
 
   @section('Content')
     @include('home.content')
+    @include('job.create')
     @include('job.edit')
     @include('job.show')
     @include('job.destroy')
     @include('job.descripcion')
     @include('job.notes')
     @include('job.closed')
+    @include('job.files')
   @endsection
 
   @section('script_by_page')
@@ -46,6 +48,7 @@
       var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
       })
+      var google_api_key = "{{$google_api_key->value}}";
     </script>
     <script src="{{env('APP_URL')}}/assets/js/local/jobdetail.js"></script>
     <script src="{{env('APP_URL')}}/assets/js/local/geolocalizacion.js"></script>

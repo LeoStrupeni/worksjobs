@@ -37,8 +37,8 @@
                         </div>
                         <div class="col-12 col-lg-6">
                             <div class="mb-2">
-                                <label for="last_names" class="form-label mb-0 ps-3 fw-bold">Apellido</label>
-                                <input type="text" class="form-control" name="last_names" readonly>
+                                <label for="last_name" class="form-label mb-0 ps-3 fw-bold">Apellido</label>
+                                <input type="text" class="form-control" name="last_name" readonly>
                             </div>
                         </div>
                         <div class="col-12 col-lg-6">

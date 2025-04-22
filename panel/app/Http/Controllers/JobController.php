@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\Clients_Addres;
 use App\Models\Job;
+use App\Models\Jobs_file;
 use App\Models\Jobs_Note;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -20,7 +22,7 @@ class JobController extends Controller
             if ($val == false){
                 return redirect()->route('logout');     
             }
-            $clients = Client::all();
+            $clients = Client::limit(20)->get();
             $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
             return view("jobs", compact("clients","google_api_key"));
         }
@@ -155,8 +157,10 @@ class JobController extends Controller
 
     public function store(Request $request)
     {
+        // dd($request->all(),$request->hasFile('images'));
         $request->validate([
                 'client_id' => ['required'],
+                'address_id' => ['required'],
                 'visit_datetime' => ['required'],
                 'job_description' => ['required']
             ],
@@ -165,8 +169,9 @@ class JobController extends Controller
             ]
         );
     
-        Job::create([
+        $job = Job::create([
             'client_id' => $request->client_id,
+            'client_addres_id' => $request->address_id,
             'visit_datetime' => $request->visit_datetime,
             'job_description' => $request->job_description,
             'visit_latitud' => $request->latitude,
@@ -174,6 +179,8 @@ class JobController extends Controller
             'visit_coords_status' => $request->latitude != null && $request->longitude != null ? 1 : 0,
             'visit_json_coords' => $request->jsongeolocation
         ]);
+
+        $this->addfiles($request, $job->id);
 
         return redirect()->route('jobs.index');
     }
@@ -185,9 +192,17 @@ class JobController extends Controller
 
     public function edit($id)
     {
-        $job = Job::leftjoin('clients','jobs.client_id','clients.id')->where('jobs.id',$id)->selectraw("jobs.id,
+        $job = Job::leftjoin('clients','jobs.client_id','clients.id')
+            ->leftjoin('clients_address','jobs.client_addres_id','clients_address.id')
+            ->where('jobs.id',$id)
+            ->selectraw("jobs.id,
                 jobs.client_id,
-                CONCAT(clients.first_name,' ',clients.last_name) AS client_name, 
+                jobs.client_addres_id,
+                CONCAT(clients.first_name,' ',IFNULL(clients.last_name,'')) AS client_name, 
+                CONCAT(IFNULL(clients_address.address_detail,''),' ',
+                       IFNULL(clients_address.address_street,''),' ',
+                       IFNULL(clients_address.address_nro,''),' ',
+                       IFNULL(clients_address.city,'')) AS client_addres_name, 
                 jobs.created_at,
                 jobs.visit_datetime,
                 jobs.arrival_datetime,
@@ -197,11 +212,17 @@ class JobController extends Controller
                 CONCAT(jobs.closed_latitud,',',jobs.closed_longitud) as closed_coords,
                 jobs.closed_job_observation")
         ->first();
-        return $job;
+
+        $address = Clients_Addres::where('client_id',$job->client_id)->get();
+        $files = Jobs_file::where('job_id',$id)->get();
+        $repuesta['job'] = $job;
+        $repuesta['address'] = $address;
+        $repuesta['files'] = $files;
+        return $repuesta;
     }
 
     public function update(Request $request, $id)
-    {
+    {   
         $job = Job::find($id);
     
         $datos = array();
@@ -222,9 +243,16 @@ class JobController extends Controller
             );
             $datos['job_description'] = $request->job_description;
         }
+        if(isset($request->address_id) && $request->address_id != $job->client_addres_id){
+            $request->validate(['address_id' => ['required']],
+                [ 'required' => 'El campo es requerido.']
+            );
+            $datos['client_addres_id'] = $request->address_id;
+        }
 
         if( (isset($request->visit_datetime) && $request->visit_datetime != $job->visit_datetime) 
             || (isset($request->job_description) && $request->job_description != $job->job_description)) {
+                
                 $datos['visit_latitud'] = $request->latitude;
                 $datos['visit_longitud'] = $request->longitude;
                 $datos['visit_coords_status'] = $request->latitude != null && $request->longitude != null ? 1 : 0;
@@ -234,7 +262,8 @@ class JobController extends Controller
         if(count($datos) > 0){
             Job::where('id',$id)->update($datos);
         }
-        
+        $this->addfiles($request, $id);
+
         return redirect()->route('jobs.index');
     }
 
@@ -244,7 +273,7 @@ class JobController extends Controller
             'deleted_at' => Carbon::now()
         ]);
 
-        return redirect()->route('jobs.index');
+        return back();
     }
 
     public function markarrival(Request $request)
@@ -258,6 +287,31 @@ class JobController extends Controller
         ]);
 
         return 1;
+    }
+
+    public function closed(Request $request)
+    {
+        $request->validate([
+                'id' => ['required'],    
+                'client_id' => ['required'],
+                'closed_job_observation' => ['required']
+            ],
+            [
+                'required' => 'El campo es requerido.',
+            ]
+        );
+
+        Job::where('id',$request->id)->update([
+            'closed_datetime' => Carbon::now(),
+            'closed_latitud' => $request->latitude,
+            'closed_longitud' => $request->longitude,
+            'closed_coords_status' => 1,
+            'closed_json_coords' => $request->jsongeolocation,
+            'closed_job_observation' => $request->closed_job_observation
+        ]);
+        $this->addfiles($request, $request->id);
+
+        return back();
     }
 
     public function addnote(Request $request)
@@ -293,6 +347,65 @@ class JobController extends Controller
             'deleted_at' => Carbon::now()
         ]);
 
+        return 1;
+    }
+
+    public function onlyaddfiles(Request $request)
+    {
+        $this->addfiles($request, $request->id);
+        return back();
+    }
+
+    protected function addfiles(Request $request, $job_id)
+    {
+        if ($request->hasFile('images')) {
+            $file = $request->file('images');
+
+            foreach ($file as $attachment) {
+                $n = 10;
+                $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $randomString = '';
+                for ($i = 0; $i < $n; $i++) { $index = random_int(0, strlen($characters) - 1); $randomString .= $characters[$index];}
+
+                $path = $attachment->storeAs('public', $job_id.'_'.time().'_'.$randomString.'.'.$attachment->getClientOriginalExtension());
+
+                Jobs_file::create([
+                    'job_id' => $job_id,
+                    'name' => basename($path),
+                    'original_name' => $attachment->getClientOriginalName(),
+                    'original_extension' => $attachment->getClientOriginalExtension(),
+                ]);
+            }
+        }
+    }
+
+    public function destroyfile($id)
+    {
+        $file = Jobs_file::find($id);
+    
+        $path = 'storage/'.$file->name;
+        if (file_exists($path)) {
+            unlink($path);
+        }
+        $file->update([
+            'deleted_at' => Carbon::now()
+        ]);
+
+        return Jobs_file::where('job_id',$file->job_id)->wherenull('deleted_at')->get();
+    }
+    
+    public function destroyallfiles($id)
+    {
+        $files = Jobs_file::where('job_id',$id)->get();
+        foreach ($files as $file) {
+            $path = 'storage/'.$file->name;
+            if (file_exists($path)) {
+                unlink($path);
+            }
+            $file->update([
+                'deleted_at' => Carbon::now()
+            ]);
+        }
         return 1;
     }
     

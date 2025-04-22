@@ -59,9 +59,21 @@
           </a>
         @endif
 
-        <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-dark closetask" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Cerrar Tarea" data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}">
-          <i class="flaticon-book"></i>
-        </a>
+        @if (in_array('update',Session::get('user')['permissions']['jobs']))
+          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-success addfiles"
+            data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}"
+            data-bs-toggle="tooltip" data-bs-trigger="hover" title="Agregar imagenes">
+              <i class="flaticon-photo-camera"></i>
+          </a>
+        @endif
+
+        @if ($j->estatus != 'Cerrado')
+          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-dark closetask" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Cerrar Tarea" data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}">
+            <i class="flaticon-book"></i>
+          </a>
+        @endif
+
+
 
       </div>
     </div>

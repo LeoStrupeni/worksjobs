@@ -15,6 +15,10 @@
 
 <script src="{{env('APP_URL')}}/assets/js/tableAjaxLocal.js"></script>
 <script src="{{env('APP_URL')}}/assets/plugins/sorttable/sorttable.js"></script>
+<script src="{{env('APP_URL')}}/assets/plugins/lightGallery/js/lightgallery.min.js"></script>
+<script src="{{env('APP_URL')}}/assets/plugins/lightGallery/js/lg-thumbnail.min.js"></script>
+<script src="{{env('APP_URL')}}/assets/plugins/lightGallery/js/lg-fullscreen.min.js"></script>
+<script src="{{env('APP_URL')}}/assets/plugins/lightGallery/js/lg-zoom.min.js"></script>
 
 <script>
     $.ajaxSetup({ headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });

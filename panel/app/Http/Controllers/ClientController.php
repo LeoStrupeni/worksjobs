@@ -44,7 +44,7 @@ class ClientController extends Controller
 
         if ($search != '' && isset($search)) {
             $query .= " AND (C.first_name LIKE '%$search%' 
-                OR C.last_names LIKE '%$search%'
+                OR C.last_name LIKE '%$search%'
                 OR C.num_doc LIKE '%$search%'
                 OR C.email LIKE '%$search%'
                 OR C.phone1 LIKE '%$search%'
@@ -103,7 +103,7 @@ class ClientController extends Controller
     {
         $request->validate([
                 'first_name' => ['required','string'],
-                'last_names' => ['string'],
+                'last_name' => ['string'],
                 'type_doc' => ['required'],
                 'num_doc' => ['required'],
                 'email' => ['email','string'],
@@ -115,9 +115,9 @@ class ClientController extends Controller
             ]
         );
     
-        Client::create([
+        $client = Client::create([
             'first_name' => $request->first_name,
-            'last_names' => $request->last_names,
+            'last_name' => $request->last_name,
             'type_doc' => $request->type_doc,
             'num_doc' => $request->num_doc,
             'email' => $request->email,
@@ -133,6 +133,8 @@ class ClientController extends Controller
             'address_detail' => $request->address_detail,
             'other_obs' => $request->other_obs,
         ]);
+
+        $this->storeAddress($request, $client->id);
 
         return redirect()->route('client.index');
     }
@@ -159,11 +161,11 @@ class ClientController extends Controller
             );
             $datos['first_name'] = $request->first_name;
         }
-        if(isset($request->last_names) && $request->last_names != $client->last_names){
-            $request->validate(['last_names' => ['required','string']],
+        if(isset($request->last_name) && $request->last_name != $client->last_name){
+            $request->validate(['last_name' => ['required','string']],
                 [ 'required' => 'El campo es requerido.','string' => 'El campo debe ser de tipo alfanumérico.']
             );
-            $datos['last_names'] = $request->last_names;
+            $datos['last_name'] = $request->last_name;
         }
         if(isset($request->type_doc) && $request->type_doc != $client->type_doc){
             $request->validate(['type_doc' => ['required']],
@@ -254,8 +256,15 @@ class ClientController extends Controller
             'string' => 'El campo debe ser de tipo alfanumérico.',
         ]);
 
+        $this->storeAddress($request, $request->client_id);
+
+        return redirect()->route('client.index');
+    }
+
+    protected function storeAddress(Request $request, $client_id)
+    {
         Clients_Addres::create([
-            'client_id' => $request->client_id,
+            'client_id' => $client_id,
             'country' => $request->country,
             'state' => $request->state,
             'cp' => $request->cp,
@@ -265,9 +274,8 @@ class ClientController extends Controller
             'address_apartament' => $request->address_apartament,
             'address_detail' => $request->address_detail,
         ]);
-
-        return redirect()->route('client.index');
     }
+
     public function detroyAddress($id)
     {
         Clients_Addres::find($id)->update([

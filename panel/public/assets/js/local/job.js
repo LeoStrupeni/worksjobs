@@ -1,36 +1,6 @@
-var controladorTiempo = 3000;
-var valorbuscado = '';
-
 $(document).ready(function() {
     callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
-    $('body').on('click','.create',function(){ 
-        $('#name').val('');
-        $('#description').val('');
-        $('#createjob').modal('show');
 
-        navigator.geolocation.getCurrentPosition(geosuccess);
-    });
-    $('body').on('click',"#btn-create-job",function () {
-        var error = 0
-        form = document.getElementById("formnewjob");
-
-        $( form.getElementsByClassName('validate') ).each(function( index ) {
-            if($(this).prop('name') != undefined){
-                if($( this ).val() == ''){
-                    $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
-                    error++;
-                } else {
-                    $( this ).css('box-shadow', '');
-                }
-            }
-        });
-            
-        if (error > 0) {
-            toastr["error"]("Debe completar los datos correctamente.")
-        } else {
-            document.getElementById("formnewjob").submit();
-        }
-    });
     $('body').on('change',"#table_limit",function () {
         callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
     });
@@ -64,47 +34,6 @@ $(document).ready(function() {
             });
         }
     });
-    $('.bs-searchbox').children().keyup(function (e) {
-        valor = this.value;
-        if ($($($(e.target)).parent().parent().parent()[0]).hasClass('searchvar')) {            
-            console.log(valor.length);
-            if(valorbuscado != valor && valor.length > 0){
-                valorbuscado = valor;
-
-                clearInterval(controladorTiempo);
-                controladorTiempo = setInterval(function(){
-                    let selectClients = $('select#client_id');
-                        selectClients.find('option').remove(); 
-                    $('#client_id').empty();
-                    $('#client_id').selectpicker('render');
-                    $('#spinner1').removeClass('d-none');
-
-                    $.ajax({
-                        contenttype: 'application/json; charset=utf-8',
-                        url: "/api/searchvar",
-                        type: 'GET',
-                        data: {
-                            search: valor,
-                            tipo: 'clients'
-                        },
-                        success : function(data) {
-                            datos = data;
-
-                            $.each(datos, function() {
-                                var option = `<option value="${this.id}">${this.first_name} ${this.last_names}</option>`;
-                                selectClients.append(option);
-                            });
-                            selectClients.selectpicker('refresh');
-                            
-                        }
-                    }).always(function() {
-                        $('#spinner1').addClass('d-none');
-                    });
-                    clearInterval(controladorTiempo); //Limpio el intervalo
-                }, 400);
-            }
-        }
-    });
 });
 
 function tableregister(data, page, callpaginas, url_query){
@@ -113,7 +42,7 @@ function tableregister(data, page, callpaginas, url_query){
 
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}">
-            <td class="align-middle">${val.client_first_name} ${val.client_last_name}</td>
+            <td class="align-middle">${val.client_first_name} ${val.client_last_name ?? ''}</td>
             <td class="text-start py-2 align-middle">
                 <p class="m-0 text-nowrap" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Creación">
                     <i class="fas fa-circle" style="color: black;"></i> ${val.created} (${val.created_day})

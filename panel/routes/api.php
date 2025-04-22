@@ -20,4 +20,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('/searchvar', [ApiSearchVarController::class,'searchvar']);
-
+Route::post('/searchvar', [ApiSearchVarController::class,'searchvar']);

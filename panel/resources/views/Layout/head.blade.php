@@ -31,6 +31,8 @@
     <link href="{{env('APP_URL')}}/assets/plugins/select2/dist/css/select2.css" rel="stylesheet" type="text/css" />
     <link href="{{env('APP_URL')}}/assets/plugins/bootstrap-select-1.14.0-beta3/docs/docs/dist/css/bootstrap-select.min.css" rel="stylesheet" type="text/css"/>
     
+    <link href="{{env('APP_URL')}}/assets/plugins/lightGallery/css/lightgallery.min.css" type="text/css" rel="stylesheet" />
+
     <!--begin::Fonts -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
@@ -583,5 +585,20 @@
             border-color: var(--bs-table-border-color);
             background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
         } */
+    </style>
+    <style>
+        .lg-outer { z-index: 1100; }
+        .lg-backdrop { z-index: 1090; }
+
+        .btn-danger-pro {
+            color: #e3342f;
+        }
+        .btn-danger-pro:hover {
+            color: #990000;
+            background-color: transparent!important;
+            border-color: transparent!important;
+            cursor: pointer;
+        }
+
     </style>
 </head>

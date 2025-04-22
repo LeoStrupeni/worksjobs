@@ -181,7 +181,7 @@ function tableregister(data, page, callpaginas, url_query){
 
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}">
-            <td class="align-middle">${val.first_name ?? ''} ${val.last_names ?? ''}</td>
+            <td class="align-middle">${val.first_name ?? ''} ${val.last_name ?? ''}</td>
             <td class="align-middle">${val.tipodoc ?? ''} - ${val.num_doc ?? ''}</td>
             <td class="align-middle">${val.email ?? ''}</td>
             <td class="align-middle">${val.phone1 ?? ''}</td>
@@ -206,7 +206,7 @@ function tableregister(data, page, callpaginas, url_query){
                         }
 
                         if ( data.permissions.includes('delete') ){
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_names}">
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_name}">
                                 <i class="flaticon-delete"></i> Eliminar
                             </a></li>`
                         }

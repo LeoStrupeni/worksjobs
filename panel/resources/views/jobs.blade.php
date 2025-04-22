@@ -150,6 +150,8 @@
     @include('job.destroy')
     @include('job.descripcion')
     @include('job.notes')
+    @include('job.closed')
+    @include('job.files')
 @endsection
 
 @section('script_by_page')

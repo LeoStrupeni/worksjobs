@@ -65,7 +65,12 @@
           </div>
         </li>
         @endif
-        
+        @if (in_array('create',Session::get('user')['permissions']['jobs']))
+          <li class="mb-2">
+            <button type="button" class="btn btn-toggle d-inline-flex align-items-center rounded border-0 ms-2 create">Crear Tarea</button>
+          </li>       
+        @endif
+
         <li class="border-top my-3"></li>
         <li class="mb-2">
             <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed ms-2" data-bs-toggle="collapse" data-bs-target="#coc-account" aria-expanded="false">
@@ -75,10 +80,10 @@
                 <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
                     <li><a href="#" class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-4">Perfil</a></li>
                     <li>
-                        <form action="/logout" method="post" style="display: inline;">
-                            @csrf
-                            <a class="dropdown-item rounded py-3" href="#" onclick="this.closest('form').submit()">Logout</a>
-                        </form>
+                      <form action="/logout" method="post" style="display: inline;">
+                          @csrf
+                          <a class="dropdown-item rounded py-3" href="#" onclick="this.closest('form').submit()">Logout</a>
+                      </form>
                     </li>
                 </ul>
             </div>

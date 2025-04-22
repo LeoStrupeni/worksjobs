@@ -47,6 +47,12 @@
                         </ul>
                     </li>
                     @endif
+                    @if (in_array('create',Session::get('user')['permissions']['jobs']))
+                        <li class="nav-item dropdown btn-header-menu">
+                            <button type="button" class="btn btn-lg text-white rounded h-100 create">Crear Tarea</button>
+                        </li>       
+                    @endif
+
                 </ul>
             </div>
             <div class="d-none d-lg-block">

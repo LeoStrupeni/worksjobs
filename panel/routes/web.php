@@ -54,8 +54,12 @@ Route::group(['middleware' => 'auth'], function () {
     Route::resource('/jobs',JobController::class);
     Route::post('/jobs/table', [JobController::class,'getDataTable']);
     Route::post('/jobs/markarrival', [JobController::class,'markarrival']);
+    Route::post('/jobs/closed', [JobController::class,'closed'])->name('job.closed');
     Route::post('/jobs/addnote', [JobController::class,'addnote']);
     Route::get('/jobs/notes/{id}', [JobController::class,'getnotes']);
     Route::get('/jobs/destroynote/{id}', [JobController::class,'destroynote']);
+    Route::post('/jobs/files', [JobController::class,'onlyaddfiles'])->name('job.files');
+    Route::get('/jobs/destroyfile/{id}', [JobController::class,'destroyfile']);
+    
     
 });
