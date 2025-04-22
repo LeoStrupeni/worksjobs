@@ -9,6 +9,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::get('test', function () {
@@ -16,8 +17,7 @@ Route::get('test', function () {
 });
 
 Route::get('/', [HomeController::class,'index'])->name('home.index');
-
-Route::view('/login','Auth.login')->name('login');
+Route::view('/login','Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value])->name('login');
 Route::post('/login', [LoginController::class,'login']);
 Route::post('/logout', [LoginController::class,'logout']);
 Route::get('/logout', [LoginController::class,'logoutGet'])->name('logout');
@@ -54,6 +54,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::resource('/jobs',JobController::class);
     Route::post('/jobs/table', [JobController::class,'getDataTable']);
     Route::post('/jobs/markarrival', [JobController::class,'markarrival']);
+    Route::post('/jobs/backarrival', [JobController::class,'backarrival']);
     Route::post('/jobs/closed', [JobController::class,'closed'])->name('job.closed');
     Route::post('/jobs/addnote', [JobController::class,'addnote']);
     Route::get('/jobs/notes/{id}', [JobController::class,'getnotes']);

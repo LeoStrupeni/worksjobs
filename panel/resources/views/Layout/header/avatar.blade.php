@@ -5,7 +5,7 @@
     </button>
     <ul class="dropdown-menu dropdown-menu-end rounded p-0">
         <li>
-            <a class="dropdown-item rounded py-3" href="#">Perfil</a>
+            <a class="dropdown-item rounded py-3 update-user" data-id="{{Auth::user()->id}}" href="#">Perfil</a>
         </li>
         <li>
             <form action="/logout" method="get" style="display: inline;">

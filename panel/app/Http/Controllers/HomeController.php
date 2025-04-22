@@ -48,9 +48,7 @@ class HomeController extends Controller
                 $j->getnotes = $note ? 'si' : 'no';
             }
 
-            $clients = Client::limit(20)->get();
-            $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
-            return view("home", compact("jobs","clients","google_api_key"));
+            return view("home", compact("jobs"));
         }
         return redirect()->route('login');
     }

@@ -22,9 +22,7 @@ class JobController extends Controller
             if ($val == false){
                 return redirect()->route('logout');     
             }
-            $clients = Client::limit(20)->get();
-            $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
-            return view("jobs", compact("clients","google_api_key"));
+            return view("jobs");
         }
        
         return redirect()->route('login');
@@ -282,8 +280,21 @@ class JobController extends Controller
             'arrival_datetime' => Carbon::now(),
             'arrival_latitud' => $request->arrival_latitud,
             'arrival_longitud' => $request->arrival_longitud,
-            'arrival_coords_status' => 1,
+            'arrival_coords_status' => '1',
             'arrival_json_coords' => $request->jsongeolocation
+        ]);
+
+        return 1;
+    }
+
+    public function backarrival(Request $request)
+    {
+        Job::where('id',$request->job_id)->update([
+            'arrival_datetime' => null,
+            'arrival_latitud' => null,
+            'arrival_longitud' => null,
+            'arrival_coords_status' => '0',
+            'arrival_json_coords' => null
         ]);
 
         return 1;

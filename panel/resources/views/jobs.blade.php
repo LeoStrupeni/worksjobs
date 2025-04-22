@@ -35,7 +35,7 @@
                     <div class="col">
                         <button type="button" class="btn btn-danger float-end mx-1" onclick="callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')"><i class="fa-solid fa-arrows-rotate"></i></button>
                         @if (in_array('create',Session::get('user')['permissions']['jobs']))
-                            <button type="button" class="btn btn-success float-end mx-1 create"><i class="fa-solid fa-plus"></i></button>
+                            <button type="button" class="btn btn-success float-end mx-1 create-job"><i class="fa-solid fa-plus"></i></button>
                         @endif
                     </div>
                 </div>
@@ -144,7 +144,7 @@
     </div>
     
     {{-- @include('home.foot') --}}
-    @include('job.create')
+    {{-- @include('job.create') --}} {{-- INCLUIDO EN ARCHIVO AVATAR --}}
     @include('job.edit')
     @include('job.show')
     @include('job.destroy')
@@ -155,10 +155,7 @@
 @endsection
 
 @section('script_by_page')
-    <script>var google_api_key = "{{$google_api_key->value}}";</script>
     <script src="{{env('APP_URL')}}/assets/js/local/job.js"></script>
-    <script src="{{env('APP_URL')}}/assets/js/local/jobdetail.js"></script>
-    <script src="{{env('APP_URL')}}/assets/js/local/geolocalizacion.js"></script>
 @endsection
 
 

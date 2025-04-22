@@ -74,7 +74,7 @@ function tableregister(data, page, callpaginas, url_query){
             <td class="align-middle">`
                 if(val.getnotes != 'no'){
                     body+= `<button type="button" class="btn btn-sm btn-primary btn-notes" data-id="${val.id}" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Ver notas">
-                        <i class="fa-solid fa-note-sticky"></i>
+                        <i class="flaticon-notes"></i>
                     </button>`;
                 }
             body += `</td>
@@ -91,37 +91,62 @@ function tableregister(data, page, callpaginas, url_query){
                     </button>
                     <ul class="dropdown-menu" >`;
 
+                        if( data.permissions.includes('read') ) {
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read-job">
+                                <i class="flaticon-eye"></i> Ver
+                            </a></li>`
+                        }
+
                         if ( val.arrival == null ){
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item markarrival">
                                     <i class="flaticon-home"></i> Marcar Arribo
                                     </a>
                                 </li>`
-                        } else {
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addnote" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
-                                <i class="flaticon-upload"></i> Agregar nota
-                            </a></li>`
-                        }
+                        } 
 
-                        if( data.permissions.includes('read') ) {
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read">
-                                <i class="flaticon-eye"></i> Ver
-                            </a></li>`
+                        body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addnote" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                            <i class="flaticon-upload"></i> Agregar nota
+                        </a></li>`;
+                        
+                        if (val.getnotes != 'no') {
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item btn-notes" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                                <i class="flaticon-notes"></i> Ver notas
+                            </a></li>`;
                         }
 
                         if( data.permissions.includes('update') && val.arrival == null ) {
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update">
-                                <i class="flaticon-upload"></i> Editar
-                            </a></li>`
+                            body += `<li>
+                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update-job">
+                                    <i class="flaticon-upload"></i> Editar
+                                </a>
+                            </li>`;
+                        }
+
+                        if( data.permissions.includes('update') ) {
+                            body += `<li>
+                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addfiles" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                                    <i class="flaticon-photo-camera"></i> Agregar imagenes
+                                </a>
+                            </li>`;
                         }
 
                         if ( data.permissions.includes('delete') && val.arrival == null ){
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete-job" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
                                 <i class="flaticon-delete"></i> Eliminar
                             </a></li>`
                         }
 
+                        if (data.roluser == 'sistema' || data.roluser == 'admin') {
+                            if ( data.permissions.includes('update') && val.arrival != null && val.closed == null) {
+                                body += `<li>
+                                    <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item backarrival">
+                                        <i class="flaticon-reply"></i> Volver a pendiente
+                                    </a>
+                                </li>`;
+                            }  
+                        }
+                        
                         if ( val.arrival != null && val.closed == null){
-                            
                             body += `<li>
                                 <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item closetask">
                                     <i class="flaticon-book"></i> Cerrar Tarea

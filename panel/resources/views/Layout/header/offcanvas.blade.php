@@ -67,7 +67,7 @@
         @endif
         @if (in_array('create',Session::get('user')['permissions']['jobs']))
           <li class="mb-2">
-            <button type="button" class="btn btn-toggle d-inline-flex align-items-center rounded border-0 ms-2 create">Crear Tarea</button>
+            <button type="button" class="btn btn-toggle d-inline-flex align-items-center rounded border-0 ms-2 create-job">Crear Tarea</button>
           </li>       
         @endif
 
@@ -78,7 +78,7 @@
             </button>
             <div class="collapse" id="coc-account">
                 <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                    <li><a href="#" class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-4">Perfil</a></li>
+                    <li><a href="#" class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-4 update-user" data-id="{{Auth::user()->id}}">Perfil</a></li>
                     <li>
                       <form action="/logout" method="post" style="display: inline;">
                           @csrf

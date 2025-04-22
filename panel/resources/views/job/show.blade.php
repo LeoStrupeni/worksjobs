@@ -58,7 +58,7 @@
                         <div class="col-12 col-md-4 text-center">
                             <div class="mb-2 arrival_coords_title d-none">
                                 <label class="form-label mb-0 ps-3 fw-bold">Ubicación de arribo</label>
-                                <iframe class="d-none arrival_coords" src="https://www.google.com/maps/embed/v1/place?key={{$google_api_key->value}}&q=-32.9515008,-60.6430357" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                <iframe class="d-none arrival_coords" src="https://www.google.com/maps/embed/v1/place?key={{Session::get('user.google_api_key')}}&q=-32.9515008,-60.6430357" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"    referrerpolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
                     </div>
@@ -73,7 +73,7 @@
                         <div class="col-12 col-md-4 text-center">
                             <div class="mb-2 closed_coords_title d-none">
                                 <label class="form-label mb-0 ps-3 fw-bold">Ubicación de cierre</label>
-                                <iframe class="d-none closed_coords" src="https://www.google.com/maps/embed/v1/place?key={{$google_api_key->value}}&q=-32.9515008,-60.6430357" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                <iframe class="d-none closed_coords" src="https://www.google.com/maps/embed/v1/place?key={{Session::get('user.google_api_key')}}&q=-32.9515008,-60.6430357" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"    referrerpolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div>
                     </div>

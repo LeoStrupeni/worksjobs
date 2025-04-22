@@ -19,21 +19,29 @@
           </p>
         @endif
 
+        @if (Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')
+          @if(in_array('update',Session::get('user')['permissions']['jobs']) && $j->arrival != null && $j->estatus != 'Cerrado')
+            <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-danger backarrival"  data-bs-toggle="tooltip" data-bs-trigger="hover" title="Volver a pendiente">
+              <i class="flaticon-reply"></i>
+            </a>
+          @endif
+        @endif
+
         @if (in_array('read',Session::get('user')['permissions']['jobs']))
-          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-primary read" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Ver tarea">
+          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-primary read-job" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Ver tarea">
             <i class="flaticon-eye"></i>
           </a>
         @endif
 
         @if (in_array('update',Session::get('user')['permissions']['jobs']) && $j->arrival == null)
-          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-primary update"
+          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-primary update-job"
             data-bs-toggle="tooltip" data-bs-trigger="hover" title="Editar tarea">
               <i class="flaticon-upload"></i>
           </a>
         @endif
 
         @if (in_array('delete',Session::get('user')['permissions']['jobs']) && $j->arrival == null)
-          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-danger delete"
+          <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-danger delete-job"
             data-name="{{$j->client_first_name.' '.$j->client_last_name.' del '.$j->visit_day.' '.$j->visit}}"
             data-bs-toggle="tooltip" data-bs-trigger="hover" title="Eliminar Tarea">
               <i class="flaticon-delete"></i>
@@ -55,7 +63,7 @@
         @if($j->getnotes != 'no')
           <a href="javascript:void(0);" data-id="{{$j->id}}" class="btn btn-primary btn-notes" 
             data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Ver notas">
-              <i class="fa-solid fa-note-sticky"></i>
+              <i class="flaticon-notes"></i>
           </a>
         @endif
 

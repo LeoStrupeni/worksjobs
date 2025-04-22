@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Client;
 use App\Models\Permission;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 class LoginController extends Controller
@@ -24,8 +26,6 @@ class LoginController extends Controller
             ]
         );
 
-
-
         $remember = $request->filled('remember');
         if(Auth::attempt(['email' => $request->email, 'password' => $request->password, 'estatus' => 1],$remember)) {
             $request->session()->regenerate();
@@ -33,6 +33,12 @@ class LoginController extends Controller
             Session::put('user.roles', Auth::user()->roles->pluck('name') );
             // Session::put('user.permissions', Auth::user()->getPermissionsViaRoles()->pluck('name') );
             $this->getpermissions();
+
+            $clients = Client::limit(20)->get();
+            $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
+
+            Session::put('user.clients', $clients );
+            Session::put('user.google_api_key', $google_api_key->value );
 
             return redirect()->intended('home')->with('status','estas logueado!');
         }

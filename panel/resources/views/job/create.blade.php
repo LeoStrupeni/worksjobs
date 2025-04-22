@@ -21,7 +21,7 @@
                         <select class="form-control validate selectpicker searchvar" name="client_id" style="width: 100%" 
                             data-live-search="true" data-size="5" data-none-selected-text="Seleccione un cliente" data-none-results-text="No hay resultados coincidentes" id="client_id" required onchange="getAddress(this.value)">
                                 <option></option>
-                            @foreach ($clients as $c)
+                            @foreach (Session::get('user.clients') as $c)
                                 <option value="{{$c->id}}">{{$c->first_name.' '.$c->last_name}}</option>
                             @endforeach
                         </select>

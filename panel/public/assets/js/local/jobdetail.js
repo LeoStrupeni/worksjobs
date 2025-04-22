@@ -1,14 +1,15 @@
 var controladorTiempo = 3000;
 var valorbuscado = '';
 $(document).ready(function() {
-    $('body').on('click','.create',function(){ 
+    navigator.geolocation.getCurrentPosition(geosuccess);
+    $('body').on('click','.create-job',function(){ 
         $('#name').val('');
         $('#description').val('');
         $('#createjob').modal('show');
 
         navigator.geolocation.getCurrentPosition(geosuccess);
     });
-    $('body').on('click','.update',function(){ 
+    $('body').on('click','.update-job',function(){ 
         $("#lightgalleryEditNone").empty();
         $("#lightgalleryEdit").empty();     
         $('#formeditjob').attr('action',app_url+"/jobs/"+$(this).data('id'));
@@ -58,7 +59,7 @@ $(document).ready(function() {
             navigator.geolocation.getCurrentPosition(geosuccess);
         });
     });
-    $('body').on('click','.read',function(){ 
+    $('body').on('click','.read-job',function(){ 
         $("#lightgalleryShow").empty();
         form = document.getElementById("formshowjob");
         $( form.elements ).each(function( index ) {
@@ -86,7 +87,7 @@ $(document).ready(function() {
             $('#modal-body-show-job-roller').addClass('d-none');
         });
     });
-    $('body').on('click','.delete',function(){ 
+    $('body').on('click','.delete-job',function(){ 
         rolid=$(this).data('id');
         Swal.fire({
             title: "Borrar tarea",
@@ -153,7 +154,6 @@ $(document).ready(function() {
     });
     $('body').on('click',".markarrival", function(){
         var idtarea = $(this).data('id');
-        navigator.geolocation.getCurrentPosition(geosuccess);
         $.ajax({contenttype : 'application/json; charset=utf-8',
             url : $('meta[name="app_url"]').attr('content')+'/jobs/markarrival',
             type : 'POST',
@@ -167,6 +167,24 @@ $(document).ready(function() {
             error : function(jqXHR,textStatus,errorThrown) { toastr["error"]("Error al marcar el arribo reintentelo."); },
             success : function(data) {
                 toastr["success"]("Arribo marcado correctamente.");
+                if(window.location.href.includes('jobs') ){
+                    callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
+                } else {
+                    window.location.reload();
+                }
+            }
+        });
+    });
+    $('body').on('click',".backarrival", function(){
+        var idtarea = $(this).data('id');
+        $.ajax({contenttype : 'application/json; charset=utf-8',
+            url : $('meta[name="app_url"]').attr('content')+'/jobs/backarrival',
+            type : 'POST',
+            data: { job_id : idtarea},
+            done : function(response) { toastr["error"]("Error al volver la tarea a pendiente, reintentelo."); },
+            error : function(jqXHR,textStatus,errorThrown) { toastr["error"]("Error al volver la tarea a pendiente, reintentelo."); },
+            success : function(data) {
+                toastr["success"]("Se borró el marcado de la llegada de la tarea.");
                 if(window.location.href.includes('jobs') ){
                     callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
                 } else {
@@ -260,7 +278,6 @@ $(document).ready(function() {
         });
 
     });
-    
     $('body').on('click',".btn-notes", function(){
         var idtarea = $(this).data('id');
         var nombre = $(this).data('name');

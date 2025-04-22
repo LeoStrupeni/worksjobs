@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     @include('Layout/head')
@@ -8,7 +9,13 @@
 
     <div class="container-fluid p-0" id="inicio">
         @include('Layout/header')
-        @yield('Content')    
+        
+        @yield('Content')
+        
+        @auth
+            @include('user.edit')
+            @include('job.create')
+        @endauth
     </div>
     
     @include('Layout/script')

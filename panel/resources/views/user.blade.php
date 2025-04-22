@@ -147,7 +147,7 @@
     
     {{-- @include('home.foot') --}}
     @include('user.create')
-    @include('user.edit')
+    {{-- @include('user.edit')  --}}{{-- INCLUIDO EN ARCHIVO AVATAR --}}
     @include('user.show')
     @include('user.destroy')
 @endsection
