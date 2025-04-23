@@ -33,6 +33,7 @@ class HomeController extends Controller
             } else {
                 $query .= " AND (
                     CAST(C.visit_datetime as DATE) BETWEEN DATE(NOW()) and DATE_ADD(DATE(NOW()),INTERVAL 3 DAY)
+                    OR (C.arrival_datetime IS NULL AND C.closed_datetime IS NULL AND CAST(C.visit_datetime as DATE) < DATE(NOW())) 
                     OR (C.arrival_datetime IS NOT NULL AND C.closed_datetime IS NULL)   
                     OR  CAST(C.closed_datetime as DATE) BETWEEN DATE_ADD(DATE(NOW()),INTERVAL -1 DAY) and DATE_ADD(DATE(NOW()),INTERVAL 1 DAY)
                 ) 
