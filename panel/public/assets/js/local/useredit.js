@@ -27,7 +27,7 @@ $(document).ready(function() {
                 $('#e_password').val('');
                 $('#e_password_confirmation').val('');
                 $('.password').text('')
-                $('#imagen-user-edit').attr('src', data.imagen);
+                $('#imagen-user-edit').attr('src', '/storage/'+data.imagen);
                 $('#modal-body-edit-user').removeClass('d-none');
                 $('#modal-footer-edit-user').removeClass('d-none');
             }

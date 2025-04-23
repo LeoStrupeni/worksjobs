@@ -120,9 +120,10 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'imagen' => $request->base64 ?? null,
             'estatus' => 1
         ]);
+
+        $this->addAvatar($request, $user->id);
 
         $rol = Rol::find($request->rol);
 
@@ -190,14 +191,12 @@ class UserController extends Controller
 
             $datos['password'] = Hash::make($request->password);
         }
-        
-        if(isset($request->base64)){
-            $datos['imagen'] = $request->base64;
-        }
 
         if(count($datos) > 0){
             User::where('id',$id)->update($datos);
         }
+
+        $this->addAvatar($request, $id);
 
         $rol = Rol::find($request->rol);
 
@@ -220,5 +219,14 @@ class UserController extends Controller
         ]);
 
         return back();
+    }
+
+    protected function addAvatar(Request $request, $user_id)
+    {
+        if ($request->hasFile('profile_avatar')) {
+            $file = $request->file('profile_avatar');
+            $path = $file->storeAs('public', 'avatar_'.$user_id.'_'.time().'.'.$file->getClientOriginalExtension());
+            User::find($user_id)->update(['imagen'=>basename($path)]);
+        }
     }
 }

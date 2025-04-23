@@ -2,7 +2,8 @@
     @php
         $imagen = Auth::user()->imagen;
         if($imagen == '' || $imagen == null){$imagen = env('APP_URL')."/assets/media/avatar.png";}
-    @endphp
+        else { $imagen = env('APP_URL')."/storage/".Auth::user()->imagen;}
+    @endphp 
     <button type="button" class="btn border-0 rounded-circle p-0" data-bs-toggle="dropdown" aria-expanded="true">
         <img src="{{$imagen}}" class="rounded-circle" height="48">
         <i class="fa-solid fa-caret-down text-white" style="position: relative;left: -15px;bottom: -20px;"></i>

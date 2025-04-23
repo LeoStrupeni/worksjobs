@@ -32,7 +32,7 @@ $(document).ready(function() {
                 $('#s_name').val(data.name);
                 $('#s_email').val(data.email);
                 $("#s_rol").val(data.rolid).change();
-                $('#imagen-user-show').attr('src', data.imagen);
+                $('#imagen-user-show').attr('src', '/storage/'+data.imagen);
                 $('#modal-body-show-user').removeClass('d-none');
             }
         }).always(function() {
@@ -162,7 +162,7 @@ function tableregister(data, page, callpaginas, url_query){
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
 
     $.each(data.datos, function (key, val) {
-        imagen = val.imagen;
+        imagen = '/storage/'+val.imagen;
         if(imagen == '' || imagen == null){imagen = app_url+"/assets/media/avatar.png"}
         body += `<tr id="${val.id}">
             <td class="align-middle"><img class="profile-pic-table" src="${imagen}"/></td>

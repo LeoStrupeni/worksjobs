@@ -30,7 +30,7 @@
                 <form action="" enctype="multipart/form-data" id="formedituser" method="POST">
                     @csrf
                     @method('PUT')
-                    <input type="hidden" name="base64" class="base64">
+                    {{-- <input type="hidden" name="base64" class="base64"> --}}
                     <div class="row justify-content-evenly">
                         <div class="col-9">
                             <div class="mb-2">
@@ -77,7 +77,9 @@
                                 <img class="profile-pic" id="imagen-user-edit" src=""/>
                                 <label class="avatar_upload">
                                     <i class="fa fa-pen"></i>
-                                    <input class="file-upload d-none" type="file" name="profile_avatar" accept="image/*" onchange="convert64(event,this);">
+                                    <input class="file-upload d-none" type="file" name="profile_avatar" accept="image/*" 
+                                        {{-- onchange="convert64(event,this);" --}}
+                                    >
                                 </label>
                             </div>
                         </div>
