@@ -32,7 +32,7 @@ $(document).ready(function() {
         $('#modal-body-edit-job-roller').removeClass('d-none');
         $('#modal-body-edit-job-error').addClass('d-none');
         $('#modal-body-edit-job').addClass('d-none');
-        $('#modal-footer-edit-job').addClass('d-none');
+        $('#modal-foot-edit-job').addClass('d-none');
 
         $.ajax({contenttype : 'application/json; charset=utf-8',
             url : $('meta[name="app_url"]').attr('content')+'/jobs/'+$(this).data('id')+'/edit',
@@ -52,7 +52,7 @@ $(document).ready(function() {
                 viewfiles(data,'lightgalleryEdit');
 
                 $('#modal-body-edit-job').removeClass('d-none');
-                $('#modal-footer-edit-job').removeClass('d-none');
+                $('#modal-foot-edit-job').removeClass('d-none');
             }
         }).always(function() {
             $('#modal-body-edit-job-roller').addClass('d-none');
@@ -359,6 +359,11 @@ $(document).ready(function() {
         $('#titleclosedjob').text("Cerrar tarea: "+nombre);
         $('#closedjob').modal('show');
 
+        $('#modal-body-closed-job-roller').removeClass('d-none');
+        $('#modal-body-closed-job-error').addClass('d-none');
+        $('#modal-body-closed-job').addClass('d-none');
+        $('#modal-foot-closed-job').addClass('d-none');
+
         $.ajax({contenttype : 'application/json; charset=utf-8',
           url : $('meta[name="app_url"]').attr('content')+'/jobs/'+idtarea+'/edit',
           type : 'GET',
@@ -368,10 +373,13 @@ $(document).ready(function() {
 
             viewjob(data,form,'closedjob');
             viewfiles(data,'lightgalleryClosed');
-            navigator.geolocation.getCurrentPosition(geosuccess);
+
+            $('#modal-body-closed-job').removeClass('d-none');
+            $('#modal-foot-closed-job').removeClass('d-none');
           }
         }).always(function() {
-          // $('#modal-body-show-job-roller').addClass('d-none');
+            $('#modal-body-closed-job-roller').addClass('d-none');
+            navigator.geolocation.getCurrentPosition(geosuccess);
         });
     });
     $('body').on('click',"#btn-closed-job",function () {

@@ -5,7 +5,28 @@
                 <h5 class="modal-title" id="titleclosedjob"></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body d-none" id="modal-body-closed-job-error">
+                <div style="display:block;" class="text-center">
+                    <br>
+                    <br>
+                    <div class="alert alert-info m-0 justify-content-center" role="alert">
+                        <h5 class="m-0">Error al obtener la informacion. Por favor reintentelo o comuniquese con Soporte</h5>
+                    </div>
+                    <br>
+                    <br>
+                </div>
+            </div>
+            <div class="modal-body" id="modal-body-closed-job-roller">
+                <div style="display:block;" class="text-center">
+                    <br>
+                    <br>
+                    <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                    <br>
+                    <br>
+                    <br>
+                </div>
+            </div>
+            <div class="modal-body" id="modal-body-closed-job">
                 <form action="{{route('job.closed')}}" method="POST" id="formclosedjob" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="latitude">
@@ -45,7 +66,7 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" id="modal-foot-closed-job">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success" id="btn-closed-job">Guardar</button>
             </div>

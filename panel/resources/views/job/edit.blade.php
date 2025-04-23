@@ -5,7 +5,28 @@
                 <h5 class="modal-title">Editar Tarea</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body d-none" id="modal-body-edit-job-error">
+                <div style="display:block;" class="text-center">
+                    <br>
+                    <br>
+                    <div class="alert alert-info m-0 justify-content-center" role="alert">
+                        <h5 class="m-0">Error al obtener la informacion. Por favor reintentelo o comuniquese con Soporte</h5>
+                    </div>
+                    <br>
+                    <br>
+                </div>
+            </div>
+            <div class="modal-body" id="modal-body-edit-job-roller">
+                <div style="display:block;" class="text-center">
+                    <br>
+                    <br>
+                    <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+                    <br>
+                    <br>
+                    <br>
+                </div>
+            </div>
+            <div class="modal-body" id="modal-body-edit-job">
                 <form action="" method="POST" id="formeditjob" enctype="multipart/form-data">
                     @csrf
                     @method("PUT")
@@ -52,7 +73,7 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer"  id="modal-foot-edit-job">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success" id="btn-update-job">Guardar</button>
             </div>
