@@ -12,7 +12,6 @@ $(document).ready(function() {
         $('#imagen-user-create').attr('src', "");
         $('#createuser').modal('show')}
     );
-
     $('body').on('click','.read',function(){ 
         $('#s_name').val('');
         $('#s_email').val('');

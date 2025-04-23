@@ -9,15 +9,24 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-Route::get('test', function () {
-	dd( base_path(). '/../public/storage/',env('APP_URL'),storage_path('app'));
-});
+// Route::get('test', function () {
+// 	dd( base_path(). '/../public/storage/',env('APP_URL'),storage_path('app'), storage_path('app/public'));
+// });
+// Route::get('/storagelink', function () { 
+//     $target = storage_path('app').'/public';
+//     $shortcut = 'storage';
+//     symlink($target, $shortcut);
+//     // Artisan::call('storage:link'); return 'Storage link created'; 
+//     return 'Storage link created';
+// });
 
 Route::get('/', [HomeController::class,'index'])->name('home.index');
-Route::view('/login','Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value])->name('login');
+// Route::view('/login','Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value])->name('login');
+Route::get('/login', [LoginController::class,'loginget'])->name('login');
 Route::post('/login', [LoginController::class,'login']);
 Route::post('/logout', [LoginController::class,'logout']);
 Route::get('/logout', [LoginController::class,'logoutGet'])->name('logout');

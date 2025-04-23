@@ -45,9 +45,11 @@ $(document).ready(function() {
             } else if ($( this ).prop('name')=='nombre' && !regex_letras.test($( this ).val())) {
                 $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
                 error++;
-            } else if ($( this ).prop('name')=='email' && !regex_mail.test($( this ).val())) {
-                $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
-                error++;
+            } else if ($( this ).prop('name')=='email' ) {
+                if ( $( '#e_rol' ).val() == 1 && !regex_mail.test($( this ).val())) {
+                    $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
+                    error++;
+                }
             } 
         });
         if (error > 0) {

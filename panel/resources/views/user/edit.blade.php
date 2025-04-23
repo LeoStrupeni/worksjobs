@@ -46,7 +46,7 @@
                                 <select class="form-control e_validate" name="rol" id="e_rol" style="width: 100%" required>
                                     <option></option>
                                     <option value="1">Admin</option>
-                                    <option value="2" selected>Secretaria</option>
+                                    <option value="2" selected>Técnico</option>
                                 </select>
                             </div>
 
@@ -71,8 +71,6 @@
                                     <small style="font-style: italic;" class="ps-3 password form-text text-danger"></small>
                                 </div>
                             </div>
-
-                            
                         </div>
                         <div class="col-3 align-self-center">
                             <div class="avatar">

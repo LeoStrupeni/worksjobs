@@ -42,7 +42,7 @@
                             <select class="form-control" id="s_rol" style="width: 100%">
                                 <option></option>
                                 <option value="1">Admin</option>
-                                <option value="2" selected>Secretaria</option>
+                                <option value="2" selected>Técnico</option>
                             </select>
                         </div>                            
                     </div>

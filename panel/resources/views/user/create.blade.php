@@ -24,7 +24,7 @@
                                 <select class="form-control validate" name="rol" style="width: 100%" required>
                                     <option></option>
                                     <option value="1">Admin</option>
-                                    <option value="2" selected>Secretaria</option>
+                                    <option value="2" selected>Técnico</option>
                                 </select>
                             </div>
                             <div class="mb-2">

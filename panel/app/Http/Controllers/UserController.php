@@ -133,7 +133,7 @@ class UserController extends Controller
             $user->assignRole($rolT->name);
         }
         
-        return redirect()->route('users.index');
+        return back();
     }
 
     public function show($id)
@@ -208,7 +208,7 @@ class UserController extends Controller
             $user->assignRole($rolT->name);
         }
         
-        return redirect()->route('users.index');
+        return back();
     }
 
     public function destroy($id, Request $request)
@@ -219,6 +219,6 @@ class UserController extends Controller
             'estatus' => 0
         ]);
 
-        return redirect()->route('users.index');
+        return back();
     }
 }

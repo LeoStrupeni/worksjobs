@@ -84,6 +84,7 @@
 </script>
 {{-- disponibles en todas las vistas --}}
 <script>var google_api_key = "{{Session::get('user.google_api_key')}}";</script>
+<script src="{{env('APP_URL')}}/assets/js/avatar.js"></script>
 <script src="{{env('APP_URL')}}/assets/js/local/useredit.js"></script>
 <script src="{{env('APP_URL')}}/assets/js/local/jobdetail.js"></script>
 <script src="{{env('APP_URL')}}/assets/js/local/geolocalizacion.js"></script>

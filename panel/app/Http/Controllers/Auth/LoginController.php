@@ -5,14 +5,23 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Permission;
+use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 
 class LoginController extends Controller
 {
+    public function loginget()
+    {
+        return view('Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value]);
+    }
+
+    
     public function login(Request $request)
     {   
         $credentials = $request->validate([
@@ -81,4 +90,5 @@ class LoginController extends Controller
 
         Session::put('user.permissions', $listpermissions );
     }
+
 }

@@ -1,4 +1,4 @@
-{{-- {{dd(Session::get('user.clients'))}} --}}
+{{-- {{dd(Auth::user()->imagen)}} --}}
 @extends('layout')
 
 @auth

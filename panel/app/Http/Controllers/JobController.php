@@ -180,7 +180,7 @@ class JobController extends Controller
 
         $this->addfiles($request, $job->id);
 
-        return redirect()->route('jobs.index');
+        return back();
     }
 
     public function show($id)
@@ -262,7 +262,7 @@ class JobController extends Controller
         }
         $this->addfiles($request, $id);
 
-        return redirect()->route('jobs.index');
+        return back();
     }
 
     public function destroy($id)
@@ -378,7 +378,7 @@ class JobController extends Controller
                 $randomString = '';
                 for ($i = 0; $i < $n; $i++) { $index = random_int(0, strlen($characters) - 1); $randomString .= $characters[$index];}
 
-                $path = $attachment->storeAs('public', $job_id.'_'.time().'_'.$randomString.'.'.$attachment->getClientOriginalExtension());
+                $path = $attachment->storeAs('local', $job_id.'_'.time().'_'.$randomString.'.'.$attachment->getClientOriginalExtension());
 
                 Jobs_file::create([
                     'job_id' => $job_id,

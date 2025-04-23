@@ -153,7 +153,6 @@
 @endsection
 
 @section('script_by_page')
-    <script src="{{env('APP_URL')}}/assets/js/avatar.js"></script>
     <script src="{{env('APP_URL')}}/assets/js/local/user.js"></script>
 @endsection
 
