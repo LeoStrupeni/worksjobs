@@ -51,6 +51,7 @@ class HomeController extends Controller
 
             return view("home", compact("jobs"));
         }
-        return redirect()->route('login');
+        return view("public.home");
+        // return redirect()->route('login');
     }
 }
