@@ -21,6 +21,8 @@
     <link href="{{env('APP_URL')}}/assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="{{env('APP_URL')}}/assets/media/icono.ico" rel="icon"/>
 
+    <link href="{{env('APP_URL')}}/assets/plugins/slick-1.8.1/slick/slick.css" rel="stylesheet" type="text/css" />
+    <link href="{{env('APP_URL')}}/assets/plugins/slick-1.8.1/slick/slick-theme.css" rel="stylesheet" type="text/css" />
     <!--begin::Fonts -->
     <style>
         @font-face {
@@ -116,6 +118,30 @@
             padding-bottom: 1.25rem;
             color: #fff;
         }
+
+        .top-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: all 0.7s ease;
+        }
+
+        .top-img:hover {
+            opacity: 1;
+        }
+
+
+        .services {
+            height: 425px;
+            background-origin: padding-box;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            background-attachment: fixed;
+            transition: all 0.7s ease;
+        }
+
     </style>
 
     
@@ -249,12 +275,62 @@
                 <p class="text-center fs-1 text-uppercase text-se-success">nuestros servicios</p>
             </div>
         </div>
+        <div class="row justify-content-center align-items-center">
+            <div class="col col-lg-9">
+                <div class="slick-class">
+                    <div class="services" style="background-image: url('/assets/media/imagenes/Home-Servicios-Alarmas-Intrusión-Normal.png');" 
+                        onmouseover="this.style.backgroundImage='url(/assets/media/imagenes/Home-Servicios-Alarmas-Intrusión-Hover.png)';" 
+                        onmouseout="this.style.backgroundImage='url(/assets/media/imagenes/Home-Servicios-Alarmas-Intrusión-Normal.png)';">
+                    </div>
+                    <div class="services" style="background-image: url('/assets/media/imagenes/Home-Servicios-Control-Acceso-Normal.png');" 
+                        onmouseover="this.style.backgroundImage='url(/assets/media/imagenes/Home-Servicios-Control-Acceso-Hover.png)';" 
+                        onmouseout="this.style.backgroundImage='url(/assets/media/imagenes/Home-Servicios-Control-Acceso-Normal.png)';">
+                    </div>
+                    <div class="services" style="background-image: url('/assets/media/imagenes/Home-Servicios-Videogilancia-CCTV-Normal.png');" 
+                        onmouseover="this.style.backgroundImage='url(/assets/media/imagenes/Home-Servicios-Videogilancia-CCTV-Hover.png)';" 
+                        onmouseout="this.style.backgroundImage='url(/assets/media/imagenes/Home-Servicios-Videogilancia-CCTV-Normal.png)';">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
+        <br>
         
     </div>
 
-    <script src="{{env('APP_URL')}}/assets/js/jquery/dist/jquery.js"></script>
-    <script src="{{env('APP_URL')}}/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="{{env('APP_URL')}}/assets/plugins/moment/min/moment.min.js"></script>
-    <script src="{{env('APP_URL')}}/assets/icons/fontawesome-free-6.7.0-web/js/all.min.js"></script>
+    <script src="{{env('APP_URL')}}/assets/js/jquery/dist/jquery.js" type="text/javascript"></script>
+    <script src="{{env('APP_URL')}}/assets/plugins/bootstrap/js/bootstrap.bundle.min.js" type="text/javascript"></script>
+    <script src="{{env('APP_URL')}}/assets/plugins/moment/min/moment.min.js" type="text/javascript"></script>
+    <script src="{{env('APP_URL')}}/assets/icons/fontawesome-free-6.7.0-web/js/all.min.js" type="text/javascript"></script>
+
+    <script src="{{env('APP_URL')}}/assets/plugins/slick-1.8.1/slick/slick.min.js" type="text/javascript"></script>
+    <script>
+        $(document).ready(function(){
+            $('.slick-class').slick({
+                autoplay : true,
+                adaptiveHeight : true,
+                arrows : false,
+                infinite: true,
+                slidesToShow: 3,
+                slidesToScroll: 1
+            });
+
+
+            // $('body').on('mouseover', '.overlay', function() {
+            //     console.log(this);
+            //     console.log($(this).parent());
+
+            //     $(this).parent().children('img').first().addClass('d-none');
+            //     $(this).parent().children('img').last().removeClass('d-none');
+            // });
+        });
+
+
+    </script>
 </body>
 </html>
