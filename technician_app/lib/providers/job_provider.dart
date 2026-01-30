@@ -1,0 +1,396 @@
+import 'package:flutter/foundation.dart';
+import '../models/job.dart';
+import '../models/note.dart';
+import '../models/job_file.dart';
+import '../models/job_permissions.dart';
+import '../models/client.dart';
+import '../services/job_service.dart';
+import 'package:geolocator/geolocator.dart';
+
+class JobProvider with ChangeNotifier {
+  final JobService _jobService = JobService();
+  
+  List<Job> _todayJobs = [];
+  List<Job> _upcomingJobs = [];
+  List<Job> _calendarJobs = [];
+  Job? _selectedJob;
+  List<Note> _notes = [];
+  List<JobFile> _files = [];
+  JobPermissions? _permissions;
+  
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  List<Job> get todayJobs => _todayJobs;
+  List<Job> get upcomingJobs => _upcomingJobs;
+  List<Job> get calendarJobs => _calendarJobs;
+  Job? get selectedJob => _selectedJob;
+  List<Note> get notes => _notes;
+  List<JobFile> get files => _files;
+  JobPermissions? get permissions => _permissions;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  // Obtener citas del día
+  Future<void> fetchTodayJobs() async {
+    print('🔵 JobProvider.fetchTodayJobs: Iniciando...');
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.getTodayJobs();
+      print('📦 JobProvider.fetchTodayJobs: Result success=${result['success']}');
+      
+      if (result['success'] == true) {
+        _todayJobs = result['jobs'];
+        print('✅ JobProvider.fetchTodayJobs: ${_todayJobs.length} citas guardadas en _todayJobs');
+        print('📋 JobProvider.fetchTodayJobs: Jobs IDs: ${_todayJobs.map((j) => j.id).toList()}');
+        if (result['permissions'] != null) {
+          _permissions = JobPermissions.fromJson(result['permissions']);
+        }
+      } else {
+        _errorMessage = result['message'];
+        print('❌ JobProvider.fetchTodayJobs: Error - $_errorMessage');
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      print('❌ JobProvider.fetchTodayJobs: Exception - $e');
+    } finally {
+      _isLoading = false;
+      print('🔵 JobProvider.fetchTodayJobs: Finalizando, isLoading=$_isLoading, todayJobs.length=${_todayJobs.length}');
+      notifyListeners();
+    }
+  }
+
+  // Obtener próximas citas
+  Future<void> fetchUpcomingJobs({int limit = 50}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.getUpcomingJobs(limit: limit);
+      
+      if (result['success'] == true) {
+        _upcomingJobs = result['jobs'];
+        if (result['permissions'] != null) {
+          _permissions = JobPermissions.fromJson(result['permissions']);
+        }
+      } else {
+        _errorMessage = result['message'];
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Obtener citas por rango de fechas
+  Future<void> fetchJobsByDateRange(String startDate, String endDate) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.getJobsByDateRange(startDate, endDate);
+      
+      if (result['success'] == true) {
+        _calendarJobs = result['jobs'];
+      } else {
+        _errorMessage = result['message'];
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Obtener detalle de una cita
+  Future<void> fetchJobDetail(int jobId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.getJobDetail(jobId);
+      
+      if (result['success'] == true) {
+        _selectedJob = result['job'];
+        _notes = result['notes'] ?? [];
+        _files = result['files'] ?? [];
+      } else {
+        _errorMessage = result['message'];
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Marcar llegada
+  Future<bool> markArrival(int jobId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Obtener ubicación actual
+      Position? position = await _getCurrentLocation();
+      
+      final result = await _jobService.markArrival(
+        jobId,
+        lat: position?.latitude,
+        lng: position?.longitude,
+      );
+      
+      if (result['success'] == true) {
+        // Refrescar la cita
+        await fetchJobDetail(jobId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Cerrar cita
+  Future<bool> closeJob(int jobId, String observation) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Obtener ubicación actual
+      Position? position = await _getCurrentLocation();
+      
+      final result = await _jobService.closeJob(
+        jobId,
+        observation,
+        lat: position?.latitude,
+        lng: position?.longitude,
+      );
+      
+      if (result['success'] == true) {
+        // Refrescar la cita
+        await fetchJobDetail(jobId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Añadir nota
+  Future<bool> addNote(int jobId, String note) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.addNote(jobId, note);
+      
+      if (result['success'] == true) {
+        // Refrescar notas
+        await fetchJobDetail(jobId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Obtener ubicación actual
+  Future<Position?> _getCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      
+      if (!serviceEnabled) {
+        return null;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return null;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        return null;
+      }
+
+      return await Geolocator.getCurrentPosition();
+    } catch (e) {
+      print('Error al obtener ubicación: $e');
+      return null;
+    }
+  }
+
+  // Limpiar error
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Limpiar cita seleccionada
+  void clearSelectedJob() {
+    _selectedJob = null;
+    _notes = [];
+    _files = [];
+    notifyListeners();
+  }
+
+  // Volver a pendiente
+  Future<bool> backToPending(int jobId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _jobService.backToPending(jobId);
+      
+      if (success) {
+        // Actualizar job en las listas
+        await fetchTodayJobs();
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Eliminar tarea
+  Future<bool> deleteJob(int jobId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _jobService.deleteJob(jobId);
+      
+      if (success) {
+        // Actualizar listas
+        await fetchTodayJobs();
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Subir archivos
+  Future<bool> uploadFiles(int jobId, List<String> filePaths) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final success = await _jobService.uploadFiles(jobId, filePaths);
+      
+      if (success && _selectedJob?.id == jobId) {
+        // Recargar archivos si es el job seleccionado
+        await fetchJobDetail(jobId);
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Buscar clientes
+  Future<List<Client>> searchClients(String query) async {
+    try {
+      return await _jobService.searchClients(query);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Crear nueva tarea
+  Future<bool> createJob({
+    required int clientId,
+    required DateTime visitDateTime,
+    required String description,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.createJob(
+        clientId: clientId,
+        visitDateTime: visitDateTime,
+        description: description,
+      );
+      
+      if (result['success'] == true) {
+        // Actualizar lista de tareas
+        await fetchTodayJobs();
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+}

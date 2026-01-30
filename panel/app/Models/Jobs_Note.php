@@ -15,4 +15,12 @@ class Jobs_Note extends Model
     public $autoincrement = true;
     public $timestamps = true;
     public $guarded = [];
+
+    /**
+     * Relación con el modelo User
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

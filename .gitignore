@@ -1,0 +1,52 @@
+# Windows reserved names
+nul
+NUL
+CON
+PRN
+AUX
+COM1
+COM2
+COM3
+COM4
+LPT1
+LPT2
+LPT3
+LPT4
+
+# Laravel
+/panel/node_modules
+/panel/public/hot
+/panel/public/storage
+/panel/storage/*.key
+/panel/vendor
+/panel/.env
+/panel/.env.backup
+/panel/.phpunit.result.cache
+/panel/Homestead.json
+/panel/Homestead.yaml
+/panel/npm-debug.log
+/panel/yarn-error.log
+
+# Flutter/Dart
+/technician_app/.dart_tool/
+/technician_app/.flutter-plugins
+/technician_app/.flutter-plugins-dependencies
+/technician_app/.packages
+/technician_app/.pub-cache/
+/technician_app/.pub/
+/technician_app/build/
+/technician_app/.idea/
+
+# APK compilado
+/public/technician_app.apk
+
+# Public storage (symlink)
+/public/storage
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
