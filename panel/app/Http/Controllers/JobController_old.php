@@ -28,6 +28,94 @@ class JobController extends Controller
         return redirect()->route('login');
     }
 
+    public function getDataTable(Request $request)
+    {        
+        $roluser = Session::get('user')['roles'][0];
+        $permissions = Session::get('user')['permissions']['jobs'];
+
+        $order = $request->order;
+        $page = $request->page ?? 1;
+        $limit = $request->limit ?? 10;
+        $search = $request->search;
+
+        $totales = Job::count();
+
+        // Usar query centralizado del modelo
+        $query = Job::getJobsQuery();
+
+        if ($search != '' && isset($search)) {
+            $query->where(function($q) use ($search) {
+                $q->whereRaw("CL.first_name LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CL.last_name LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.created_at,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.visit_datetime,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.arrival_datetime,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.closed_datetime,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  // Días de la semana en español
+                  ->orWhereRaw("CASE DATE_FORMAT(C.created_at,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.visit_datetime,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.arrival_datetime,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.closed_datetime,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  // Meses en español
+                  ->orWhereRaw("CASE DATE_FORMAT(C.created_at,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.visit_datetime,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.arrival_datetime,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.closed_datetime,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  // Status y descripciones
+                  ->orWhereRaw("CASE WHEN C.closed_datetime IS NOT NULL THEN 'Cerrado' WHEN C.arrival_datetime IS NOT NULL THEN 'En Lugar' ELSE 'Pendiente' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("IFNULL(C.job_description,'') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("IFNULL(C.closed_job_observation,'') LIKE ?", ["%$search%"]);
+            });
+        }
+
+        $filtrados = $query->get();
+
+        // Aplicar ordenamiento
+        if ($order) {
+            $query->orderByRaw($order);
+        } else {
+            $query->orderBy('estatusorder', 'ASC')
+                  ->orderBy('ordervisit', 'ASC');
+        }
+
+        // Aplicar paginación
+        if ($limit) {
+            $query->limit($limit);
+        }
+        if ($page) {
+            $query->offset($limit * $page - $limit);
+        }
+
+        $lista = $query->get();
+
+        foreach ($lista as $j) {
+            $note = Jobs_Note::where('jobs_id', $j->id)->first();   
+            $j->getnotes = $note ? 'si' : 'no';
+        }
+
+        $respuesta['totales'] = $totales;
+        $respuesta['filtrados'] = count($filtrados);
+        $respuesta['paginastotal'] = ceil(count($filtrados) / $limit);
+        $respuesta['datos'] = $lista;
+
+        if ($limit * $page > count($filtrados)) {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . count($filtrados) . ' de un total de ' . count($filtrados);
+        } else {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados);
+        }
+
+        $respuesta['roluser'] = $roluser;
+        $respuesta['permissions'] = $permissions;
+
+        return $respuesta;
+    }
+
+    // DEPRECADO: Usar Job::getJobsQuery() en su lugar
+    public function querydata()
+    {
+        // Mantener por compatibilidad pero redirigir al método centralizado
+        return Job::getJobsQuery()->toSql();
+    }
 
     public function create()
     {
@@ -61,13 +149,6 @@ class JobController extends Controller
 
         $this->addfiles($request, $job->id);
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true, 
-                'message' => 'Tarea creada correctamente',
-                'job' => $job
-            ]);
-        }
         return back();
     }
 
@@ -150,52 +231,34 @@ class JobController extends Controller
         }
         $this->addfiles($request, $id);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Tarea actualizada correctamente']);
-        }
         return back();
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         Job::find($id)->update([
             'deleted_at' => Carbon::now()
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Tarea eliminada correctamente']);
-        }
         return back();
     }
 
     public function markarrival(Request $request)
     {
-        // Soportar parámetros de web (job_id, arrival_latitud, arrival_longitud) 
-        // y de app móvil (id en ruta, latitud, longitud)
-        $job_id = $request->job_id ?? $request->route('id');
-        $latitud = $request->arrival_latitud ?? $request->latitud;
-        $longitud = $request->arrival_longitud ?? $request->longitud;
-        
-        Job::where('id', $job_id)->update([
+        Job::where('id',$request->job_id)->update([
             'arrival_datetime' => Carbon::now(),
-            'arrival_latitud' => $latitud,
-            'arrival_longitud' => $longitud,
+            'arrival_latitud' => $request->arrival_latitud,
+            'arrival_longitud' => $request->arrival_longitud,
             'arrival_coords_status' => '1',
             'arrival_json_coords' => $request->jsongeolocation
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Arribo marcado correctamente']);
-        }
         return 1;
     }
 
     public function backarrival(Request $request)
     {
-        // Soportar parámetros de web (job_id) y de app móvil (id en ruta)
-        $job_id = $request->job_id ?? $request->route('id');
-        
-        Job::where('id', $job_id)->update([
+        Job::where('id',$request->job_id)->update([
             'arrival_datetime' => null,
             'arrival_latitud' => null,
             'arrival_longitud' => null,
@@ -203,134 +266,73 @@ class JobController extends Controller
             'arrival_json_coords' => null
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Arribo revertido correctamente']);
-        }
         return 1;
     }
 
     public function closed(Request $request)
     {
-        // Soportar parámetros de web (id, closed_job_observation, latitude, longitude) 
-        // y de app móvil (id en ruta, observation, latitud, longitud)
-        $job_id = $request->id ?? $request->route('id');
-        $observation = $request->closed_job_observation ?? $request->observation;
-        $latitud = $request->latitude ?? $request->latitud;
-        $longitud = $request->longitude ?? $request->longitud;
-        
         $request->validate([
+                'id' => ['required'],    
                 'client_id' => ['required'],
+                'closed_job_observation' => ['required']
             ],
             [
                 'required' => 'El campo es requerido.',
             ]
         );
-        
-        if (!$observation) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'La observación es requerida'], 400);
-            }
-            return back()->withErrors(['closed_job_observation' => 'El campo es requerido.']);
-        }
 
-        Job::where('id', $job_id)->update([
+        Job::where('id',$request->id)->update([
             'closed_datetime' => Carbon::now(),
-            'closed_latitud' => $latitud,
-            'closed_longitud' => $longitud,
+            'closed_latitud' => $request->latitude,
+            'closed_longitud' => $request->longitude,
             'closed_coords_status' => 1,
             'closed_json_coords' => $request->jsongeolocation,
-            'closed_job_observation' => $observation
+            'closed_job_observation' => $request->closed_job_observation
         ]);
-        $this->addfiles($request, $job_id);
+        $this->addfiles($request, $request->id);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Tarea cerrada correctamente']);
-        }
         return back();
     }
 
     public function addnote(Request $request)
     {
-        // Soportar parámetros de web y de app móvil
-        $job_id = $request->job_id ?? $request->route('id');
-        
-        if (!$request->note) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'La nota es requerida'], 400);
-            }
-            return back()->withErrors(['note' => 'El campo es requerido.']);
-        }
-        
-        $note = Jobs_Note::create([
-            'jobs_id' => $job_id,
+        Jobs_Note::create([
+            'jobs_id' => $request->job_id,
             'note' => $request->note,
             'latitud' => $request->latitud,
             'longitud' => $request->longitud,
             'json_coords' => $request->jsongeolocation
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true, 
-                'message' => 'Nota agregada correctamente',
-                'note' => [
-                    'id' => $note->id,
-                    'jobs_id' => $note->jobs_id,
-                    'note' => $note->note,
-                    'created' => $note->created_at->format('d/m/y H:i'),
-                    'created_at' => $note->created_at
-                ]
-            ]);
-        }
         return 1;
     }
 
-    public function getnotes(Request $request, $job_id = null)
+    public function getnotes($job_id)
     {
-        // Soportar job_id como parámetro de ruta o del query string
-        $job_id = $job_id ?? $request->route('id');
-        
-        $notes = Jobs_Note::where('jobs_id', $job_id)
+        $permissions = Session::get('user')['permissions']['jobs'];
+        $respuesta['permissions'] = $permissions;
+
+        $notes = Jobs_Note::where('jobs_id',$job_id)
             ->selectraw("id,jobs_id, note, DATE_FORMAT(created_at,'%d/%m/%y %H:%i') as created, created_at" )
             ->orderby('created_at','desc')
             ->get();
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $notes,  // La app espera 'data', no 'notes'
-                'count' => $notes->count()
-            ]);
-        }
-
-        $permissions = Session::get('user')['permissions']['jobs'];
-        $respuesta['permissions'] = $permissions;
         $respuesta['datos'] = $notes;
         return $respuesta;
     }
     
-    public function destroynote(Request $request, $id)
+    public function destroynote($id)
     {
         Jobs_Note::find($id)->update([
             'deleted_at' => Carbon::now()
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Nota eliminada correctamente']);
-        }
         return 1;
     }
 
     public function onlyaddfiles(Request $request)
     {
-        // Soportar id en body o en ruta
-        $job_id = $request->id ?? $request->route('id');
-        
-        $this->addfiles($request, $job_id);
-        
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Archivos subidos correctamente']);
-        }
+        $this->addfiles($request, $request->id);
         return back();
     }
 
@@ -386,7 +388,5 @@ class JobController extends Controller
         }
         return 1;
     }
-
-
     
 }

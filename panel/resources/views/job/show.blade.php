@@ -1,98 +1,218 @@
-<div class="modal fade" id="showjob" tabindex="-1" aria-hidden="true" >
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="min-width: 90%;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Ver Tarea</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+{{-- DISEÑO HÍBRIDA - TABS + ESTILO TARJETAS MODERNAS --}}
+<div class="modal fade" id="showjob" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border: none; border-radius: 20px;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="fas fa-tasks me-2"></i>Detalles de la Tarea
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            
+            {{-- Estados de carga y error --}}
             <div class="modal-body d-none" id="modal-body-show-job-error">
-                <div style="display:block;" class="text-center">
-                    <br>
-                    <br>
-                    <div class="alert alert-info m-0 justify-content-center" role="alert">
-                        <h5 class="m-0">Error al obtener la informacion. Por favor reintentelo o comuniquese con Soporte</h5>
-                    </div>
-                    <br>
-                    <br>
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
+            
             <div class="modal-body" id="modal-body-show-job-roller">
-                <div style="display:block;" class="text-center">
-                    <br>
-                    <br>
+                <div class="text-center py-5">
                     <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-                    <br>
-                    <br>
-                    <br>
                 </div>
             </div>
-            <div class="modal-body" id="modal-body-show-job">
+            
+            {{-- Contenido principal --}}
+            <div class="modal-body p-0" id="modal-body-show-job">
                 <form id="formshowjob">
-                    <div class="row">
-                        <div class="col-12 col-md-4">
-                            <div class="mb-2">
-                                <label for="client_name" class="form-label mb-0 ps-3 fw-bold">Cliente</label>
-                                <input type="text" class="form-control" name="client_name" readonly>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <div class="mb-2">
-                                <label for="client_addres_name" class="form-label mb-0 ps-3 fw-bold">Domicilio</label>
-                                <input type="text" class="form-control" name="client_addres_name" readonly>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4">
-                            <div class="mb-2">
-                                <label for="visit_datetime" class="form-label mb-0 ps-3 fw-bold">Fecha y hora de visita</label>
-                                <input type="datetime-local" class="form-control validate" name="visit_datetime" readonly>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12 col-md-8">
-                            <div class="mb-2">
-                                <label for="job_description" class="form-label mb-0 ps-3 fw-bold">Descripcion de trabajo</label>
-                                <textarea class="form-control validate" name="job_description" rows="8" readonly></textarea>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4 text-center">
-                            <div class="mb-2 arrival_coords_title d-none">
-                                <label class="form-label mb-0 ps-3 fw-bold">Ubicación de arribo</label>
-                                <iframe class="d-none arrival_coords" src="https://www.google.com/maps/embed/v1/place?key={{Session::get('user.google_api_key')}}&q=-32.9515008,-60.6430357" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"    referrerpolicy="no-referrer-when-downgrade"></iframe>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-12 col-md-8">
-                            <div class="mb-2">
-                                <label for="closed_job_observation" class="form-label mb-0 ps-3 fw-bold">Observaciones de cierre</label>
-                                <textarea class="form-control validate" name="closed_job_observation" rows="8" readonly></textarea>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4 text-center">
-                            <div class="mb-2 closed_coords_title d-none">
-                                <label class="form-label mb-0 ps-3 fw-bold">Ubicación de cierre</label>
-                                <iframe class="d-none closed_coords" src="https://www.google.com/maps/embed/v1/place?key={{Session::get('user.google_api_key')}}&q=-32.9515008,-60.6430357" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy"    referrerpolicy="no-referrer-when-downgrade"></iframe>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="mb-2">
-                                <label for="client_name" class="form-label mb-0 ps-3 fw-bold">Fecha y hora de arribo</label>
-                                <input type="datetime-local" class="form-control validate" name="arrival_datetime" readonly>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="mb-2">
-                                <label for="visit_datetime" class="form-label mb-0 ps-3 fw-bold">Fecha y hora de cierre</label>
-                                <input type="datetime-local" class="form-control validate" name="closed_datetime" readonly>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="lightgalleryShow" class="row justify-content-start">
+                    {{-- Tabs de navegación --}}
+                    <ul class="nav nav-tabs px-4 pt-3 bg-light" id="jobTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button">
+                                <i class="fas fa-info-circle me-1"></i>Información General
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location-content" type="button">
+                                <i class="fas fa-map-marker-alt me-1"></i>Ubicaciones
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-content" type="button">
+                                <i class="fas fa-images me-1"></i>Imágenes
+                            </button>
+                        </li>
+                    </ul>
 
+                    {{-- Contenido de los tabs --}}
+                    <div class="tab-content p-4 bg-light" id="jobTabsContent">
+                        {{-- Tab 1: Información General --}}
+                        <div class="tab-pane fade show active" id="info-content" role="tabpanel">
+                            <div class="row g-3">
+                                {{-- Tarjeta: Información del Cliente --}}
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-user fa-lg text-primary"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Información del Cliente</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label class="text-muted small mb-1">Cliente</label>
+                                                <input type="text" class="form-control border-0 bg-light" name="client_name" readonly>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="text-muted small mb-1">Domicilio</label>
+                                                <input type="text" class="form-control border-0 bg-light" name="client_addres_name" readonly>
+                                            </div>
+                                            <div>
+                                                <label class="text-muted small mb-1">Fecha y hora de visita</label>
+                                                <input type="datetime-local" class="form-control border-0 bg-light" name="visit_datetime" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Tarjeta: Descripción del Trabajo --}}
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-clipboard-list fa-lg text-success"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Descripción del Trabajo</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control border-0 bg-light" name="job_description" rows="9" readonly style="resize: none;"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Tarjeta: Observaciones de Cierre --}}
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-comment-alt fa-lg text-warning"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Observaciones de Cierre</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control border-0 bg-light" name="closed_job_observation" rows="9" readonly style="resize: none;"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Tarjeta: Registro de Tiempos --}}
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-clock fa-lg text-info"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Registro de Tiempos</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label class="text-muted small mb-1">
+                                                    <i class="fas fa-sign-in-alt me-1 text-success"></i>Fecha y hora de arribo
+                                                </label>
+                                                <input type="datetime-local" class="form-control border-0 bg-light" name="arrival_datetime" readonly>
+                                            </div>
+                                            <div>
+                                                <label class="text-muted small mb-1">
+                                                    <i class="fas fa-sign-out-alt me-1 text-danger"></i>Fecha y hora de cierre
+                                                </label>
+                                                <input type="datetime-local" class="form-control border-0 bg-light" name="closed_datetime" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Tab 2: Ubicaciones --}}
+                        <div class="tab-pane fade" id="location-content" role="tabpanel">
+                            <div class="row g-3">
+                                {{-- Tarjeta: Ubicación de Arribo --}}
+                                <div class="col-md-6 arrival_coords_title d-none">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-map-marker-alt fa-lg text-success"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Ubicación de Arribo</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <iframe class="arrival_coords d-none" 
+                                                src="https://www.google.com/maps/embed/v1/place?key={{Session::get('user.google_api_key')}}&q=-32.9515008,-60.6430357" 
+                                                width="100%" 
+                                                height="400" 
+                                                style="border:0;" 
+                                                allowfullscreen="" 
+                                                loading="lazy"
+                                                referrerpolicy="no-referrer-when-downgrade">
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Tarjeta: Ubicación de Cierre --}}
+                                <div class="col-md-6 closed_coords_title d-none">
+                                    <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-map-marker-alt fa-lg text-dark"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Ubicación de Cierre</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body p-0">
+                                            <iframe class="closed_coords d-none" 
+                                                src="https://www.google.com/maps/embed/v1/place?key={{Session::get('user.google_api_key')}}&q=-32.9515008,-60.6430357" 
+                                                width="100%" 
+                                                height="400" 
+                                                style="border:0;" 
+                                                allowfullscreen="" 
+                                                loading="lazy"
+                                                referrerpolicy="no-referrer-when-downgrade">
+                                            </iframe>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Tab 3: Imágenes --}}
+                        <div class="tab-pane fade" id="images-content" role="tabpanel">
+                            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                                <div class="card-header bg-white border-0 pt-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
+                                            <i class="fas fa-images fa-lg text-danger"></i>
+                                        </div>
+                                        <h6 class="mb-0 fw-bold">Galería de Imágenes</h6>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="lightgalleryShow" class="row g-3"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>

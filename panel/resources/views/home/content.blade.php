@@ -11,7 +11,8 @@
       </div>
       @foreach ($jobs as $j)
         @if ($j->estatus == $tipo)
-          @include('home.cards')
+          @include('home.cards-opcion2', ['j' => $j])
+          {{-- @include('home.cards') --}}
         @endif
       @endforeach
     </div>

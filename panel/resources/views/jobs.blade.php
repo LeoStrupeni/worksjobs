@@ -27,55 +27,80 @@
 @section('Content')
     <div class="container-fluid">
         <div class="row justify-content-center my-4">
-            <div class="col-12 col-lg-10 bg-white rounded p-2">
-                <div class="row align-items-center  justify-content-between">
-                    <div class="col">
-                        <div class="navbar-brand ps-3 fs-5">Listado de trabajos</div>
+            <div class="col-12 col-lg-10">
+                <div class="card border-0 shadow-sm" style="border-radius: 20px; overflow: hidden;">
+                    {{-- Header con gradiente --}}
+                    <div class="card-header border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="row align-items-center justify-content-between">
+                            <div class="col">
+                                <h5 class="mb-0 text-white fw-bold">
+                                    <i class="fas fa-tasks me-2"></i>Listado de Trabajos
+                                </h5>
+                            </div>
+                            <div class="col-auto">
+                                @if (in_array('create',Session::get('user')['permissions']['jobs']))
+                                    <button type="button" class="btn btn-light btn-sm me-2 create-job" title="Crear trabajo">
+                                        <i class="fa-solid fa-plus me-1"></i>Nuevo
+                                    </button>
+                                @endif
+                                <button type="button" class="btn btn-outline-light btn-sm" onclick="callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')" title="Recargar">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col">
-                        <button type="button" class="btn btn-danger float-end mx-1" onclick="callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')"><i class="fa-solid fa-arrows-rotate"></i></button>
-                        @if (in_array('create',Session::get('user')['permissions']['jobs']))
-                            <button type="button" class="btn btn-success float-end mx-1 create-job"><i class="fa-solid fa-plus"></i></button>
-                        @endif
-                    </div>
-                </div>
                 
-                <hr class="m-1" style="color: red;">
+                    <div class="card-body bg-light p-3">
 
-                @include('Layout.errors')
+                        @include('Layout.errors')
 
-                <div class="row my-3 align-items-center justify-content-between">
-                    <div class="col-3 col-xl-1">
-                        <select class="form-select" id="table_limit">
-                            <option value="10">10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div>
-                    <div class="col-7 col-lg-4">
-                        <div class="w-100 float-end" style="position: relative;padding: 0;">
-							<input type="text" class="form-control" placeholder="¿Qué buscas?" id="table_search">
-							<span style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 7px;width: 3.2rem;right: 0;">
-								<span><i class="flaticon2-search-1"></i></span>
-							</span>
-						</div>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover text-center sortable" id="table">
-                        <thead>
-                            <tr>
-                                <th class="column_orden" data-name="client_first_name">Cliente</th>
-                                <th class="column_orden" data-name="created_at">Fechas</th>
-                                <th class="column_orden" data-name="estatus">Estado</th>
-                                <th class="column_orden" data-name="job_description">Descripcion</th>
-                                <th class="sorttable_nosort">Notas</th>
-                                <th class="column_orden" data-name="closed_job_observation">Observaciones</th>
-                                <th class="sorttable_nosort" style="width:3%;"></th>
-                            </tr>
-                        </thead>
+                        <div class="row mb-3 align-items-center justify-content-between">
+                            <div class="col-auto">
+                                <label class="form-label mb-0 me-2 small text-muted">Mostrar:</label>
+                                <select class="form-select form-select-sm d-inline-block" id="table_limit" style="width: auto; border-radius: 8px;">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0" style="border-radius: 8px 0 0 8px;">
+                                        <i class="flaticon2-search-1 text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar trabajos..." id="table_search" style="border-radius: 0 8px 8px 0;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="position-relative" style="border-radius: 12px; overflow: hidden; max-height: 55vh; overflow-y: auto;">
+                            <table class="table table-hover text-center sortable mb-0" id="table" style="background: white;">
+                                <thead style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th class="column_orden fw-bold text-dark" data-name="client_first_name" style="cursor: pointer; min-width: 150px; white-space: nowrap;">
+                                            <i class="fas fa-user me-1"></i>Cliente
+                                        </th>
+                                        <th class="column_orden fw-bold text-dark" data-name="created_at" style="cursor: pointer; min-width: 200px; white-space: nowrap;">
+                                            <i class="fas fa-calendar me-1"></i>Fechas
+                                        </th>
+                                        <th class="column_orden fw-bold text-dark" data-name="estatus" style="cursor: pointer; min-width: 120px; white-space: nowrap;">
+                                            <i class="fas fa-flag me-1"></i>Estado
+                                        </th>
+                                        <th class="column_orden fw-bold text-dark" data-name="job_description" style="cursor: pointer; min-width: 250px; white-space: nowrap;">
+                                            <i class="fas fa-clipboard me-1"></i>Descripción
+                                        </th>
+                                        <th class="sorttable_nosort fw-bold text-dark" style="min-width: 80px; white-space: nowrap;">
+                                            <i class="fas fa-sticky-note me-1"></i>Notas
+                                        </th>
+                                        <th class="column_orden fw-bold text-dark" data-name="closed_job_observation" style="cursor: pointer; min-width: 250px; white-space: nowrap;">
+                                            <i class="fas fa-comment me-1"></i>Observaciones
+                                        </th>
+                                        <th class="sorttable_nosort fw-bold text-dark" style="width:80px; min-width: 80px; white-space: nowrap;">
+                                            <i class="fas fa-cog"></i>
+                                        </th>
+                                    </tr>
+                                </thead>
                         <tbody id="table_body">
 
                         </tbody>
@@ -124,19 +149,23 @@
                                     </div>
                                 </td>
                             </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="row align-items-center">
-                    <input type="hidden" id="table_order">
-                    <input type="hidden" id="table_paginas">
-                    <input type="hidden" id="table_filtrados">
-                    <input type="hidden" id="table_totales">
-                    <div class="col-lg-6" id="table_info">
-
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-lg-6" id="table_pagination">
-
+                    
+                    {{-- Footer con paginación --}}
+                    <div class="card-footer bg-white border-0 pt-3">
+                        <div class="row align-items-center">
+                            <input type="hidden" id="table_order">
+                            <input type="hidden" id="table_paginas">
+                            <input type="hidden" id="table_filtrados">
+                            <input type="hidden" id="table_totales">
+                            <div class="col-lg-6 mb-2 mb-lg-0">
+                                <small class="text-muted" id="table_info"></small>
+                            </div>
+                            <div class="col-lg-6" id="table_pagination">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

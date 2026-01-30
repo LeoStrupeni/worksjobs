@@ -20,8 +20,8 @@ class HomeController extends Controller
                 return redirect()->route('logout');     
             }
 
-            $controllerJobs = New JobController;
-            $query = $controllerJobs->querydata();
+            // Usar directamente el query del modelo en lugar de llamar a JobController
+            $query = Job::getJobsQuery()->toSql();
 
             if(Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin'){
                 $query .= " AND (

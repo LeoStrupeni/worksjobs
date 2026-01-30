@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\ApiDataTablesController;
+use App\Http\Controllers\Api\ApiJobController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClientController;
@@ -41,27 +43,30 @@ Route::view('/home','home')->middleware('auth');
 
 Route::group(['middleware' => 'auth'], function () {
     Route::redirect('/home', '/');
-    Route::resource('/users',UserController::class);
-    Route::post('/users/table', [UserController::class,'getDataTable']);
-    Route::resource('/roles',RolController::class);
-    Route::post('/roles/table', [RolController::class,'getDataTable']);
-    Route::get('/roles/users/{id}', [RolController::class,'getUsersRol']);
+    Route::resource('/users',UserController::class)->except(['edit']);
+    Route::get('/users/{id}/edit', [ApiDataTablesController::class,'getUserEdit']);
+    Route::post('/users/table', [ApiDataTablesController::class,'getUsersDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::resource('/roles',RolController::class)->except(['edit']);
+    Route::get('/roles/{id}/edit', [ApiDataTablesController::class,'getRolEdit']);
+    Route::post('/roles/table', [ApiDataTablesController::class,'getRolesDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::get('/roles/users/{id}', [ApiDataTablesController::class,'getUsersByRol']);
     
     Route::resource('/permission',PermissionController::class);
-    Route::post('/permission/table', [PermissionController::class,'getDataTable']);
+    Route::post('/permission/table', [ApiDataTablesController::class,'getPermissionsDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
 
     Route::post('/roles/permission/update', [PermissionController::class,'updaterolpermission'])->name('updaterolpermission');
 
-    Route::resource('/client',ClientController::class);
-    Route::post('/client/table', [ClientController::class,'getDataTable']);
+    Route::resource('/client',ClientController::class)->except(['edit']);
+    Route::get('/client/{id}/edit', [ApiDataTablesController::class,'getClientEdit']);
+    Route::post('/client/table', [ApiDataTablesController::class,'getClientsDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     Route::post('/client/excel', [ExcelController::class,'importaClientsExcel'])->name('importaExcelClient');
 
-    Route::get('/client/address/{id}', [ClientController::class,'getAddress']);
+    Route::get('/client/address/{id}', [ApiDataTablesController::class,'getClientAddresses']);
     Route::post('/client/address', [ClientController::class,'postAddress']);
     Route::delete('/client/address/{id}', [ClientController::class,'detroyAddress']);
 
     Route::resource('/jobs',JobController::class);
-    Route::post('/jobs/table', [JobController::class,'getDataTable']);
+    Route::post('/jobs/table', [ApiJobController::class,'getDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     Route::post('/jobs/markarrival', [JobController::class,'markarrival']);
     Route::post('/jobs/backarrival', [JobController::class,'backarrival']);
     Route::post('/jobs/closed', [JobController::class,'closed'])->name('job.closed');

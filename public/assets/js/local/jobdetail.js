@@ -65,6 +65,10 @@ $(document).ready(function() {
         $( form.elements ).each(function( index ) {
             $(this).val('');
         });
+        
+        // Resetear tabs a la primera pestaña (Información General)
+        $('#info-tab').tab('show');
+        
         $('#showjob').modal('show');
 
         $('#modal-body-show-job-roller').removeClass('d-none');
@@ -229,6 +233,11 @@ $(document).ready(function() {
                         success : function(data) {
                             toastr["success"]("Nota guardada correctamente.");
 
+                            // Habilitar el botón de ver notas para esta tarea
+                            var btnNotes = $(`.btn-notes[data-id="${idtarea}"]`);
+                            btnNotes.prop('disabled', false);
+                            btnNotes.css({'opacity': '1', 'cursor': 'pointer'});
+
                             if(window.location.href.includes('jobs') ){
                                 callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
                             }
@@ -282,6 +291,9 @@ $(document).ready(function() {
         var idtarea = $(this).data('id');
         var nombre = $(this).data('name');
 
+        // Guardar el ID de la tarea en el modal para uso posterior
+        $('#viewjobsnotes').data('job-id', idtarea);
+        
         $('#viewjobsnotes').modal('show');
         $('#titlenotas').text(nombre);
         $('#tablenotes_body').empty();
@@ -293,24 +305,29 @@ $(document).ready(function() {
         $.ajax({contenttype : 'application/json; charset=utf-8',
             url : $('meta[name="app_url"]').attr('content')+'/jobs/notes/'+idtarea,
             type : 'GET',
-            done : function(response) { $('#modal-body-view-jobsnotes-error').removeClass('d-none'); },
-            error : function(jqXHR,textStatus,errorThrown) { $('#modal-body-view-jobsnotes-error').removeClass('d-none'); },
-            success : function(data) {
+            done : function(response) { 
+                $('#modal-body-view-jobsnotes-error').removeClass('d-none');
+                $('#modal-body-view-jobsnotes').addClass('d-none');
+            },
+            error : function(jqXHR,textStatus,errorThrown) { 
+                $('#modal-body-view-jobsnotes-error').removeClass('d-none');
+                $('#modal-body-view-jobsnotes').addClass('d-none');
+            },
+            success : function(response) {
                 body='';
-                $.each(data.datos, function (key, val) {
+                $.each(response.data, function (key, val) {
                     body += `<tr>
                         <td class="text-wrap text-start">${val.note.replaceAll('\n','<br>')}</td>
                         <td class="align-middle">${val.created}</td>
-                        <td class="align-middle">`
-                        if ( data.permissions.includes('delete') ){
-                            body += `<a href="javascript:void(0);" data-id="${val.id}" class="btn btn-sm btn-danger deletenote">
+                        <td class="align-middle">
+                            <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-sm btn-danger deletenote">
                                 <i class="flaticon-delete"></i>
-                            </a>`;
-                        }
-                        body += `</td>
+                            </a>
+                        </td>
                     </tr>`;
                 });
                 $('#tablenotes_body').append(body);
+                $('#modal-body-view-jobsnotes-error').addClass('d-none');
                 $('#modal-body-view-jobsnotes').removeClass('d-none');
             }
         }).always(function() {
@@ -330,11 +347,25 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.dismiss != 'cancel') {
                 parent.remove();
+                
+                // Verificar si quedan más notas después de eliminar
+                var remainingNotes = $('#tablenotes_body tr').length;
+                var jobId = $('#viewjobsnotes').data('job-id');
+                
                 $.ajax({contenttype : 'application/json; charset=utf-8',
                     url : $('meta[name="app_url"]').attr('content')+'/jobs/destroynote/'+idtarea,
                     type : 'GET',
                     success : function(data) {
                         toastr["warning"]("Nota eliminada correctamente.");
+                        
+                        // Si no quedan más notas, cerrar modal y deshabilitar botón
+                        if (remainingNotes === 0) {
+                            $('#viewjobsnotes').modal('hide');
+                            var btnNotes = $(`.btn-notes[data-id="${jobId}"]`);
+                            btnNotes.prop('disabled', true);
+                            btnNotes.css({'opacity': '0.3', 'cursor': 'not-allowed'});
+                        }
+                        
                         if(window.location.href.includes('jobs') ){
                             callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
                         }

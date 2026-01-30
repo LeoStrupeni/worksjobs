@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiJobController;
 use App\Http\Controllers\Api\ApiSearchVarController;
+use App\Http\Controllers\JobController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,10 @@ use Illuminate\Support\Facades\Route;
 // Rutas públicas (sin autenticación)
 Route::post('/login', [ApiAuthController::class, 'login']);
 
+// Rutas usadas por Web y App (sin autenticación Sanctum pero con sesión)
+Route::get('/searchvar', [ApiSearchVarController::class,'searchvar']);
+Route::post('/searchvar', [ApiSearchVarController::class,'searchvar']);
+
 // Rutas protegidas (requieren autenticación Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     // Usuario autenticado
@@ -28,26 +33,27 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [ApiAuthController::class, 'logout']);
     
-    // Jobs/Citas endpoints para app móvil
+    // Jobs/Citas endpoints
     Route::prefix('jobs')->group(function () {
-        Route::get('/today', [ApiJobController::class, 'getTodayJobs']);          // Citas del día
-        Route::get('/upcoming', [ApiJobController::class, 'getUpcomingJobs']);    // Próximas citas
-        Route::get('/calendar', [ApiJobController::class, 'getJobsByDateRange']); // Calendario (rango de fechas)
-        Route::get('/clients', [ApiJobController::class, 'getClients']);          // Lista de clientes
-        Route::post('/', [ApiJobController::class, 'store']);                     // Crear tarea
-        Route::get('/{id}', [ApiJobController::class, 'show']);                   // Detalle de cita
-        Route::put('/{id}', [ApiJobController::class, 'update']);                 // Actualizar tarea
-        Route::delete('/{id}', [ApiJobController::class, 'destroy']);             // Eliminar tarea
-        Route::post('/{id}/arrival', [ApiJobController::class, 'markArrival']);   // Marcar llegada
-        Route::post('/{id}/back-to-pending', [ApiJobController::class, 'backToPending']); // Volver a pendiente
-        Route::post('/{id}/close', [ApiJobController::class, 'closeJob']);        // Cerrar cita
-        Route::post('/{id}/notes', [ApiJobController::class, 'addNote']);         // Añadir nota
-        Route::get('/{id}/notes', [ApiJobController::class, 'getNotes']);         // Obtener notas
-        Route::post('/{id}/files', [ApiJobController::class, 'uploadFiles']);     // Subir archivos
-        Route::get('/{id}/files', [ApiJobController::class, 'getFiles']);         // Obtener archivos
+        // Lectura (GET) - ApiJobController
+        Route::get('/today', [ApiJobController::class, 'getTodayJobs']);
+        Route::get('/upcoming', [ApiJobController::class, 'getUpcomingJobs']);
+        Route::get('/calendar', [ApiJobController::class, 'getJobsByDateRange']);
+        Route::get('/clients', [ApiJobController::class, 'getClients']);
+        Route::get('/{id}', [ApiJobController::class, 'show']);
+        Route::get('/{id}/notes', [ApiJobController::class, 'getNotes']);
+        Route::get('/{id}/files', [ApiJobController::class, 'getFiles']);
+        
+        // Escritura (POST/PUT/DELETE) - JobController (lógica original de la web)
+        Route::post('/', [JobController::class, 'store']);
+        Route::put('/{id}', [JobController::class, 'update']);
+        Route::delete('/{id}', [JobController::class, 'destroy']);
+        Route::post('/{id}/arrival', [JobController::class, 'markarrival']);
+        Route::post('/{id}/back-to-pending', [JobController::class, 'backarrival']);
+        Route::post('/{id}/close', [JobController::class, 'closed']);
+        Route::post('/{id}/notes', [JobController::class, 'addnote']);
+        Route::delete('/notes/{id}', [JobController::class, 'destroynote']);
+        Route::post('/{id}/files', [JobController::class, 'onlyaddfiles']);
+        Route::delete('/files/{id}', [JobController::class, 'destroyfile']);
     });
 });
-
-// Rutas legacy
-Route::get('/searchvar', [ApiSearchVarController::class,'searchvar']);
-Route::post('/searchvar', [ApiSearchVarController::class,'searchvar']);

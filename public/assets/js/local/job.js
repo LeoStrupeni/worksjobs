@@ -41,83 +41,96 @@ function tableregister(data, page, callpaginas, url_query){
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
 
     $.each(data.datos, function (key, val) {
-        body += `<tr id="${val.id}">
-            <td class="align-middle">${val.client_first_name} ${val.client_last_name ?? ''}</td>
-            <td class="text-start py-2 align-middle">
-                <p class="m-0 text-nowrap" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Creación">
-                    <i class="fas fa-circle" style="color: black;"></i> ${val.created} (${val.created_day})
-                </p>
-                <p class="m-0 text-nowrap" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Visita">
-                    <i class="fas fa-circle" style="color: blue;"></i> ${val.visit} (${val.visit_day})
-                </p>`
+        body += `<tr id="${val.id}" style="border-bottom: 1px solid #f0f0f0;">
+            <td class="align-middle fw-bold">${val.client_first_name} ${val.client_last_name ?? ''}</td>
+            <td class="text-start py-3 align-middle">
+                <div class="d-flex flex-column gap-1">
+                    <small class="text-muted" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Creación">
+                        <i class="fas fa-circle" style="color: #6c757d; font-size: 6px;"></i> ${val.created} <span class="text-secondary">(${val.created_day})</span>
+                    </small>
+                    <small class="text-primary" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Visita">
+                        <i class="fas fa-circle" style="color: #0d6efd; font-size: 6px;"></i> ${val.visit} <span class="text-secondary">(${val.visit_day})</span>
+                    </small>`
                 if (val.arrival != null) {
-                    body += `<p class="m-0 text-nowrap" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Arribo a lugar">
-                        <i class="fas fa-circle" style="color: green;"></i> ${val.arrival} (${val.arrival_day})
-                    </p>`
+                    body += `<small class="text-success" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Arribo a lugar">
+                        <i class="fas fa-circle" style="color: #198754; font-size: 6px;"></i> ${val.arrival} <span class="text-secondary">(${val.arrival_day})</span>
+                    </small>`
                 }
                 if (val.closed != null) {
-                    body += `<p class="m-0 text-nowrap" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Cierre Visita">
-                        <i class="fas fa-circle" style="color: red;"></i> ${val.closed} (${val.closed_day})
-                    </p>`
+                    body += `<small class="text-danger" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Cierre Visita">
+                        <i class="fas fa-circle" style="color: #dc3545; font-size: 6px;"></i> ${val.closed} <span class="text-secondary">(${val.closed_day})</span>
+                    </small>`
                 }
-            body += `</td>
-            <td class="align-middle">
-                <p class="m-0 text-nowrap">
-                    <i class="fas fa-circle" style='color: ${val.vencimiento};'></i>
-                    <br>${val.estatus}
-                </p>
+            body += `</div>
             </td>
-            <td class="text-truncate text-start ps-3">
-                ${val.job_description_short}
-                <button type="button" class="btn btn-link p-0 btn-description" data-content="${val.job_description}"><i class="fas fa-eye"></i></button>
+            <td class="align-middle">
+                <span class="badge rounded-pill px-3 py-2" style="background-color: ${val.vencimiento}; font-size: 0.75rem;">
+                    ${val.estatus}
+                </span>
+            </td>
+            <td class="text-start px-3 align-middle">
+                <div class="d-flex align-items-center">
+                    <span class="text-truncate me-2" style="max-width: 200px;">${val.job_description_short}</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.job_description}" title="Ver descripción completa">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </td>
             <td class="align-middle">`
                 if(val.getnotes != 'no'){
-                    body+= `<button type="button" class="btn btn-sm btn-primary btn-notes" data-id="${val.id}" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Ver notas">
+                    body+= `<button type="button" class="btn btn-sm btn-primary btn-notes" data-id="${val.id}" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}" title="Ver notas">
                         <i class="flaticon-notes"></i>
                     </button>`;
+                } else {
+                    body+= `<span class="text-muted">-</span>`;
                 }
             body += `</td>
-            <td class="text-truncate text-start ps-3">
-                ${val.closed_job_observation_short}`
+            <td class="text-start px-3 align-middle">
+                <div class="d-flex align-items-center">`
                 if (val.closed_job_observation != '') {
-                    body += `<button type="button" class="btn btn-link p-0 btn-description" data-content="${val.closed_job_observation}"><i class="fas fa-eye"></i></button>`
+                    body += `<span class="text-truncate me-2" style="max-width: 200px;">${val.closed_job_observation_short}</span>
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.closed_job_observation}" title="Ver observación completa">
+                        <i class="fas fa-eye"></i>
+                    </button>`
+                } else {
+                    body += `<span class="text-muted">-</span>`
                 }
-            body += `</td>
+            body += `</div>
+            </td>
             <td class="align-middle">
                 <div class="dropdown">
-                    <button class="btn btn-link dropdown-toggle-menu-body" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fa-solid fa-ellipsis"></i>
+                    <button class="btn btn-sm btn-light dropdown-toggle-menu-body" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
-                    <ul class="dropdown-menu" >`;
+                    <ul class="dropdown-menu shadow-sm" >`;
 
                         if( data.permissions.includes('read') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read-job">
-                                <i class="flaticon-eye"></i> Ver
+                                <i class="flaticon-eye me-2"></i>Ver Detalles
                             </a></li>`
                         }
 
-                        if ( val.arrival == null ){
+                        if ( val.arrival == null && val.closed == null){
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item markarrival">
-                                    <i class="flaticon-home"></i> Marcar Arribo
+                                    <i class="flaticon-home me-2"></i>Marcar Arribo
                                     </a>
                                 </li>`
                         } 
 
                         body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addnote" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
-                            <i class="flaticon-upload"></i> Agregar nota
+                            <i class="flaticon-upload me-2"></i>Agregar Nota
                         </a></li>`;
                         
                         if (val.getnotes != 'no') {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item btn-notes" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
-                                <i class="flaticon-notes"></i> Ver notas
+                                <i class="flaticon-notes me-2"></i>Ver Notas
                             </a></li>`;
                         }
 
-                        if( data.permissions.includes('update') && val.arrival == null ) {
+                        if( data.permissions.includes('update') && val.arrival == null && val.closed == null) {
                             body += `<li>
                                 <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update-job">
-                                    <i class="flaticon-upload"></i> Editar
+                                    <i class="flaticon-upload me-2"></i>Editar
                                 </a>
                             </li>`;
                         }
@@ -125,14 +138,15 @@ function tableregister(data, page, callpaginas, url_query){
                         if( data.permissions.includes('update') ) {
                             body += `<li>
                                 <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addfiles" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
-                                    <i class="flaticon-photo-camera"></i> Agregar imagenes
+                                    <i class="flaticon-photo-camera me-2"></i>Agregar Imágenes
                                 </a>
                             </li>`;
                         }
 
-                        if ( data.permissions.includes('delete') && val.arrival == null ){
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete-job" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
-                                <i class="flaticon-delete"></i> Eliminar
+                        if ( data.permissions.includes('delete') && val.arrival == null && val.closed == null){
+                            body += `<li><hr class="dropdown-divider"></li>
+                            <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-danger delete-job" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                                <i class="flaticon-delete me-2"></i>Eliminar
                             </a></li>`
                         }
 
@@ -140,7 +154,7 @@ function tableregister(data, page, callpaginas, url_query){
                             if ( data.permissions.includes('update') && val.arrival != null && val.closed == null) {
                                 body += `<li>
                                     <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item backarrival">
-                                        <i class="flaticon-reply"></i> Volver a pendiente
+                                        <i class="flaticon-reply me-2"></i>Volver a Pendiente
                                     </a>
                                 </li>`;
                             }  
@@ -148,12 +162,12 @@ function tableregister(data, page, callpaginas, url_query){
                         
                         if ( val.arrival != null && val.closed == null){
                             body += `<li>
-                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item closetask">
-                                    <i class="flaticon-book"></i> Cerrar Tarea
+                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-success closetask">
+                                    <i class="flaticon-book me-2"></i>Cerrar Tarea
                                 </a>
                             </li>`;
                         }
-                    body += `<ul>
+                    body += `</ul>
                 </div>
             </td>
         </tr>`;

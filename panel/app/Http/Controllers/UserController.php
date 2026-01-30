@@ -26,72 +26,10 @@ class UserController extends Controller
             if ($val == false){
                 return redirect()->route('logout');     
             }
-            return view("user");
+            $roles = Rol::where('estatus', 1)->get();
+            return view("user", compact('roles'));
         }
         return redirect()->route('login');
-    }
-
-    public function getDataTable(Request $request)
-    {        
-        $roluser = Session::get('user')['roles'][0];
-        $permissions = Session::get('user')['permissions']['users'];
-
-        $order = $request->order;
-        $page = $request->page ?? 1;
-        $limit = $request->limit ?? 10;
-        $search = $request->search;
-
-        $totales = User::count();
-
-        $query = "SELECT U.id, U.name, U.email, R.name as rolname, U.imagen, 
-            IF(U.estatus=1,'Activo','Inactivo') as estatus
-            FROM users U
-            JOIN model_has_roles MR ON U.id = MR.model_id
-            JOIN roles R ON MR.role_id = R.id 
-            WHERE ISNULL(U.deleted_at) AND R.name != 'sistema' ";
-
-        if ($search != '' && isset($search)) {
-            $query .= " AND (U.name LIKE '%$search%' 
-                OR U.email LIKE '%$search%'
-                OR R.name LIKE '%$search%' 
-                OR IF(U.estatus=1,'Activo','Inactivo') LIKE '%$search%' ) ";
-        }
-
-        $filtrados = DB::select($query);
-
-        $querylist = '';
-        if ($order) {
-            $querylist .= " ORDER BY $order ";
-        } else {
-            $querylist .= " ORDER BY U.id DESC ";
-        }
-        if ($limit) {
-            $querylist .= " LIMIT " . $limit;
-        }
-        if ($page) {
-            $querylist .= " OFFSET " . ($limit * $page - $limit);
-        }
-
-        $lista = DB::select(DB::raw($query . $querylist));
-
-        $respuesta['totales'] = $totales;
-        $respuesta['filtrados'] = count($filtrados);
-        $respuesta['paginastotal'] = ceil(count($filtrados) / $limit);
-        $respuesta['datos'] = $lista;
-
-        if ($limit * $page > count($filtrados)) {
-            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . count($filtrados) . ' de un total de ' . count($filtrados);
-        } else {
-            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados);
-        }
-
-        $respuesta['query'] = $query.$querylist;
-        $respuesta['roluser'] = $roluser;
-        $respuesta['permissions'] = $permissions;
-
-        // dd(in_array('aaaa',$respuesta['permissions']));
-
-        return $respuesta;
     }
 
     public function create()

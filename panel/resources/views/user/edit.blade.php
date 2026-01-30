@@ -45,8 +45,9 @@
                                 <label for="rol" class="form-label mb-0 ps-3">Rol</label>
                                 <select class="form-control e_validate" name="rol" id="e_rol" style="width: 100%" required>
                                     <option></option>
-                                    <option value="1">Admin</option>
-                                    <option value="2" selected>Técnico</option>
+                                    @foreach ($roles as $rol)
+                                        <option value="{{ $rol->id }}">{{ $rol->name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
 
