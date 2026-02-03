@@ -5,6 +5,7 @@ import '../providers/job_provider.dart';
 import 'today_jobs_screen.dart';
 import 'upcoming_jobs_screen.dart';
 import 'calendar_screen.dart';
+import 'create_job_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,6 +39,25 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _navigateToCreateJob() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateJobScreen(),
+      ),
+    );
+
+    // Si se creó una tarea, recargar según la pestaña activa
+    if (result == true && mounted) {
+      final jobProvider = context.read<JobProvider>();
+      if (_selectedIndex == 0) {
+        jobProvider.fetchTodayJobs();
+      } else if (_selectedIndex == 1) {
+        jobProvider.fetchUpcomingJobs();
+      }
+    }
+  }
+
   Future<void> _handleLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -69,12 +89,31 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_getTitleForIndex(_selectedIndex)),
+    return GestureDetector(
+      // Resetear timer de inactividad con cualquier interacción
+      onTap: () => authProvider.resetInactivityTimer(),
+      onPanDown: (_) => authProvider.resetInactivityTimer(),
+      child: Scaffold(
+        appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF00274E), Color(0xFF004B87)],
+              ),
+          ),
+        ),
+        title: Text(_getTitleForIndex(_selectedIndex), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+            tooltip: 'Nueva Tarea',
+            onPressed: _navigateToCreateJob,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
               final jobProvider = context.read<JobProvider>();
               if (_selectedIndex == 0) {
@@ -120,6 +159,8 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        selectedItemColor: const Color(0xFF00274E),
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.today),
@@ -134,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Calendario',
           ),
         ],
+      ),
       ),
     );
   }

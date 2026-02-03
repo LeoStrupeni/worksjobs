@@ -179,6 +179,79 @@ $(document).ready(function() {
             }
         });
     });
+    
+    $('body').on('click',".archive-job", function(){
+        var idtarea = $(this).data('id');
+        Swal.fire({
+            title: '¿Archivar tarea?',
+            text: "La tarea se ocultará del home pero seguirá disponible en la tabla de tareas",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, archivar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.value) {
+                $.ajax({
+                    contenttype : 'application/json; charset=utf-8',
+                    url : $('meta[name="app_url"]').attr('content')+'/jobs/archive/'+idtarea,
+                    type : 'POST',
+                    data: { 
+                        archived : 1,
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    done : function(response) { toastr["error"]("Error al archivar la tarea, reintentelo."); },
+                    error : function(jqXHR,textStatus,errorThrown) { toastr["error"]("Error al archivar la tarea, reintentelo."); },
+                    success : function(data) {
+                        toastr["success"]("Tarea archivada correctamente.");
+                        if(window.location.href.includes('jobs') ){
+                            callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
+                        } else {
+                            window.location.reload();
+                        }
+                    }
+                });
+            }
+        });
+    });
+    
+    $('body').on('click',".toggle-archive", function(){
+        var idtarea = $(this).data('id');
+        var currentArchived = $(this).data('archived');
+        var newArchived = currentArchived == 1 ? 0 : 1;
+        var action = newArchived == 1 ? 'archivar' : 'desarchivar';
+        
+        Swal.fire({
+            title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} tarea?`,
+            text: newArchived == 1 ? "La tarea se ocultará del home pero seguirá visible aquí" : "La tarea volverá a mostrarse en el home",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: `Sí, ${action}`,
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.value) {
+                $.ajax({
+                    contenttype : 'application/json; charset=utf-8',
+                    url : $('meta[name="app_url"]').attr('content')+'/jobs/archive/'+idtarea,
+                    type : 'POST',
+                    data: { 
+                        archived : newArchived,
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    done : function(response) { toastr["error"](`Error al ${action} la tarea, reintentelo.`); },
+                    error : function(jqXHR,textStatus,errorThrown) { toastr["error"](`Error al ${action} la tarea, reintentelo.`); },
+                    success : function(data) {
+                        toastr["success"](data.message);
+                        callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
+                    }
+                });
+            }
+        });
+    });
+    
     $('body').on('click',".backarrival", function(){
         var idtarea = $(this).data('id');
         $.ajax({contenttype : 'application/json; charset=utf-8',

@@ -207,7 +207,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              JobDetailScreen(jobId: job.id),
+                                              JobDetailScreen(jobId: job.id!),
                                         ),
                                       );
                                     },

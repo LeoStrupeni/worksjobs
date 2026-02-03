@@ -26,55 +26,68 @@
 @section('Content')
     <div class="container-fluid">
         <div class="row justify-content-center my-4">
-            <div class="col-12 col-lg-10 bg-white rounded p-2">
-                <div class="row align-items-center  justify-content-between">
-                    <div class="col">
-                        <div class="navbar-brand ps-3 fs-5">Listado de Permisos</div>
+            <div class="col-12 col-lg-10">
+                <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                    <div class="card-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="row align-items-center justify-content-between">
+                            <div class="col">
+                                <h5 class="mb-0 fw-bold d-flex align-items-center">
+                                    <span class="rounded-circle bg-white bg-opacity-25 p-2 me-2">
+                                        <i class="fa-solid fa-key"></i>
+                                    </span>
+                                    Listado de Permisos
+                                </h5>
+                            </div>
+                            <div class="col text-end">
+                                <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1" onclick="callregister('/permission/table',1,$('#table_limit').val(),$('#table_order').val(),'si')" title="Actualizar">
+                                    <i class="fa-solid fa-arrows-rotate me-1"></i>Actualizar
+                                </button>
+                                @if(isset(Session::get('user')['permissions']['permissions']))
+                                    @if (in_array('create',Session::get('user')['permissions']['permissions']))
+                                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 create" title="Nuevo permiso">
+                                            <i class="fa-solid fa-plus me-1"></i>Nuevo
+                                        </button>
+                                    @endif
+                                @elseif(Session::get('user')['roles'][0] != 'tecnico')
+                                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 create" title="Nuevo permiso">
+                                        <i class="fa-solid fa-plus me-1"></i>Nuevo
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
                     </div>
-                    <div class="col">
-                        <button type="button" class="btn btn-danger float-end mx-1" onclick="callregister('/permission/table',1,$('#table_limit').val(),$('#table_order').val(),'si')"><i class="fa-solid fa-arrows-rotate"></i></button>
-                        @if(isset(Session::get('user')['permissions']['permissions']))
-                            @if (in_array('create',Session::get('user')['permissions']['permissions']))
-                                <button type="button" class="btn btn-success float-end mx-1 create"><i class="fa-solid fa-plus"></i></button>
-                            @endif
-                        @elseif(Session::get('user')['roles'][0] != 'tecnico')
-                            <button type="button" class="btn btn-success float-end mx-1 create"><i class="fa-solid fa-plus"></i></button>
-                        @endif
-                    </div>
-                </div>
-                
-                <hr class="m-1" style="color: red;">
+                    <div class="card-body">
 
-                @include('Layout.errors')
+                        @include('Layout.errors')
 
-                <div class="row my-3 align-items-center justify-content-between">
-                    <div class="col-3 col-xl-1">
-                        <select class="form-select" id="table_limit">
-                            <option value="10">10</option>
-                            <option value="20">20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div>
-                    <div class="col-7 col-lg-4">
-                        <div class="w-100 float-end" style="position: relative;padding: 0;">
-							<input type="text" class="form-control" placeholder="¿Qué buscas?" id="table_search">
-							<span style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 7px;width: 3.2rem;right: 0;">
-								<span><i class="flaticon2-search-1"></i></span>
-							</span>
-						</div>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover text-center sortable" id="table">
-                        <thead>
-                            <tr>
-                                <th class="column_orden" data-name="general">Nombre</th>
-                                <th class="sorttable_nosort">Permisos</th>
-                                <th class="sorttable_nosort" style="width:3%;"></th>
-                            </tr>
-                        </thead>
+                        <div class="row my-3 align-items-center justify-content-between">
+                            <div class="col-3 col-xl-1">
+                                <select class="form-select" id="table_limit">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="col-7 col-lg-4">
+                                <div class="w-100 float-end" style="position: relative;padding: 0;">
+									<input type="text" class="form-control" placeholder="¿Qué buscas?" id="table_search">
+									<span style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 7px;width: 3.2rem;right: 0;">
+										<span><i class="flaticon2-search-1"></i></span>
+									</span>
+								</div>
+                            </div>
+                        </div>
+                        
+                        <div style="max-height: 55vh; overflow-y: auto; border-radius: 10px;">
+                            <table class="table table-sm table-hover text-center sortable" id="table">
+                                <thead style="position: sticky; top: 0; z-index: 10; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    <tr class="text-white">
+                                        <th class="column_orden" data-name="general" style="white-space: nowrap;">Nombre</th>
+                                        <th class="sorttable_nosort" style="white-space: nowrap;">Permisos</th>
+                                        <th class="sorttable_nosort" style="width:3%; white-space: nowrap;">Acciones</th>
+                                    </tr>
+                                </thead>
                         <tbody id="table_body">
 
                         </tbody>
@@ -123,19 +136,21 @@
                                     </div>
                                 </td>
                             </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="row align-items-center">
-                    <input type="hidden" id="table_order">
-                    <input type="hidden" id="table_paginas">
-                    <input type="hidden" id="table_filtrados">
-                    <input type="hidden" id="table_totales">
-                    <div class="col-lg-6" id="table_info">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="row align-items-center mt-3">
+                            <input type="hidden" id="table_order">
+                            <input type="hidden" id="table_paginas">
+                            <input type="hidden" id="table_filtrados">
+                            <input type="hidden" id="table_totales">
+                            <div class="col-lg-6" id="table_info">
 
-                    </div>
-                    <div class="col-lg-6" id="table_pagination">
+                            </div>
+                            <div class="col-lg-6" id="table_pagination">
 
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -5,24 +5,9 @@ import '../providers/job_provider.dart';
 import '../models/job_permissions.dart';
 import '../widgets/job_card.dart';
 import 'job_detail_screen.dart';
-import 'create_job_screen.dart';
 
 class TodayJobsScreen extends StatelessWidget {
   const TodayJobsScreen({super.key});
-
-  Future<void> _navigateToCreateJob(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const CreateJobScreen(),
-      ),
-    );
-
-    // Si se creó una tarea, recargar la lista
-    if (result == true && context.mounted) {
-      context.read<JobProvider>().fetchTodayJobs();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +140,7 @@ class TodayJobsScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => JobDetailScreen(jobId: job.id),
+                              builder: (context) => JobDetailScreen(jobId: job.id!),
                             ),
                           );
                         },
@@ -168,11 +153,6 @@ class TodayJobsScreen extends StatelessWidget {
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _navigateToCreateJob(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Tarea'),
       ),
     );
   }

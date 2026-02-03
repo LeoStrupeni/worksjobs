@@ -120,29 +120,33 @@ $(document).ready(function() {
             type : 'GET',
             done : function(response) { $('#tableaddress_error').removeClass('d-none'); },
             error : function(jqXHR,textStatus,errorThrown) { $('#tableaddress_error').removeClass('d-none'); },
-            success : function(data) {
-                body='';
-                const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
-                $.each(data, function (key, val) {
-                    body += `<tr id="${val.id}">
-                        <td class="align-middle">${val.country ?? ''}</td>
-                        <td class="align-middle">${val.state ?? ''}</td>
-                        <td class="align-middle">${val.cp ?? ''}</td>
-                        <td class="align-middle">${val.city ?? ''}</td>
-                        <td class="align-middle">${val.address_street ?? ''}</td>
-                        <td class="align-middle">${val.address_nro ?? ''}</td>
-                        <td class="align-middle">${val.address_apartament ?? ''}</td>
-                        <td class="align-middle">${val.address_detail ?? ''}</td>
+            success : function(response) {
+                if(response.datos && response.datos.length > 0) {
+                    body='';
+                    const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
+                    $.each(response.datos, function (key, val) {
+                        body += `<tr id="${val.id}">
+                            <td class="align-middle">${val.country ?? ''}</td>
+                            <td class="align-middle">${val.state ?? ''}</td>
+                            <td class="align-middle">${val.cp ?? ''}</td>
+                            <td class="align-middle">${val.city ?? ''}</td>
+                            <td class="align-middle">${val.address_street ?? ''}</td>
+                            <td class="align-middle">${val.address_nro ?? ''}</td>
+                            <td class="align-middle">${val.address_apartament ?? ''}</td>
+                            <td class="align-middle">${val.address_detail ?? ''}</td>
 
-                        <td class="align-middle">
-                            <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-link deleteaddres">
-                                <i class="flaticon-delete"></i>
-                            </a>
-                        </td>
-                    </tr>`;
-                });
-                $('#tableaddress_body').append(body);
-                $('#tableaddress_body').removeClass('d-none');
+                            <td class="align-middle">
+                                <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-link deleteaddres">
+                                    <i class="flaticon-delete"></i>
+                                </a>
+                            </td>
+                        </tr>`;
+                    });
+                    $('#tableaddress_body').append(body);
+                    $('#tableaddress_body').removeClass('d-none');
+                } else {
+                    $('#tableaddress_sindatos').removeClass('d-none');
+                }
             }
         }).always(function() {
             $('#tableaddress_roller').addClass('d-none');

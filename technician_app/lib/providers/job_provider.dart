@@ -4,6 +4,7 @@ import '../models/note.dart';
 import '../models/job_file.dart';
 import '../models/job_permissions.dart';
 import '../models/client.dart';
+import '../models/address.dart';
 import '../services/job_service.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -117,17 +118,23 @@ class JobProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      print('🔍 JobProvider: Solicitando detalle del job $jobId');
       final result = await _jobService.getJobDetail(jobId);
+      
+      print('📦 JobProvider: Resultado recibido - success: ${result['success']}');
       
       if (result['success'] == true) {
         _selectedJob = result['job'];
         _notes = result['notes'] ?? [];
         _files = result['files'] ?? [];
+        print('✅ JobProvider: Job cargado correctamente - ${_selectedJob?.clientName}');
       } else {
-        _errorMessage = result['message'];
+        _errorMessage = result['message'] ?? 'Error desconocido al cargar la cita';
+        print('❌ JobProvider: Error - $_errorMessage');
       }
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'Error de conexión: ${e.toString()}';
+      print('💥 JobProvider: Exception - $_errorMessage');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -357,11 +364,45 @@ class JobProvider with ChangeNotifier {
     }
   }
 
+  // Obtener direcciones de un cliente
+  Future<List<Address>> getClientAddresses(int clientId) async {
+    try {
+      return await _jobService.getClientAddresses(clientId);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Crear nueva dirección para un cliente
+  Future<Address?> createClientAddress(
+    int clientId,
+    String street,
+    String number,
+    String city,
+    String detail,
+  ) async {
+    try {
+      return await _jobService.createClientAddress(
+        clientId,
+        street,
+        number,
+        city,
+        detail,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Crear nueva tarea
   Future<bool> createJob({
     required int clientId,
+    required int addressId,
     required DateTime visitDateTime,
     required String description,
+    double? latitude,
+    double? longitude,
+    String? jsonGeolocation,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -370,13 +411,63 @@ class JobProvider with ChangeNotifier {
     try {
       final result = await _jobService.createJob(
         clientId: clientId,
+        addressId: addressId,
         visitDateTime: visitDateTime,
         description: description,
+        latitude: latitude,
+        longitude: longitude,
+        jsonGeolocation: jsonGeolocation,
       );
       
       if (result['success'] == true) {
         // Actualizar lista de tareas
         await fetchTodayJobs();
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Actualizar tarea existente
+  Future<bool> updateJob({
+    required int jobId,
+    required int addressId,
+    required DateTime visitDateTime,
+    required String description,
+    double? latitude,
+    double? longitude,
+    String? jsonGeolocation,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.updateJob(
+        jobId: jobId,
+        addressId: addressId,
+        visitDateTime: visitDateTime,
+        description: description,
+        latitude: latitude,
+        longitude: longitude,
+        jsonGeolocation: jsonGeolocation,
+      );
+      
+      if (result['success'] == true) {
+        // Actualizar listas
+        await fetchTodayJobs();
+        await fetchUpcomingJobs();
         _isLoading = false;
         notifyListeners();
         return true;

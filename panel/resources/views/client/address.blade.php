@@ -1,11 +1,13 @@
 <div class="modal fade" id="addressclient" tabindex="-1" aria-hidden="true" >
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="titleaddressclient">Domicilios</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="border: none; border-radius: 20px;">
+            <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white fw-bold" id="titleaddressclient">
+                    <i class="fas fa-map-marker-alt me-2"></i>Domicilios
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body bg-light">
                 @if (in_array('create',Session::get('user')['permissions']['clients']))
                 <div class="accordion mb-3" id="accordionNewaddress">
                     <div class="accordion-item">

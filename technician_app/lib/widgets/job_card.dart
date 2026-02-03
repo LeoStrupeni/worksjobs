@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/job.dart';
 import '../models/job_permissions.dart';
 import '../providers/job_provider.dart';
+import '../screens/edit_job_screen.dart';
 
 class JobCard extends StatelessWidget {
   final Job job;
@@ -23,16 +24,21 @@ class JobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      shadowColor: const Color(0xFF00274E).withOpacity(0.3),
+      color: const Color(0xFFD6DEE6),
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Header con estado
               Row(
                 children: [
@@ -74,6 +80,29 @@ class JobCard extends StatelessWidget {
               
               const SizedBox(height: 4),
               
+              // Dirección
+              if (job.fullAddress != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          job.fullAddress!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              
               // Descripción (preview)
               if (job.jobDescription != null && job.jobDescription!.isNotEmpty)
                 Text(
@@ -91,31 +120,15 @@ class JobCard extends StatelessWidget {
               const SizedBox(height: 8),
               
               // Tags de estado
-              Wrap(
-                spacing: 4,
-                children: [
-                  _buildStatusChip(),
-                  if (job.isInPlace && !job.isClosed)
-                    Chip(
-                      label: const Text('En lugar'),
-                      backgroundColor: Colors.green[100],
-                      labelStyle: TextStyle(
-                        fontSize: 11,
-                        color: Colors.green[800],
-                      ),
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                ],
-              ),
+              _buildStatusChip(),
               
               const SizedBox(height: 8),
               
               // Botones de acción
               _buildActionButtons(context),
             ],
+            ),
           ),
-        ),
       ),
     );
   }
@@ -126,112 +139,192 @@ class JobCard extends StatelessWidget {
     
     print('🔑 JobCard buttons - Job ${job.id}: create=${permissions.create}, read=${permissions.read}, update=${permissions.update}, delete=${permissions.delete}, roles=$roles');
     
-    return Wrap(
-      spacing: 4,
-      runSpacing: 4,
+    return Column(
       children: [
-        // Volver a pendiente (solo sistema/admin, si arrival != null y no está cerrado)
-        if (isAdmin && permissions.update && job.isInPlace && !job.isClosed)
-          _buildIconButton(
-            icon: Icons.undo,
-            color: Colors.red,
-            onPressed: () => _handleBackToPending(context),
-            tooltip: 'Volver a pendiente',
-          ),
-        
-        // Ver detalle (read permission)
-        if (permissions.read)
-          _buildIconButton(
-            icon: Icons.visibility,
-            color: Colors.blue,
-            onPressed: onTap,
-            tooltip: 'Ver tarea',
-          ),
-        
-        // Editar (update permission Y arrival == null)
-        if (permissions.update && !job.isInPlace && !job.isClosed)
-          _buildIconButton(
-            icon: Icons.edit,
-            color: Colors.blue,
-            onPressed: () => _handleEditJob(context),
-            tooltip: 'Editar tarea',
-          ),
-        
-        // Eliminar (delete permission Y arrival == null)
-        if (permissions.delete && !job.isInPlace && !job.isClosed)
-          _buildIconButton(
-            icon: Icons.delete,
-            color: Colors.red,
-            onPressed: () => _handleDeleteJob(context),
-            tooltip: 'Eliminar tarea',
-          ),
-        
-        // Marcar Arribo (solo si arrival == null)
+        // Botones principales grandes
         if (!job.isInPlace && !job.isClosed)
-          _buildIconButton(
-            icon: Icons.location_on,
-            color: Colors.orange,
-            onPressed: () => _handleMarkArrival(context),
-            tooltip: 'Marcar arribo',
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _handleMarkArrival(context),
+              icon: const Icon(Icons.location_on),
+              label: const Text('Marcar Arribo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         
-        // Agregar nota (SIEMPRE visible)
-        _buildIconButton(
-          icon: Icons.note_add,
-          color: Colors.green,
-          onPressed: () => _handleAddNote(context),
-          tooltip: 'Agregar nota',
-        ),
+        if (!job.isInPlace && !job.isClosed)
+          const SizedBox(height: 8),
         
-        // Ver notas (si hay notas) - por ahora siempre mostrar
-        _buildIconButton(
-          icon: Icons.notes,
-          color: Colors.blue,
-          onPressed: () => _handleViewNotes(context),
-          tooltip: 'Ver notas',
-        ),
-        
-        // Agregar imágenes (update permission - SIN importar arrival)
-        if (permissions.update)
-          _buildIconButton(
-            icon: Icons.camera_alt,
-            color: Colors.green,
-            onPressed: () => _handleAddImages(context),
-            tooltip: 'Agregar imágenes',
+        if (permissions.read)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onTap,
+              icon: const Icon(Icons.visibility),
+              label: const Text('Ver Detalles'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         
-        // Cerrar tarea (solo si NO está cerrado)
+        const SizedBox(height: 8),
+        
         if (!job.isClosed)
-          _buildIconButton(
-            icon: Icons.assignment_turned_in,
-            color: Colors.black87,
-            onPressed: () => _handleCloseJob(context),
-            tooltip: 'Cerrar tarea',
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _handleCloseJob(context),
+              icon: const Icon(Icons.assignment_turned_in),
+              label: const Text('Cerrar Tarea'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        
+        const SizedBox(height: 12),
+        const Divider(),
+        const SizedBox(height: 8),
+        
+        // Botones secundarios pequeños en fila
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _handleAddNote(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.green,
+                  side: const BorderSide(color: Colors.green),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                child: const Icon(Icons.note_add, size: 20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _handleViewNotes(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                  side: const BorderSide(color: Colors.blue),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                child: const Icon(Icons.notes, size: 20),
+              ),
+            ),
+            if (permissions.update) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _handleAddImages(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: const Icon(Icons.camera_alt, size: 20),
+                ),
+              ),
+            ],
+          ],
+        ),
+        
+        // Menú dropdown para opciones avanzadas
+        if (isAdmin && permissions.update && job.isInPlace && !job.isClosed ||
+            permissions.update && !job.isInPlace && !job.isClosed ||
+            permissions.delete && !job.isInPlace && !job.isClosed)
+          PopupMenuButton<String>(
+            child: Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00274E).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.more_horiz, color: Color(0xFF00274E)),
+                  SizedBox(width: 4),
+                  Text(
+                    'Más opciones',
+                    style: TextStyle(
+                      color: Color(0xFF00274E),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            itemBuilder: (context) => [
+              if (isAdmin && permissions.update && job.isInPlace && !job.isClosed)
+                const PopupMenuItem(
+                  value: 'backToPending',
+                  child: Row(
+                    children: [
+                      Icon(Icons.undo, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Volver a pendiente'),
+                    ],
+                  ),
+                ),
+              if (permissions.update && !job.isInPlace && !job.isClosed)
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: Colors.blue, size: 20),
+                      SizedBox(width: 8),
+                      Text('Editar'),
+                    ],
+                  ),
+                ),
+              if (permissions.delete && !job.isInPlace && !job.isClosed)
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Eliminar'),
+                    ],
+                  ),
+                ),
+            ],
+            onSelected: (value) {
+              switch (value) {
+                case 'backToPending':
+                  _handleBackToPending(context);
+                  break;
+                case 'edit':
+                  _handleEditJob(context);
+                  break;
+                case 'delete':
+                  _handleDeleteJob(context);
+                  break;
+              }
+            },
           ),
       ],
-    );
-  }
-
-  Widget _buildIconButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-    required String tooltip,
-  }) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-        ),
-      ),
     );
   }
 
@@ -248,9 +341,16 @@ class JobCard extends StatelessWidget {
 
   Widget _buildStatusChip() {
     Color color = _getStatusColor();
+    String statusText = job.status ?? 'Desconocido';
+    
+    // Si está pendiente y vencida, mostrar "Vencida" en negro
+    if (job.isOverdue) {
+      color = Colors.black;
+      statusText = 'Vencida';
+    }
     
     return Chip(
-      label: Text(job.status ?? 'Desconocido'),
+      label: Text(statusText),
       backgroundColor: color.withOpacity(0.2),
       labelStyle: TextStyle(
         fontSize: 11,
@@ -310,7 +410,7 @@ class JobCard extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      final success = await context.read<JobProvider>().markArrival(job.id);
+      final success = await context.read<JobProvider>().markArrival(job.id!);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -370,7 +470,7 @@ class JobCard extends StatelessWidget {
     );
 
     if (result != null && context.mounted) {
-      final success = await context.read<JobProvider>().closeJob(job.id, result);
+      final success = await context.read<JobProvider>().closeJob(job.id!, result);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -423,7 +523,7 @@ class JobCard extends StatelessWidget {
     );
 
     if (result != null && context.mounted) {
-      final success = await context.read<JobProvider>().addNote(job.id, result);
+      final success = await context.read<JobProvider>().addNote(job.id!, result);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -472,7 +572,7 @@ class JobCard extends StatelessWidget {
           
           if (images.isNotEmpty && context.mounted) {
             final filePaths = images.map((e) => e.path).toList();
-            final success = await context.read<JobProvider>().uploadFiles(job.id, filePaths);
+            final success = await context.read<JobProvider>().uploadFiles(job.id!, filePaths);
             
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -496,7 +596,7 @@ class JobCard extends StatelessWidget {
           final XFile? photo = await picker.pickImage(source: source);
           
           if (photo != null && context.mounted) {
-            final success = await context.read<JobProvider>().uploadFiles(job.id, [photo.path]);
+            final success = await context.read<JobProvider>().uploadFiles(job.id!, [photo.path]);
             
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -548,7 +648,7 @@ class JobCard extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      final success = await context.read<JobProvider>().backToPending(job.id);
+      final success = await context.read<JobProvider>().backToPending(job.id!);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -593,7 +693,7 @@ class JobCard extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      final success = await context.read<JobProvider>().deleteJob(job.id);
+      final success = await context.read<JobProvider>().deleteJob(job.id!);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -612,12 +712,17 @@ class JobCard extends StatelessWidget {
     }
   }
 
-  void _handleEditJob(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✏️ Funcionalidad de editar en desarrollo'),
-        backgroundColor: Colors.blue,
+  void _handleEditJob(BuildContext context) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditJobScreen(job: job),
       ),
     );
+
+    // Si se editó la tarea, recargar la lista
+    if (result == true && onRefresh != null) {
+      onRefresh!();
+    }
   }
 }

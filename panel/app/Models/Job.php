@@ -100,7 +100,8 @@ class Job extends Model
                 SUBSTRING(IFNULL(C.closed_job_observation,''),1,20) as closed_job_observation_short,
                 C.created_at,
                 C.updated_at,
-                C.client_id
+                C.client_id,
+                C.archived
             ");
     }
 }

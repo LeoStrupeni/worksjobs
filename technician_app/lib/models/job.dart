@@ -1,6 +1,7 @@
 class Job {
-  final int id;
+  final int? id;
   final int? clientId;
+  final int? addressId;
   final String? clientName;
   final String? clientFirstName;
   final String? clientLastName;
@@ -21,10 +22,24 @@ class Job {
   final String? colorStatus;
   final String? createdAt;
   final String? updatedAt;
+  
+  // Dirección completa del backend
+  final String? clientAddresName;
+  
+  // Campos de dirección
+  final String? addressStreet;
+  final String? addressNumber;
+  final String? addressFloor;
+  final String? addressApartment;
+  final String? addressCity;
+  final String? addressState;
+  final String? addressCountry;
+  final String? addressPostalCode;
 
   Job({
-    required this.id,
+    this.id,
     this.clientId,
+    this.addressId,
     this.clientName,
     this.clientFirstName,
     this.clientLastName,
@@ -45,13 +60,23 @@ class Job {
     this.colorStatus,
     this.createdAt,
     this.updatedAt,
+    this.clientAddresName,
+    this.addressStreet,
+    this.addressNumber,
+    this.addressFloor,
+    this.addressApartment,
+    this.addressCity,
+    this.addressState,
+    this.addressCountry,
+    this.addressPostalCode,
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
     try {
       return Job(
-        id: json['id'] ?? 0,
+        id: json['id'],
         clientId: json['client_id'],
+        addressId: json['address_id'],
         clientName: json['client_name'],
         clientFirstName: json['client_first_name'],
         clientLastName: json['client_last_name'],
@@ -84,6 +109,15 @@ class Job {
         colorStatus: json['color_status'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
+        clientAddresName: json['client_addres_name'],
+        addressStreet: json['address_street'],
+        addressNumber: json['address_number'],
+        addressFloor: json['address_floor'],
+        addressApartment: json['address_apartment'],
+        addressCity: json['address_city'],
+        addressState: json['address_state'],
+        addressCountry: json['address_country'],
+        addressPostalCode: json['address_postal_code'],
       );
     } catch (e) {
       print('❌ Error parsing Job JSON: $e');
@@ -122,4 +156,43 @@ class Job {
   bool get isPending => status == 'Pendiente';
   bool get isInPlace => status == 'En Lugar';
   bool get isClosed => status == 'Cerrado';
+  bool get isOverdue {
+    if (!isPending || visitDatetime == null) return false;
+    try {
+      final visitDate = DateTime.parse(visitDatetime!);
+      return DateTime.now().isAfter(visitDate);
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  String? get fullAddress {
+    // Primero intentar con client_addres_name que viene del backend
+    if (clientAddresName != null && clientAddresName!.trim().isNotEmpty) {
+      return clientAddresName!.trim();
+    }
+    
+    // Sino, construir desde campos separados
+    if (addressStreet == null) return null;
+    
+    final parts = <String>[];
+    parts.add(addressStreet!);
+    if (addressNumber != null) parts.add(addressNumber!);
+    if (addressFloor != null) parts.add('Piso $addressFloor');
+    if (addressApartment != null) parts.add('Dpto $addressApartment');
+    
+    String address = parts.join(' ');
+    
+    if (addressCity != null) {
+      address += ', $addressCity';
+    }
+    if (addressState != null) {
+      address += ', $addressState';
+    }
+    if (addressCountry != null) {
+      address += ', $addressCountry';
+    }
+    
+    return address;
+  }
 }

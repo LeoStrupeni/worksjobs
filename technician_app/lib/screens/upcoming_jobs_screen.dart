@@ -114,7 +114,7 @@ class UpcomingJobsScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => JobDetailScreen(jobId: job.id),
+                            builder: (context) => JobDetailScreen(jobId: job.id!),
                           ),
                         );
                       },

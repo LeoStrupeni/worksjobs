@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 class JobController extends Controller
@@ -47,7 +48,7 @@ class JobController extends Controller
                 'required' => 'El campo es requerido.',
             ]
         );
-    
+
         $job = Job::create([
             'client_id' => $request->client_id,
             'client_addres_id' => $request->address_id,
@@ -55,7 +56,7 @@ class JobController extends Controller
             'job_description' => $request->job_description,
             'visit_latitud' => $request->latitude,
             'visit_longitud' => $request->longitude,
-            'visit_coords_status' => $request->latitude != null && $request->longitude != null ? 1 : 0,
+            'visit_coords_status' => $request->latitude != null && $request->longitude != null ? '1' : '0',
             'visit_json_coords' => $request->jsongeolocation
         ]);
 
@@ -109,6 +110,7 @@ class JobController extends Controller
 
     public function update(Request $request, $id)
     {   
+        Log::info('Request Data: ', $request->all(),$id);
         $job = Job::find($id);
     
         $datos = array();
@@ -141,7 +143,7 @@ class JobController extends Controller
                 
                 $datos['visit_latitud'] = $request->latitude;
                 $datos['visit_longitud'] = $request->longitude;
-                $datos['visit_coords_status'] = $request->latitude != null && $request->longitude != null ? 1 : 0;
+                $datos['visit_coords_status'] = $request->latitude != null && $request->longitude != null ? '1' : '0';
                 $datos['visit_json_coords'] = $request->jsongeolocation;
         }
 
@@ -217,14 +219,6 @@ class JobController extends Controller
         $observation = $request->closed_job_observation ?? $request->observation;
         $latitud = $request->latitude ?? $request->latitud;
         $longitud = $request->longitude ?? $request->longitud;
-        
-        $request->validate([
-                'client_id' => ['required'],
-            ],
-            [
-                'required' => 'El campo es requerido.',
-            ]
-        );
         
         if (!$observation) {
             if ($request->expectsJson()) {
@@ -326,6 +320,9 @@ class JobController extends Controller
         // Soportar id en body o en ruta
         $job_id = $request->id ?? $request->route('id');
         
+        Log::info('onlyaddfiles: job_id=' . $job_id);
+        Log::info('onlyaddfiles: files in request', ['files' => $request->allFiles()]);
+        
         $this->addfiles($request, $job_id);
         
         if ($request->expectsJson()) {
@@ -336,8 +333,11 @@ class JobController extends Controller
 
     protected function addfiles(Request $request, $job_id)
     {
-        if ($request->hasFile('images')) {
-            $file = $request->file('images');
+        // Soportar tanto 'images' como 'files'
+        $fileField = $request->hasFile('images') ? 'images' : 'files';
+        
+        if ($request->hasFile($fileField)) {
+            $file = $request->file($fileField);
 
             foreach ($file as $attachment) {
                 $n = 10;
@@ -387,6 +387,17 @@ class JobController extends Controller
         return 1;
     }
 
+    public function archive(Request $request, $id)
+    {
+        $job = Job::findOrFail($id);
+        $job->archived = $request->input('archived', 1);
+        $job->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => $job->archived == 1 ? 'Tarea archivada correctamente' : 'Tarea desarchivada correctamente'
+        ]);
+    }
 
     
 }

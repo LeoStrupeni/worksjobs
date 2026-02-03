@@ -5,6 +5,7 @@ import '../models/job.dart';
 import '../models/note.dart';
 import '../models/job_file.dart';
 import '../models/client.dart';
+import '../models/address.dart';
 import 'auth_service.dart';
 
 class JobService {
@@ -147,37 +148,56 @@ class JobService {
       final token = await _authService.getToken();
       
       if (token == null) {
+        print('❌ getJobDetail: No autenticado');
         return {'success': false, 'message': 'No autenticado'};
       }
 
+      print('📡 getJobDetail: Obteniendo detalle del job $jobId');
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
+      print('📥 getJobDetail: Status ${response.statusCode}');
+      print('📄 getJobDetail: Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        if (data['success'] == true) {
-          final job = Job.fromJson(data['data']);
-          final notes = data['data']['notes'] != null
-              ? (data['data']['notes'] as List).map((n) => Note.fromJson(n)).toList()
+        if (data['success'] == true && data['job'] != null) {
+          // El backend devuelve 'job' no 'data'
+          if (data['job'] is! Map) {
+            print('⚠️ getJobDetail: data["job"] no es un Map');
+            return {'success': false, 'message': 'Formato de datos incorrecto'};
+          }
+          
+          final job = Job.fromJson(data['job']);
+          final notes = data['notes'] != null
+              ? (data['notes'] as List).map((n) => Note.fromJson(n)).toList()
               : <Note>[];
-          final files = data['data']['files'] != null
-              ? (data['data']['files'] as List).map((f) => JobFile.fromJson(f)).toList()
+          final files = data['files'] != null
+              ? (data['files'] as List).map((f) => JobFile.fromJson(f)).toList()
               : <JobFile>[];
           
+          print('✅ getJobDetail: Job obtenido - ${job.clientName}');
           return {
             'success': true,
             'job': job,
             'notes': notes,
             'files': files,
           };
+        } else {
+          print('⚠️ getJobDetail: success=false o job es null');
+          return {'success': false, 'message': data['message'] ?? 'Error desconocido'};
         }
       }
       
-      return {'success': false, 'message': 'Error al obtener detalle'};
-    } catch (e) {
+      print('❌ getJobDetail: Status code no es 200');
+      final errorData = jsonDecode(response.body);
+      return {'success': false, 'message': errorData['message'] ?? 'Error al obtener detalle'};
+    } catch (e, stackTrace) {
+      print('❌ getJobDetail: Exception: $e');
+      print('📚 getJobDetail: StackTrace: $stackTrace');
       return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
   }
@@ -385,29 +405,37 @@ class JobService {
       final token = await _authService.getToken();
       
       if (token == null) {
+        print('❌ uploadFiles: No hay token');
         return false;
       }
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files'),
-      );
-
+      final url = '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files';
+      print('📡 uploadFiles: URL = $url');
+      print('📂 uploadFiles: ${filePaths.length} archivo(s) a subir');
+      
+      var request = http.MultipartRequest('POST', Uri.parse(url));
       request.headers.addAll(ApiConfig.getHeaders(token: token));
 
-      // Agregar archivos
+      // Agregar archivos usando 'images[]' para coincidir con el backend
       for (var filePath in filePaths) {
-        request.files.add(await http.MultipartFile.fromPath('files[]', filePath));
+        print('📎 uploadFiles: Agregando archivo: $filePath');
+        request.files.add(await http.MultipartFile.fromPath('images[]', filePath));
       }
 
+      print('🚀 uploadFiles: Enviando petición...');
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      print('📥 uploadFiles: Status ${response.statusCode}');
+      print('📄 uploadFiles: Response: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('✅ uploadFiles: Success = ${data['success']}');
         return data['success'] == true;
       }
       
+      print('⚠️ uploadFiles: Error - Status ${response.statusCode}');
       return false;
     } catch (e) {
       print('❌ uploadFiles: Exception: $e');
@@ -421,26 +449,57 @@ class JobService {
       final token = await _authService.getToken();
       
       if (token == null) {
+        print('❌❌❌ searchClients: NO HAY TOKEN');
         return [];
       }
 
+      final url = '${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}?search=$query';
+      print('🌐🌐🌐 searchClients URL: $url');
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/clients?search=$query'),
+        Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
       );
 
+      print('📊📊📊 searchClients Status: ${response.statusCode}');
+      print('📄📄📄 searchClients Response COMPLETO: ${response.body}');
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('🔑🔑🔑 searchClients Keys en response: ${data.keys}');
         
-        if (data['success'] == true) {
-          final clients = (data['data'] as List)
-              .map((client) => Client.fromJson(client))
+        // Intentar ambas estructuras posibles: {clients: []} o {data: []}
+        List<dynamic>? clientsList;
+        if (data['clients'] != null) {
+          clientsList = data['clients'] as List;
+          print('✅ Encontrado en data["clients"]');
+        } else if (data['data'] != null) {
+          clientsList = data['data'] as List;
+          print('✅ Encontrado en data["data"]');
+        } else if (data is List) {
+          clientsList = data;
+          print('✅ Response es un array directo');
+        } else {
+          print('❌❌❌ NO SE ENCONTRÓ LISTA DE CLIENTES EN LA RESPUESTA');
+        }
+        
+        if (clientsList != null) {
+          print('📝📝📝 Parseando ${clientsList.length} clientes...');
+          final clients = clientsList
+              .map((client) {
+                print('   - Cliente: ${client['first_name']} ${client['last_name']}');
+                return Client.fromJson(client);
+              })
               .toList();
           
+          print('✅✅✅ searchClients: ${clients.length} clientes parseados correctamente');
           return clients;
         }
+      } else {
+        print('❌❌❌ searchClients: Status code ${response.statusCode}');
+        print('ERROR BODY: ${response.body}');
       }
       
+      print('⚠️⚠️⚠️ searchClients: Retornando lista vacía');
       return [];
     } catch (e) {
       print('❌ searchClients: Exception: $e');
@@ -451,8 +510,12 @@ class JobService {
   // Crear nueva tarea
   Future<Map<String, dynamic>> createJob({
     required int clientId,
+    required int addressId,
     required DateTime visitDateTime,
     required String description,
+    double? latitude,
+    double? longitude,
+    String? jsonGeolocation,
   }) async {
     try {
       final token = await _authService.getToken();
@@ -461,22 +524,37 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
+      print('📡 createJob: Creando tarea para cliente $clientId en dirección $addressId');
+      print('📍 Ubicación: lat=$latitude, lon=$longitude');
+      
+      // Construir body solo con valores no nulos
+      final Map<String, dynamic> bodyData = {
+        'client_id': clientId,
+        'address_id': addressId,
+        'visit_datetime': visitDateTime.toIso8601String(),
+        'job_description': description,
+      };
+      
+      if (latitude != null) bodyData['latitude'] = latitude;
+      if (longitude != null) bodyData['longitude'] = longitude;
+      if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
+      
+      print('📦 createJob: Body: $bodyData');
+      
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}'),
         headers: ApiConfig.getHeaders(token: token),
-        body: jsonEncode({
-          'client_id': clientId,
-          'visit_datetime': visitDateTime.toIso8601String(),
-          'job_description': description,
-        }),
+        body: jsonEncode(bodyData),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
+      print('📥 createJob: Status ${response.statusCode}');
+      print('📄 createJob: Response: ${response.body}');
+      
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+        print('✅ createJob: Tarea creada exitosamente');
         return {
-          'success': data['success'] == true,
-          'message': data['message'] ?? 'Tarea creada',
-          'job': data['data'] != null ? Job.fromJson(data['data']) : null,
+          'success': true,
+          'message': 'Tarea creada correctamente',
         };
       }
       
@@ -487,6 +565,174 @@ class JobService {
       };
     } catch (e) {
       print('❌ createJob: Exception: $e');
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
+
+  // Obtener direcciones de un cliente
+  Future<List<Address>> getClientAddresses(int clientId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('❌❌❌ getClientAddresses: NO HAY TOKEN');
+        return [];
+      }
+
+      final url = '${ApiConfig.baseUrl}${ApiConfig.clientAddressesEndpoint}/$clientId';
+      print('🌐🌐🌐 getClientAddresses URL: $url');
+      print('🔑 Token presente: ${token.substring(0, 20)}...');
+      
+      final response = await http.get(
+        Uri.parse(url),
+        headers: ApiConfig.getHeaders(token: token),
+      );
+
+      print('📊📊📊 getClientAddresses Status: ${response.statusCode}');
+      print('📄📄📄 getClientAddresses Response COMPLETO: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('🔑🔑🔑 Keys en response: ${data.keys}');
+        
+        if (data['datos'] != null) {
+          final addresses = (data['datos'] as List)
+              .map((address) {
+                print('   - Dirección: ${address['address_street']} ${address['address_nro']}');
+                return Address.fromJson(address);
+              })
+              .toList();
+          
+          print('✅✅✅ getClientAddresses: ${addresses.length} direcciones parseadas');
+          return addresses;
+        } else {
+          print('❌❌❌ data["datos"] es null!');
+        }
+      } else {
+        print('❌❌❌ Status no es 200, Body: ${response.body}');
+      }
+      
+      print('⚠️⚠️⚠️ getClientAddresses: Retornando lista vacía');
+      return [];
+    } catch (e, stackTrace) {
+      print('❌❌❌ getClientAddresses Exception: $e');
+      print('📚 StackTrace: $stackTrace');
+      return [];
+    }
+  }
+
+  // Crear nueva dirección para un cliente
+  Future<Address?> createClientAddress(
+    int clientId,
+    String street,
+    String number,
+    String city,
+    String detail,
+  ) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        print('❌ createClientAddress: NO HAY TOKEN');
+        return null;
+      }
+
+      final url = Uri.parse('${ApiConfig.baseUrl}/client/address');
+      print('🌐 createClientAddress URL: $url');
+      print('📝 Datos: client_id=$clientId, street=$street, number=$number, city=$city');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'client_id': clientId,
+          'address_street': street,
+          'address_nro': number,
+          'city': city,
+          'address_detail': detail,
+        }),
+      );
+
+      print('📊 createClientAddress Status: ${response.statusCode}');
+      print('📄 Response: ${response.body}');
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['address'] != null) {
+          final address = Address.fromJson(data['address']);
+          print('✅ Dirección creada: ${address.fullAddress}');
+          return address;
+        }
+      }
+
+      print('⚠️ Error al crear dirección: ${response.body}');
+      return null;
+    } catch (e, stackTrace) {
+      print('❌ createClientAddress Exception: $e');
+      print('📚 StackTrace: $stackTrace');
+      rethrow;
+    }
+  }
+
+  // Actualizar tarea existente
+  Future<Map<String, dynamic>> updateJob({
+    required int jobId,
+    required int addressId,
+    required DateTime visitDateTime,
+    required String description,
+    double? latitude,
+    double? longitude,
+    String? jsonGeolocation,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('❌ updateJob: No autenticado');
+        return {'success': false, 'message': 'No autenticado'};
+      }
+
+      print('📡 updateJob: Actualizando job $jobId');
+      
+      // Construir body solo con valores no nulos
+      final Map<String, dynamic> bodyData = {
+        'address_id': addressId,
+        'visit_datetime': visitDateTime.toIso8601String(),
+        'job_description': description,
+      };
+      
+      if (latitude != null) bodyData['latitude'] = latitude;
+      if (longitude != null) bodyData['longitude'] = longitude;
+      if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
+      
+      print('📦 updateJob: Body: $bodyData');
+      
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/jobs/$jobId'),
+        headers: ApiConfig.getHeaders(token: token),
+        body: jsonEncode(bodyData),
+      );
+
+      print('📥 updateJob: Status ${response.statusCode}');
+      print('📄 updateJob: Response: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 302) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          print('✅ updateJob: Tarea actualizada exitosamente');
+          return {'success': true};
+        } else {
+          print('⚠️ updateJob: ${data['message']}');
+          return {'success': false, 'message': data['message']};
+        }
+      }
+
+      return {'success': false, 'message': 'Error al actualizar la tarea'};
+    } catch (e) {
+      print('❌ updateJob: Exception: $e');
       return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
   }

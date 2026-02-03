@@ -1,18 +1,18 @@
 class JobFile {
   final int id;
-  final int jobsId;
-  final String? fileName;
-  final String? filePath;
-  final String? fileType;
+  final int jobId;
+  final String name; // Nombre guardado en servidor
+  final String? originalName; // Nombre original del archivo
+  final String? originalExtension;
   final String? createdAt;
   final String? updatedAt;
 
   JobFile({
     required this.id,
-    required this.jobsId,
-    this.fileName,
-    this.filePath,
-    this.fileType,
+    required this.jobId,
+    required this.name,
+    this.originalName,
+    this.originalExtension,
     this.createdAt,
     this.updatedAt,
   });
@@ -20,10 +20,10 @@ class JobFile {
   factory JobFile.fromJson(Map<String, dynamic> json) {
     return JobFile(
       id: json['id'] ?? 0,
-      jobsId: json['jobs_id'] ?? 0,
-      fileName: json['file_name'],
-      filePath: json['file_path'],
-      fileType: json['file_type'],
+      jobId: json['job_id'] ?? json['jobs_id'] ?? 0,
+      name: json['name'] ?? json['file_name'] ?? '',
+      originalName: json['original_name'] ?? json['file_name'],
+      originalExtension: json['original_extension'] ?? json['file_type'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
     );
@@ -32,10 +32,10 @@ class JobFile {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'jobs_id': jobsId,
-      'file_name': fileName,
-      'file_path': filePath,
-      'file_type': fileType,
+      'job_id': jobId,
+      'name': name,
+      'original_name': originalName,
+      'original_extension': originalExtension,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };

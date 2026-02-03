@@ -266,7 +266,10 @@ class ApiJobController extends Controller
                 jobs.job_description,
                 CONCAT(jobs.arrival_latitud,',',jobs.arrival_longitud) as arrival_coords,
                 CONCAT(jobs.closed_latitud,',',jobs.closed_longitud) as closed_coords,
-                jobs.closed_job_observation")
+                jobs.closed_job_observation,
+                CASE WHEN jobs.closed_datetime IS NOT NULL THEN 'Cerrado' 
+                    WHEN jobs.arrival_datetime IS NOT NULL THEN 'En Lugar'
+                ELSE 'Pendiente' END as status")
         ->first();
         
         if (!$job) {
@@ -353,5 +356,52 @@ class ApiJobController extends Controller
             'all_permissions' => $permissions,
             'roles' => $roles
         ];
+    }
+    
+    /**
+     * Obtener direcciones de un cliente
+     * Usado por: App Móvil
+     */
+    public function getClientAddresses(Request $request, $clientId)
+    {
+        $addresses = \App\Models\Clients_Addres::where('client_id', $clientId)
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'datos' => $addresses
+        ]);
+    }
+    
+    /**
+     * Crear nueva dirección para un cliente
+     * Usado por: App Móvil
+     */
+    public function createClientAddress(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required|integer|exists:clients,id',
+            'address_street' => 'required|string',
+            'address_nro' => 'nullable|string',
+            'city' => 'required|string',
+            'address_detail' => 'nullable|string',
+        ]);
+        
+        $address = \App\Models\Clients_Addres::create([
+            'client_id' => $validated['client_id'],
+            'address_street' => $validated['address_street'],
+            'address_nro' => $validated['address_nro'] ?? null,
+            'city' => $validated['city'],
+            'address_detail' => $validated['address_detail'] ?? null,
+            'country' => 'Argentina',
+            'state' => 'Santa Fe',
+            'cp' => '2000',
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'address' => $address,
+            'message' => 'Dirección creada exitosamente'
+        ], 201);
     }
 }

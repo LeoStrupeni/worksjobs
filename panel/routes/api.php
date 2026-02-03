@@ -56,4 +56,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/files', [JobController::class, 'onlyaddfiles']);
         Route::delete('/files/{id}', [JobController::class, 'destroyfile']);
     });
+    
+    // Clientes endpoints
+    Route::prefix('client')->group(function () {
+        Route::get('/address/{id}', [ApiJobController::class, 'getClientAddresses']);
+        Route::post('/address', [ApiJobController::class, 'createClientAddress']);
+    });
 });

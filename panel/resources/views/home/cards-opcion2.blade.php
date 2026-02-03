@@ -7,12 +7,12 @@
           <span class="badge rounded-pill px-3 py-2" style="background-color: {{$j->vencimiento}}; font-size: 0.75rem;">
             {{$j->estatus}}
           </span>
-          @if ($j->estatus != 'Cerrado')
-            <div class="dropdown">
-              <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
-                <i class="fas fa-ellipsis-v"></i>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          <div class="dropdown">
+            <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              @if ($j->estatus != 'Cerrado')
                 @if (Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')
                   @if(in_array('update',Session::get('user')['permissions']['jobs']) && $j->arrival != null)
                     <li><a class="dropdown-item backarrival" href="javascript:void(0);" data-id="{{$j->id}}">
@@ -34,9 +34,15 @@
                     <i class="flaticon-delete me-2"></i>Eliminar
                   </a></li>
                 @endif
-              </ul>
-            </div>
-          @endif
+              @endif
+
+              @if ($j->estatus == 'Cerrado' && in_array('update',Session::get('user')['permissions']['jobs']))
+                <li><a class="dropdown-item archive-job" href="javascript:void(0);" data-id="{{$j->id}}">
+                  <i class="fas fa-archive me-2"></i>Archivar
+                </a></li>
+              @endif
+            </ul>
+          </div>
         </div>
       </div>
 

@@ -1,11 +1,13 @@
 <div class="modal fade" id="excelclient" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" >
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nuevos Clientes</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="border: none; border-radius: 20px;">
+            <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="fas fa-file-excel me-2"></i>Nuevos Clientes
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body bg-light">
 
                 <form action="{{route('importaExcelClient')}}" method="POST" enctype="multipart/form-data">
                     @csrf

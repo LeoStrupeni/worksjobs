@@ -70,6 +70,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/jobs/markarrival', [JobController::class,'markarrival']);
     Route::post('/jobs/backarrival', [JobController::class,'backarrival']);
     Route::post('/jobs/closed', [JobController::class,'closed'])->name('job.closed');
+    Route::post('/jobs/archive/{id}', [JobController::class,'archive'])->name('job.archive');
     Route::post('/jobs/addnote', [JobController::class,'addnote']);
     Route::get('/jobs/notes/{id}', [JobController::class,'getnotes']);
     Route::get('/jobs/destroynote/{id}', [JobController::class,'destroynote']);

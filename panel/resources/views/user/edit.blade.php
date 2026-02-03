@@ -1,32 +1,24 @@
 <div class="modal fade" id="edituser" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" >
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Editar Usuario</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="border: none; border-radius: 20px;">
+            <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="fas fa-edit me-2"></i>Editar Usuario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body d-none" id="modal-body-edit-user-error">
-                <div style="display:block;" class="text-center">
-                    <br>
-                    <br>
-                    <div class="alert alert-info m-0 justify-content-center" role="alert">
-                        <h5 class="m-0">Error al obtener la informacion. Por favor reintentelo o comuniquese con Soporte</h5>
-                    </div>
-                    <br>
-                    <br>
+            <div class="modal-body d-none bg-light" id="modal-body-edit-user-error">
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
-            <div class="modal-body" id="modal-body-edit-user-roller">
-                <div style="display:block;" class="text-center">
-                    <br>
-                    <br>
+            <div class="modal-body bg-light" id="modal-body-edit-user-roller">
+                <div class="text-center py-5">
                     <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-                    <br>
-                    <br>
-                    <br>
                 </div>
             </div>
-            <div class="modal-body d-none" id="modal-body-edit-user">
+            <div class="modal-body bg-light d-none" id="modal-body-edit-user">
                 <form action="" enctype="multipart/form-data" id="formedituser" method="POST">
                     @csrf
                     @method('PUT')
@@ -87,9 +79,13 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer d-none" id="modal-footer-edit-user">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btn-update-user">Actualizar</button>
+            <div class="modal-footer bg-light border-0 d-none" id="modal-footer-edit-user">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success rounded-pill px-4" id="btn-update-user">
+                    <i class="fas fa-check me-1"></i> Actualizar
+                </button>
             </div>
         </div>
     </div>

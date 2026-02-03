@@ -24,14 +24,14 @@ class HomeController extends Controller
             $query = Job::getJobsQuery()->toSql();
 
             if(Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin'){
-                $query .= " AND (
+                $query .= " AND C.archived = 0 AND (
                     CAST(C.visit_datetime as DATE) BETWEEN DATE(NOW()) and DATE_ADD(DATE(NOW()),INTERVAL 7 DAY)
                     OR CAST(C.visit_datetime as DATE) < DATE(NOW())
                     OR (C.arrival_datetime IS NOT NULL AND C.closed_datetime IS NULL)   
                 ) 
                 ORDER BY estatusorder ASC, ordervisit ASC";
             } else {
-                $query .= " AND (
+                $query .= " AND C.archived = 0 AND (
                     CAST(C.visit_datetime as DATE) BETWEEN DATE(NOW()) and DATE_ADD(DATE(NOW()),INTERVAL 3 DAY)
                     OR (C.arrival_datetime IS NULL AND C.closed_datetime IS NULL AND CAST(C.visit_datetime as DATE) < DATE(NOW())) 
                     OR (C.arrival_datetime IS NOT NULL AND C.closed_datetime IS NULL)   

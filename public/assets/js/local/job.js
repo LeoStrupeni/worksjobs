@@ -40,6 +40,8 @@ function tableregister(data, page, callpaginas, url_query){
     body='';
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
 
+    console.log('Verificando campo archived:', data.datos.length > 0 ? data.datos[0].archived : 'No hay datos');
+
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}" style="border-bottom: 1px solid #f0f0f0;">
             <td class="align-middle fw-bold">${val.client_first_name} ${val.client_last_name ?? ''}</td>
@@ -166,6 +168,16 @@ function tableregister(data, page, callpaginas, url_query){
                                     <i class="flaticon-book me-2"></i>Cerrar Tarea
                                 </a>
                             </li>`;
+                        }
+
+                        // Opción de archivar para cualquier tarea (se sigue mostrando en la tabla)
+                        if ( data.permissions.includes('update')) {
+                            const archivedText = val.archived == 1 ? 'Desarchivar' : 'Archivar';
+                            const archivedIcon = val.archived == 1 ? 'flaticon-upload' : 'fas fa-archive';
+                            body += `<li><hr class="dropdown-divider"></li>
+                            <li><a href="javascript:void(0);" data-id="${val.id}" data-archived="${val.archived}" class="dropdown-item toggle-archive">
+                                <i class="${archivedIcon} me-2"></i>${archivedText}
+                            </a></li>`;
                         }
                     body += `</ul>
                 </div>

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 
@@ -10,6 +11,10 @@ class AuthProvider with ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // Auto-logout por inactividad (15 minutos)
+  Timer? _inactivityTimer;
+  static const Duration _inactivityDuration = Duration(minutes: 15);
 
   User? get user => _user;
   String? get token => _token;
@@ -53,6 +58,7 @@ class AuthProvider with ChangeNotifier {
         _isAuthenticated = true;
         _isLoading = false;
         notifyListeners();
+        _startInactivityTimer(); // Iniciar timer después del login
         return true;
       } else {
         _errorMessage = result['message'];
@@ -68,6 +74,22 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Resetear timer de inactividad
+  void resetInactivityTimer() {
+    if (_isAuthenticated) {
+      _inactivityTimer?.cancel();
+      _startInactivityTimer();
+    }
+  }
+
+  // Iniciar timer de inactividad
+  void _startInactivityTimer() {
+    _inactivityTimer = Timer(_inactivityDuration, () {
+      print('⏰ Auto-logout por inactividad');
+      logout();
+    });
+  }
+
   // Logout
   Future<void> logout() async {
     _isLoading = true;
@@ -76,6 +98,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _authService.logout();
     } finally {
+      _inactivityTimer?.cancel(); // Cancelar timer al hacer logout
       _user = null;
       _token = null;
       _isAuthenticated = false;
@@ -89,5 +112,11 @@ class AuthProvider with ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _inactivityTimer?.cancel();
+    super.dispose();
   }
 }

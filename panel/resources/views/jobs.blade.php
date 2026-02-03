@@ -38,14 +38,14 @@
                                 </h5>
                             </div>
                             <div class="col-auto">
+                                <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1" onclick="callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')" title="Actualizar">
+                                    <i class="fa-solid fa-arrows-rotate me-1"></i>Actualizar
+                                </button>
                                 @if (in_array('create',Session::get('user')['permissions']['jobs']))
-                                    <button type="button" class="btn btn-light btn-sm me-2 create-job" title="Crear trabajo">
+                                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 create-job" title="Crear trabajo">
                                         <i class="fa-solid fa-plus me-1"></i>Nuevo
                                     </button>
                                 @endif
-                                <button type="button" class="btn btn-outline-light btn-sm" onclick="callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')" title="Recargar">
-                                    <i class="fa-solid fa-arrows-rotate"></i>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -74,7 +74,7 @@
                             </div>
                         </div>
                         
-                        <div class="position-relative" style="border-radius: 12px; overflow: hidden; max-height: 55vh; overflow-y: auto;">
+                        <div class="position-relative" style="border-radius: 12px; overflow: hidden; max-height: 55vh; overflow-y: auto; overflow-x: auto;">
                             <table class="table table-hover text-center sortable mb-0" id="table" style="background: white;">
                                 <thead style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); position: sticky; top: 0; z-index: 10;">
                                     <tr>
