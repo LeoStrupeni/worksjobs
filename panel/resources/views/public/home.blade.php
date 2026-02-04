@@ -174,6 +174,10 @@
                     <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">contacto</a>
                 </li>
 
+                <li class="mb-2">
+                    <a href="{{ route('login') }}" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">LOGIN</a>
+                </li>
+
                 <li class="border-top my-3"></li>
                 <li class="mb-2">
                         <a href="javascript:;" class="btn p-0 border-0 ms-3">
@@ -206,6 +210,8 @@
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nuestros servicios</a>
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nosotros</a>
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">contacto</a>
+                    <a href="{{ route('login') }}" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">login</a>
+
                     <a href="javascript:;" class="btn p-0 border-0 ms-3">
                         <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
                     </a>

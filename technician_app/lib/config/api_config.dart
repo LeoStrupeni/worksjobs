@@ -5,10 +5,10 @@ class ApiConfig {
   // static const String baseUrl = 'http://10.0.2.2/panel/api';
   
   // Para dispositivo físico (WiFi - IP actual de tu PC):
-  static const String baseUrl = 'http://192.168.1.4/api';
+  // static const String baseUrl = 'http://192.168.1.4/api';
   
   // Para producción:
-  // static const String baseUrl = 'https://tudominio.com/api';
+  static const String baseUrl = 'https://tecnicos.strupeni.com.ar/api';
 
   // Endpoints
   static const String loginEndpoint = '/login';

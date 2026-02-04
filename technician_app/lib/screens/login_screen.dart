@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   // Logo desde servidor
                   Image.network(
-                    'http://192.168.1.4/assets/media/Logo.png',
+                    'https://tecnicos.strupeni.com.ar/assets/media/Logo.png',
                     height: 120,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(

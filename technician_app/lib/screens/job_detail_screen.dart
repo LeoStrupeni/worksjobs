@@ -131,7 +131,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               controller: PageController(initialPage: initialIndex),
               itemBuilder: (context, index) {
                 final file = files[index];
-                final imageUrl = 'http://192.168.1.4/storage/excel/${file.name}';
+                final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/excel/${file.name}';
                 return InteractiveViewer(
                   child: Center(
                     child: Image.network(
@@ -776,7 +776,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 itemCount: files.length,
                 itemBuilder: (context, index) {
                   final file = files[index];
-                  final imageUrl = 'http://192.168.1.4/storage/excel/${file.name}';
+                  final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/excel/${file.name}';
                   
                   return GestureDetector(
                     onTap: () => _showImageViewer(index, files),

@@ -32,7 +32,11 @@ $(document).ready(function() {
                 $('#s_name').val(data.name);
                 $('#s_email').val(data.email);
                 $("#s_rol").val(data.rolid).change();
-                $('#imagen-user-show').attr('src', '/storage/'+data.imagen);
+                if(data.imagen == '' || data.imagen == null){
+                    $('#imagen-user-show').attr('src', app_url+'/assets/media/avatar.png');
+                } else {
+                    $('#imagen-user-show').attr('src', '/storage/'+data.imagen);
+                }
                 $('#modal-body-show-user').removeClass('d-none');
             }
         }).always(function() {
@@ -162,10 +166,13 @@ function tableregister(data, page, callpaginas, url_query){
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
 
     $.each(data.datos, function (key, val) {
-        imagen = '/storage/'+val.imagen;
-        if(imagen == '' || imagen == null){imagen = app_url+"/assets/media/avatar.png"}
+        if(!val.imagen || val.imagen == '' || val.imagen == null || val.imagen == 'null'){
+            imagen = app_url+"/assets/media/avatar.png";
+        } else {
+            imagen = '/storage/'+val.imagen;
+        }
         body += `<tr id="${val.id}">
-            <td class="align-middle"><img class="profile-pic-table" src="${imagen}"/></td>
+            <td class="align-middle"><img class="profile-pic-table" src="${imagen}" onerror="this.onerror=null; this.src='${app_url}/assets/media/avatar.png'"/></td>
             <td class="align-middle">${val.name}</td>
             <td class="align-middle">${val.email}</td>
             <td class="align-middle">${val.rolname}</td>
