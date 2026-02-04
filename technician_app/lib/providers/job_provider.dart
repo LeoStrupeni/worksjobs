@@ -177,6 +177,35 @@ class JobProvider with ChangeNotifier {
     }
   }
 
+  // Revertir llegada
+  Future<bool> revertArrival(int jobId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.revertArrival(jobId);
+      
+      if (result['success'] == true) {
+        // Refrescar la cita
+        await fetchJobDetail(jobId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Cerrar cita
   Future<bool> closeJob(int jobId, String observation) async {
     _isLoading = true;

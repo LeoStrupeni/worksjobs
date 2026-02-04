@@ -7,6 +7,8 @@ import '../models/user.dart';
 class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
+  static const String _savedEmailKey = 'saved_email';
+  static const String _savedPasswordKey = 'saved_password';
 
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -155,5 +157,35 @@ class AuthService {
         'message': 'Error de conexión: ${e.toString()}',
       };
     }
+  }
+
+  // Guardar credenciales
+  Future<void> saveCredentials(String email, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_savedEmailKey, email);
+    await prefs.setString(_savedPasswordKey, password);
+  }
+
+  // Obtener credenciales guardadas
+  Future<Map<String, String>?> getSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString(_savedEmailKey);
+    final password = prefs.getString(_savedPasswordKey);
+    
+    if (email != null && password != null) {
+      return {
+        'email': email,
+        'password': password,
+      };
+    }
+    
+    return null;
+  }
+
+  // Limpiar credenciales guardadas
+  Future<void> clearSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_savedEmailKey);
+    await prefs.remove(_savedPasswordKey);
   }
 }

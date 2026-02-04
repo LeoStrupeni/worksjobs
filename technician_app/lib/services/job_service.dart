@@ -227,6 +227,27 @@ class JobService {
     }
   }
 
+  // Revertir llegada (volver a pendiente)
+  Future<Map<String, dynamic>> revertArrival(int jobId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        return {'success': false, 'message': 'No autenticado'};
+      }
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/back-to-pending'),
+        headers: ApiConfig.getHeaders(token: token),
+      );
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
+
   // Cerrar cita
   Future<Map<String, dynamic>> closeJob(int jobId, String observation, {double? lat, double? lng}) async {
     try {

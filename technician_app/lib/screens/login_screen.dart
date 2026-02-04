@@ -14,6 +14,26 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final authProvider = context.read<AuthProvider>();
+    final credentials = await authProvider.getSavedCredentials();
+    
+    if (credentials != null) {
+      setState(() {
+        _emailController.text = credentials['email'] ?? '';
+        _passwordController.text = credentials['password'] ?? '';
+        _rememberMe = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -30,6 +50,16 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
+
+      // Guardar o limpiar credenciales según checkbox
+      if (_rememberMe && success) {
+        await authProvider.saveCredentials(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+      } else if (!_rememberMe) {
+        await authProvider.clearSavedCredentials();
+      }
 
       if (mounted) {
         if (!success && authProvider.errorMessage != null) {
@@ -96,12 +126,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Email
                   TextFormField(
                     controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    keyboardType: TextInputType.text,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Correo electrónico',
+                      labelText: 'Usuario o Email',
                       labelStyle: const TextStyle(color: Colors.white70),
-                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
+                      prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Colors.white30),
@@ -121,10 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Por favor ingrese su correo';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Por favor ingrese un correo válido';
+                        return 'Por favor ingrese su usuario';
                       }
                       return null;
                     },
@@ -177,7 +204,35 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+
+                  // Checkbox recordar credenciales
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _rememberMe,
+                        onChanged: (value) {
+                          setState(() {
+                            _rememberMe = value ?? false;
+                          });
+                        },
+                        fillColor: MaterialStateProperty.resolveWith<Color>(
+                          (Set<MaterialState> states) {
+                            if (states.contains(MaterialState.selected)) {
+                              return Colors.white;
+                            }
+                            return Colors.white30;
+                          },
+                        ),
+                        checkColor: const Color(0xFF00274E),
+                      ),
+                      const Text(
+                        'Recordar mis credenciales',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
                   // Botón de login
                   Consumer<AuthProvider>(

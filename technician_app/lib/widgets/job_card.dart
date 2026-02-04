@@ -30,7 +30,7 @@ class JobCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       shadowColor: const Color(0xFF00274E).withOpacity(0.3),
-      color: const Color(0xFFD6DEE6),
+      color: _getCardBackgroundColor(),
       child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
@@ -276,7 +276,7 @@ class JobCard extends StatelessWidget {
               ),
             ),
             itemBuilder: (context) => [
-              if (isAdmin && permissions.update && job.isInPlace && !job.isClosed)
+              if (permissions.update && job.isInPlace && !job.isClosed)
                 const PopupMenuItem(
                   value: 'backToPending',
                   child: Row(
@@ -287,7 +287,7 @@ class JobCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (permissions.update && !job.isInPlace && !job.isClosed)
+              if (isAdmin && permissions.update && !job.isInPlace && !job.isClosed)
                 const PopupMenuItem(
                   value: 'edit',
                   child: Row(
@@ -298,7 +298,7 @@ class JobCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (permissions.delete && !job.isInPlace && !job.isClosed)
+              if (isAdmin && permissions.delete && !job.isInPlace && !job.isClosed)
                 const PopupMenuItem(
                   value: 'delete',
                   child: Row(
@@ -377,6 +377,26 @@ class JobCard extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  Color _getCardBackgroundColor() {
+    // Cerradas - Negro sutil
+    if (job.isClosed) {
+      return const Color(0xFFE0E0E0); // Gris muy claro con tono frío
+    }
+    
+    // En lugar - Verde sutil (similar al pills pero diferente)
+    if (job.isInPlace && !job.isClosed) {
+      return const Color(0xFFE8F5E9); // Verde muy claro
+    }
+    
+    // Pendientes vencidas - Rojo sutil
+    if (job.isOverdue) {
+      return const Color(0xFFFFEBEE); // Rojo muy claro
+    }
+    
+    // Pendientes normales - Gris (color original)
+    return const Color(0xFFD6DEE6);
   }
 
   String _formatTime(String dateTime) {

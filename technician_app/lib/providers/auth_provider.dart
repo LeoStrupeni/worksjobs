@@ -114,6 +114,21 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Guardar credenciales
+  Future<void> saveCredentials(String email, String password) async {
+    await _authService.saveCredentials(email, password);
+  }
+
+  // Obtener credenciales guardadas
+  Future<Map<String, String>?> getSavedCredentials() async {
+    return await _authService.getSavedCredentials();
+  }
+
+  // Limpiar credenciales guardadas
+  Future<void> clearSavedCredentials() async {
+    await _authService.clearSavedCredentials();
+  }
+
   @override
   void dispose() {
     _inactivityTimer?.cancel();

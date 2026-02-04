@@ -131,7 +131,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               controller: PageController(initialPage: initialIndex),
               itemBuilder: (context, index) {
                 final file = files[index];
-                final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/excel/${file.name}';
+                final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
                 return InteractiveViewer(
                   child: Center(
                     child: Image.network(
@@ -351,6 +351,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               success ? 'Llegada registrada' : 'Error al registrar llegada',
             ),
             backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRevertArrival() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Volver a Pendiente'),
+        content: const Text('¿Deseas revertir el arribo y volver la tarea a estado pendiente?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text('Revertir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await context.read<JobProvider>().revertArrival(widget.jobId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? 'Tarea devuelta a pendiente' : 'Error al revertir arribo',
+            ),
+            backgroundColor: success ? Colors.orange : Colors.red,
           ),
         );
       }
@@ -776,7 +814,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 itemCount: files.length,
                 itemBuilder: (context, index) {
                   final file = files[index];
-                  final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/excel/${file.name}';
+                  final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
                   
                   return GestureDetector(
                     onTap: () => _showImageViewer(index, files),
@@ -874,6 +912,22 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     ),
                   ),
                 ),
+              
+              // Botón "Volver a Pendiente" - solo si ha arribado pero no cerrado
+              if (job.isInPlace && !job.isClosed && permissions.canMarkArrival) ...[
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _handleRevertArrival,
+                    icon: const Icon(Icons.undo),
+                    label: const Text('Volver a Pendiente'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               
               // Botón "Cerrar Cita" - solo si tiene permiso de update
               if (job.isInPlace && !job.isClosed && permissions.canCloseJob) ...[

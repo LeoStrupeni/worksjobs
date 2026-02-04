@@ -1,13 +1,13 @@
 var controladorTiempo = 3000;
 var valorbuscado = '';
 $(document).ready(function() {
-    navigator.geolocation.getCurrentPosition(geosuccess);
+    getGeolocation();
     $('body').on('click','.create-job',function(){ 
         $('#name').val('');
         $('#description').val('');
         $('#createjob').modal('show');
 
-        navigator.geolocation.getCurrentPosition(geosuccess);
+        getGeolocation();
     });
     $('body').on('click','.update-job',function(){ 
         $("#lightgalleryEditNone").empty();
@@ -56,7 +56,7 @@ $(document).ready(function() {
             }
         }).always(function() {
             $('#modal-body-edit-job-roller').addClass('d-none');
-            navigator.geolocation.getCurrentPosition(geosuccess);
+            getGeolocation();
         });
     });
     $('body').on('click','.read-job',function(){ 
@@ -273,7 +273,7 @@ $(document).ready(function() {
     $('body').on('click',".addnote", function(){
         var idtarea = $(this).data('id');
         var nombre = $(this).data('name');
-        navigator.geolocation.getCurrentPosition(geosuccess);
+        getGeolocation();
         Swal.fire({
             text: "Agregar nota a la tarea "+nombre,
             input: "textarea",
@@ -483,7 +483,7 @@ $(document).ready(function() {
           }
         }).always(function() {
             $('#modal-body-closed-job-roller').addClass('d-none');
-            navigator.geolocation.getCurrentPosition(geosuccess);
+            getGeolocation();
         });
     });
     $('body').on('click',"#btn-closed-job",function () {

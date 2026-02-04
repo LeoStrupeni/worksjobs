@@ -36,6 +36,7 @@ class LoginController extends Controller
         );
 
         $remember = $request->filled('remember');
+        
         if(Auth::attempt(['email' => $request->email, 'password' => $request->password, 'estatus' => 1],$remember)) {
             $request->session()->regenerate();
 

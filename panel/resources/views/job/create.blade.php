@@ -14,6 +14,15 @@
                     <input type="hidden" name="longitude">
                     <input type="hidden" name="jsongeolocation">
                     
+                    <!-- Indicador de Geolocalización -->
+                    <div class="alert alert-info mb-3 d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt fa-2x me-3"></i>
+                        <div class="flex-grow-1">
+                            <strong>Registro de Ubicación GPS</strong>
+                            <p class="mb-0 small">Se guardará automáticamente la ubicación desde donde se crea esta tarea. Si aparece una alerta de permisos, por favor acepte para registrar la ubicación.</p>
+                        </div>
+                    </div>
+                    
                     <div class="row g-3 mb-3">
                         <!-- Card Cliente -->
                         <div class="col-md-6">

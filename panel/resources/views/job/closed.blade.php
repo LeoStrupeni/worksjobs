@@ -26,6 +26,16 @@
                     <input type="hidden" name="jsongeolocation">
                     <input type="hidden" name="client_id">
                     <input type="hidden" name="id">
+                    
+                    <!-- Indicador de Geolocalización -->
+                    <div class="alert alert-success mb-3 d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt fa-2x me-3"></i>
+                        <div class="flex-grow-1">
+                            <strong>Registro de Ubicación GPS de Cierre</strong>
+                            <p class="mb-0 small">Se guardará la ubicación GPS desde donde se cierra esta tarea.</p>
+                        </div>
+                    </div>
+                    
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
