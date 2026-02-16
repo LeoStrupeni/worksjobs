@@ -10,8 +10,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
-class PermissionController extends Controller
-{
+class PermissionController extends Controller{
+    /**
+     * Traduce el nombre de un permiso a español usando el archivo de idioma.
+     */
+    protected function translatePermission($key)
+    {
+        return __("permissions." . $key);
+    }
+
     public function index()
     {
         if(Auth::check()){
@@ -19,7 +26,7 @@ class PermissionController extends Controller
             if ($val == false){
                 return redirect()->route('logout');     
             }
-            if((Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')){
+            if(user_has_special_role()){
                 return view("permission");
             } else {
                 return redirect()->route('home');
@@ -71,7 +78,6 @@ class PermissionController extends Controller
         ->get()->toArray();
 
         $list = Permission::select('general')->groupby('general')->pluck('general');
-        
         foreach ($list as $l) {
             $agregar=0;
             foreach ($permisos as $perm) {
@@ -88,12 +94,13 @@ class PermissionController extends Controller
                 array_push($permisos, $newperm);
             }
         }
-
+        // Traducir los nombres
+        foreach ($permisos as &$perm) {
+            $perm['general_es'] = $this->translatePermission($perm['general']);
+        }
         $respuesta['datos']=$permisos;
-
         $permissions = Session::get('user')['permissions']['roles'];
         $respuesta['permissions'] = $permissions;
-
         return $respuesta;
     }
 

@@ -261,7 +261,7 @@
               <a href="mailto:juliacsegurov@gmail.com" target="_blank" class="text-white">
                 <div class="row">
                   <div class="col-4 col-md-2 text-center">
-                    <i class="fa-regular fa-envelope"></i> 
+                    <i class="fa-regular fa-envelope"></i>
                   </div>
                   <div class="col-8 col-md-10 ps-0">
                     Email

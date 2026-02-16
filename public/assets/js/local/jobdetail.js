@@ -586,7 +586,7 @@ $(document).ready(function() {
                     imagen += `<span class="btn-danger-pro" 
                         style=" position: relative; top: -25px; right: -40px;"
                         onclick="deleteimg(this,${this.id},'${id_elemento}')">
-                        <i class="fas fa-trash"></i>
+                        <i class="fas fa-trash me-2"></i>
                     </span>`;
                 }    
             imagen += `<div>`;
@@ -697,7 +697,7 @@ function scaleImage(inputnew,id_elemento) {
                     <div style="position: relative;padding: 0;">
                         <input class="form-control form-control-sm" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this);">
                         <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0]);">
-                            <span><i class="fas fa-trash"></i></span>
+                            <span><i class="fas fa-trash me-2"></i></span>
                         </span>
                     </div>
                 </div>`);
@@ -731,7 +731,7 @@ function deleteimg(e,idjob,id_elemento){
                     <span class="btn-danger-pro" 
                         style=" position: relative; top: -25px; right: -40px;"
                         onclick="deleteimg(this,${this.id},'${id_elemento}')">
-                        <i class="fas fa-trash"></i>
+                        <i class="fas fa-trash me-2"></i>
                     </span>
                 <div>`;
                 

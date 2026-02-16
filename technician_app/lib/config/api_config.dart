@@ -23,6 +23,9 @@ class ApiConfig {
   static const String clientsEndpoint = '/jobs/clients';
   static const String clientAddressesEndpoint = '/client/address';
   
+  // CMS endpoints
+  static const String flutterThemeEndpoint = '/flutter/theme';
+  
   // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

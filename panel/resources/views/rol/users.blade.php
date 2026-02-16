@@ -9,13 +9,13 @@
             </div>
             <div class="modal-body d-none bg-light" id="modal-body-show-rolusers-error">
                 <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3 me-2"></i>
                     <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
             <div class="modal-body d-none bg-light" id="modal-body-show-rolusers-sindatos">
                 <div class="text-center py-5">
-                    <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                    <i class="fas fa-info-circle fa-3x text-info mb-3 me-2"></i>
                     <h5 class="text-muted">No hay usuarios con este Rol</h5>
                 </div>
             </div>

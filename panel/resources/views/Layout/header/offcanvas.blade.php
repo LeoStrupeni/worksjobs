@@ -35,7 +35,8 @@
         </li>
         @if (in_array('read',Session::get('user')['permissions']['users']) || 
             in_array('read',Session::get('user')['permissions']['roles']) ||
-            in_array('read',Session::get('user')['permissions']['permissions'])
+            in_array('read',Session::get('user')['permissions']['permissions']) ||
+            in_array('read',Session::get('user')['permissions']['cms'])
         )
         <li class="mb-2">
           <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed ms-2" data-bs-toggle="collapse" data-bs-target="#coc-configuracion" aria-expanded="false">
@@ -55,10 +56,18 @@
                     href="{{ route('roles.index') }}">Roles</a>
                 </li>
               @endif
-              @if (Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')
+              @if (user_has_special_role())
                 <li>
                   <a class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-4" 
                     href="{{ route('permission.index') }}">Permisos</a>
+                </li>
+              @endif
+              @if (in_array('read',Session::get('user')['permissions']['cms']))
+                <li>
+                  <a class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-4" href="{{ route('cms.index') }}">CMS</a>
+                </li>
+                <li>
+                  <a class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-4" href="{{ route('cms.media') }}">Librería de Medios</a>
                 </li>
               @endif
             </ul>

@@ -93,7 +93,7 @@
                         </tbody>
                         <tbody id="table_roller">
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     <div style="display:block;" class="text-center">
                                         <br>
                                         <br>
@@ -108,7 +108,7 @@
 
                         <tbody id="table_error" class="d-none">
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     <div style="display:block;" class="text-center">
                                         <br>
                                         <br>
@@ -124,7 +124,7 @@
 
                         <tbody id="table_sindatos" class="d-none">
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     <div style="display:block;" class="text-center">
                                         <br>
                                         <br>

@@ -180,15 +180,21 @@
 
                 <li class="border-top my-3"></li>
                 <li class="mb-2">
-                        <a href="javascript:;" class="btn p-0 border-0 ms-3">
-                        <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
-                    </a>
-                    <a href="javascript:;" class="btn p-0 border-0 mx-2">
-                        <i class="flaticon-instagram-logo text-se-success hover-white"></i>
-                    </a>
-                    <a href="javascript:;" class="btn p-0 border-0">
-                        <i class="flaticon-linkedin text-se-success hover-white"></i>
-                    </a>
+                    @if(!empty($configs['facebook_url'] ?? ''))
+                        <a href="{{ $configs['facebook_url'] }}" target="_blank" class="btn p-0 border-0 ms-3">
+                            <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
+                        </a>
+                    @endif
+                    @if(!empty($configs['instagram_url'] ?? ''))
+                        <a href="{{ $configs['instagram_url'] }}" target="_blank" class="btn p-0 border-0 mx-2">
+                            <i class="flaticon-instagram-logo text-se-success hover-white"></i>
+                        </a>
+                    @endif
+                    @if(!empty($configs['linkedin_url'] ?? ''))
+                        <a href="{{ $configs['linkedin_url'] }}" target="_blank" class="btn p-0 border-0">
+                            <i class="flaticon-linkedin text-se-success hover-white"></i>
+                        </a>
+                    @endif
                 </li>
             </ul>
         </div>
@@ -196,7 +202,7 @@
     <nav class="navbar navbar-expand-lg p-0 bg-se-primary" style="height: 10vh;">
         <div class="container">
             <a class="navbar-brand" href="{{ route('home.index') }}">
-                <img src="{{env('APP_URL')}}/assets/media/icono.ico" alt="Logo" height="60">
+                <img src="{{ $configs['header.logo'] ?? env('APP_URL').'/assets/media/Logo.png' }}" alt="Logo" height="60">
             </a>
 
             <div class="btn-group d-lg-none" role="group">
@@ -210,17 +216,25 @@
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nuestros servicios</a>
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nosotros</a>
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">contacto</a>
-                    <a href="{{ route('login') }}" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">login</a>
+                    @if(($configs['header.mostrar_login'] ?? 'true') === 'true')
+                        <a href="{{ route('login') }}" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">login</a>
+                    @endif
 
-                    <a href="javascript:;" class="btn p-0 border-0 ms-3">
-                        <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
-                    </a>
-                    <a href="javascript:;" class="btn p-0 border-0 mx-2">
-                        <i class="flaticon-instagram-logo text-se-success hover-white"></i>
-                    </a>
-                    <a href="javascript:;" class="btn p-0 border-0">
-                        <i class="flaticon-linkedin text-se-success hover-white"></i>
-                    </a>
+                    @if(!empty($configs['facebook_url'] ?? ''))
+                        <a href="{{ $configs['facebook_url'] }}" target="_blank" class="btn p-0 border-0 ms-3">
+                            <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
+                        </a>
+                    @endif
+                    @if(!empty($configs['instagram_url'] ?? ''))
+                        <a href="{{ $configs['instagram_url'] }}" target="_blank" class="btn p-0 border-0 mx-2">
+                            <i class="flaticon-instagram-logo text-se-success hover-white"></i>
+                        </a>
+                    @endif
+                    @if(!empty($configs['linkedin_url'] ?? ''))
+                        <a href="{{ $configs['linkedin_url'] }}" target="_blank" class="btn p-0 border-0">
+                            <i class="flaticon-linkedin text-se-success hover-white"></i>
+                        </a>
+                    @endif
                 </ul>
             </div>
 

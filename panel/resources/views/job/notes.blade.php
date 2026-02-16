@@ -9,7 +9,7 @@
             </div>
             <div class="modal-body d-none" id="modal-body-view-jobsnotes-error">
                 <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3 me-2"></i>
                     <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
@@ -23,7 +23,7 @@
                     <div class="card-header bg-white border-0 pt-3">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
-                                <i class="fas fa-list fa-lg text-warning"></i>
+                                <i class="fas fa-list fa-lg text-warning me-2"></i>
                             </div>
                             <h6 class="mb-0 fw-bold">Lista de Notas</h6>
                         </div>

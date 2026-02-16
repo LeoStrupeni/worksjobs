@@ -9,7 +9,7 @@
             </div>
             <div class="modal-body d-none bg-light" id="modal-body-edit-user-error">
                 <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3 me-2"></i>
                     <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
@@ -81,10 +81,10 @@
             </div>
             <div class="modal-footer bg-light border-0 d-none" id="modal-footer-edit-user">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Cancelar
+                    <i class="fas fa-times me-2"></i>Cancelar
                 </button>
                 <button type="button" class="btn btn-success rounded-pill px-4" id="btn-update-user">
-                    <i class="fas fa-check me-1"></i> Actualizar
+                    <i class="fas fa-check me-2"></i>Actualizar
                 </button>
             </div>
         </div>

@@ -16,7 +16,7 @@
                     
                     <!-- Indicador de Geolocalización -->
                     <div class="alert alert-info mb-3 d-flex align-items-center">
-                        <i class="fas fa-map-marker-alt fa-2x me-3"></i>
+                        <i class="fas fa-map-marker-alt fa-2x me-2"></i>
                         <div class="flex-grow-1">
                             <strong>Registro de Ubicación GPS</strong>
                             <p class="mb-0 small">Se guardará automáticamente la ubicación desde donde se crea esta tarea. Si aparece una alerta de permisos, por favor acepte para registrar la ubicación.</p>
@@ -30,7 +30,7 @@
                                 <div class="card-body">
                                     <h6 class="card-title d-flex align-items-center mb-3">
                                         <span class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
-                                            <i class="fas fa-user text-primary"></i>
+                                            <i class="fas fa-user text-primary me-2"></i>
                                         </span>
                                         Información del Cliente
                                     </h6>
@@ -70,7 +70,7 @@
                                 <div class="card-body">
                                     <h6 class="card-title d-flex align-items-center mb-3">
                                         <span class="rounded-circle bg-info bg-opacity-10 p-2 me-2">
-                                            <i class="fas fa-calendar-alt text-info"></i>
+                                            <i class="fas fa-calendar-alt text-info me-2"></i>
                                         </span>
                                         Fecha y Hora
                                     </h6>
@@ -86,7 +86,7 @@
                         <div class="card-body">
                             <h6 class="card-title d-flex align-items-center mb-3">
                                 <span class="rounded-circle bg-success bg-opacity-10 p-2 me-2">
-                                    <i class="fas fa-file-alt text-success"></i>
+                                    <i class="fas fa-file-alt text-success me-2"></i>
                                 </span>
                                 Descripción del Trabajo
                             </h6>
@@ -99,7 +99,7 @@
                         <div class="card-body">
                             <h6 class="card-title d-flex align-items-center mb-3">
                                 <span class="rounded-circle bg-warning bg-opacity-10 p-2 me-2">
-                                    <i class="fas fa-paperclip text-warning"></i>
+                                    <i class="fas fa-paperclip text-warning me-2"></i>
                                 </span>
                                 Cargar Archivos / Imágenes
                             </h6>
@@ -107,7 +107,7 @@
                                 <div style="position: relative;padding: 0;">
                                     <input class="form-control form-control-sm" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this,'lightgallery');">
                                     <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0],'lightgallery');">
-                                        <span><i class="fas fa-trash"></i></span>
+                                        <span><i class="fas fa-trash me-2"></i></span>
                                     </span>
                                 </div>
                             </div>
@@ -120,10 +120,10 @@
             </div>
             <div class="modal-footer bg-light border-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Cancelar
+                    <i class="fas fa-times me-2"></i>Cancelar
                 </button>
                 <button type="button" class="btn btn-success rounded-pill px-4" id="btn-create-job">
-                    <i class="fas fa-check me-1"></i> Guardar
+                    <i class="fas fa-check me-2"></i>Guardar
                 </button>
             </div>
         </div>

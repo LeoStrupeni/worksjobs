@@ -106,7 +106,7 @@ $(document).ready(function() {
     $('body').on('click',"#btn-create-user",function () {
         var error = 0
 
-        $( ".validate" ).each(function( index ) {
+        $( "#formnewuser .validate" ).each(function( index ) {
             if($( this ).val() == ''){
                 $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
                 error++;
@@ -164,6 +164,7 @@ $(document).ready(function() {
 function tableregister(data, page, callpaginas, url_query){
     body='';
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
+    const specialRoleIds = data.special_role_ids || [];
 
     $.each(data.datos, function (key, val) {
         if(!val.imagen || val.imagen == '' || val.imagen == null || val.imagen == 'null'){
@@ -171,13 +172,14 @@ function tableregister(data, page, callpaginas, url_query){
         } else {
             imagen = '/storage/'+val.imagen;
         }
+        const isSpecialRole = specialRoleIds.includes(val.role_id);
         body += `<tr id="${val.id}">
             <td class="align-middle"><img class="profile-pic-table" src="${imagen}" onerror="this.onerror=null; this.src='${app_url}/assets/media/avatar.png'"/></td>
             <td class="align-middle">${val.name}</td>
             <td class="align-middle">${val.email}</td>
             <td class="align-middle">${val.rolname}</td>
             <td class="align-middle">
-                <button class="btn w-100 ${val.rolname != 'sistema' ? (val.estatus == 'Activo' ? 'btn-success' : 'btn-danger') : 'btn-secondary'} btn-sm ${data.permissions.includes('update') && val.rolname != 'sistema' ? 'estatus' : ''}" data-id="${val.id}">${val.estatus}</button>
+                <button class="btn w-100 ${!isSpecialRole ? (val.estatus == 'Activo' ? 'btn-success' : 'btn-danger') : 'btn-secondary'} btn-sm ${data.permissions.includes('update') && !isSpecialRole ? 'estatus' : ''}" data-id="${val.id}">${val.estatus}</button>
             </td>
             <td class="align-middle">
 
@@ -188,19 +190,19 @@ function tableregister(data, page, callpaginas, url_query){
                     <ul class="dropdown-menu" >`;
                         if( data.permissions.includes('read') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read">
-                                <i class="flaticon-eye"></i> Ver
+                                <i class="flaticon-eye"></i>Ver
                             </a></li>`
                         }
 
                         if( data.permissions.includes('update') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update-user">
-                                <i class="flaticon-upload"></i> Editar
+                                <i class="flaticon-upload"></i>Editar
                             </a></li>`
                         }
 
-                        if ( data.permissions.includes('delete') && val.rolname != 'sistema'){
+                        if ( data.permissions.includes('delete') && !isSpecialRole){
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.name}">
-                                <i class="flaticon-delete"></i> Eliminar
+                                <i class="flaticon-delete"></i>Eliminar
                             </a></li>`
                         }
                 body += `<ul></div>

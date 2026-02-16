@@ -15,7 +15,7 @@
                         <div class="card-header bg-white border-0 pt-3">
                             <div class="d-flex align-items-center">
                                 <div class="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
-                                    <i class="fas fa-cloud-upload-alt fa-lg text-danger"></i>
+                                    <i class="fas fa-cloud-upload-alt fa-lg text-danger me-2"></i>
                                 </div>
                                 <h6 class="mb-0 fw-bold">Cargar Archivos / Imágenes</h6>
                             </div>
@@ -24,7 +24,7 @@
                             <div style="position: relative;padding: 0;">
                                 <input class="form-control" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this,'lightgalleryFiles');">
                                 <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0],'lightgalleryFiles');">
-                                    <span><i class="fas fa-trash"></i></span>
+                                    <span><i class="fas fa-trash me-2"></i></span>
                                 </span>
                             </div>
                             <div id="lightgalleryFilesNone" class="d-none"></div>

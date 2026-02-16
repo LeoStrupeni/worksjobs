@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Job;
 use App\Models\Jobs_Note;
+use App\Models\CmsSection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class HomeController extends Controller
             // Usar directamente el query del modelo en lugar de llamar a JobController
             $query = Job::getJobsQuery()->toSql();
 
-            if(Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin'){
+            if(user_has_special_role()){
                 $query .= " AND C.archived = 0 AND (
                     CAST(C.visit_datetime as DATE) BETWEEN DATE(NOW()) and DATE_ADD(DATE(NOW()),INTERVAL 7 DAY)
                     OR CAST(C.visit_datetime as DATE) < DATE(NOW())
@@ -51,7 +52,17 @@ class HomeController extends Controller
 
             return view("home", compact("jobs"));
         }
-        return view("public.home");
+        
+        // Cargar secciones del CMS para la vista pública
+        $sections = CmsSection::where('is_active', true)
+            ->orderBy('order')
+            ->get()
+            ->mapWithKeys(function ($section) {
+                return [$section->slug => $section->config];
+            })
+            ->toArray();
+        
+        return view("public.home", compact('sections'));
         // return redirect()->route('login');
     }
 }

@@ -2,14 +2,18 @@
 
 use App\Http\Controllers\Api\ApiDataTablesController;
 use App\Http\Controllers\Api\ApiJobController;
+use App\Http\Controllers\ApiConfigController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\CmsController;
 use App\Http\Controllers\ExcelController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolController;
+use App\Http\Controllers\SectionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +30,27 @@ use Illuminate\Support\Facades\Route;
 //     return 'Storage link created';
 // });
 
+Route::get('/clear-cache', function() {
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    return "Cache cleared successfully!";
+})->name('cache.clear');
+
+Route::get('/test', function() {
+    echo md5("Alma2024");
+    echo "<br>";
+    echo md5("strU1184!!");
+    echo "<br>";
+    return 'listo';
+});
+
 Route::get('/', [HomeController::class,'index'])->name('home.index');
+
+// Ruta para ver la web pública (sin afectar login/dashboard)
+Route::view('/web-publica', 'public.home')->name('web.publica');
+
 // Route::view('/login','Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value])->name('login');
 Route::get('/login', [LoginController::class,'loginget'])->name('login');
 Route::post('/login', [LoginController::class,'login']);
@@ -77,5 +101,26 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/jobs/files', [JobController::class,'onlyaddfiles'])->name('job.files');
     Route::get('/jobs/destroyfile/{id}', [JobController::class,'destroyfile']);
     
+    // ============= RUTAS CMS =============
+    // Panel principal CMS
+    Route::get('/cms', [SectionController::class,'index'])->name('cms.index');
+    
+    // Secciones CMS
+    Route::get('/cms/sections/{slug}/edit', [SectionController::class,'edit'])->name('cms.sections.edit');
+    Route::post('/cms/sections/{slug}', [SectionController::class,'update'])->name('cms.sections.update');
+    Route::get('/cms/sections/{slug}/versions', [SectionController::class,'versions'])->name('cms.sections.versions');
+    Route::post('/cms/sections/{slug}/restore/{versionId}', [SectionController::class,'restoreVersion'])->name('cms.sections.restore');
+    
+    // Media Library
+    Route::get('/cms/media', [MediaController::class,'index'])->name('cms.media');
+    Route::post('/cms/media/upload', [MediaController::class,'upload'])->name('cms.media.upload');
+    Route::post('/cms/media/upload-multiple', [MediaController::class,'uploadMultiple'])->name('cms.media.upload-multiple');
+    Route::post('/cms/media/{id}/update-name', [MediaController::class,'updateName'])->name('cms.media.update-name');
+    Route::post('/cms/media/{id}', [MediaController::class,'update'])->name('cms.media.update');
+    Route::delete('/cms/media/{id}', [MediaController::class,'destroy'])->name('cms.media.destroy');
+    
+    // API Configuration
+    Route::get('/cms/api-config', [ApiConfigController::class,'index'])->name('cms.api-config.index');
+    Route::post('/cms/api-config', [ApiConfigController::class,'update'])->name('cms.api-config.update');
     
 });

@@ -12,7 +12,7 @@
                     <div class="card-header bg-white border-0 pt-3">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
-                                <i class="fas fa-clipboard-list fa-lg text-info"></i>
+                                <i class="fas fa-clipboard-list fa-lg text-info me-2"></i>
                             </div>
                             <h6 class="mb-0 fw-bold">Descripción Completa del Trabajo</h6>
                         </div>

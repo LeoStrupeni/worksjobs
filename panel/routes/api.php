@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiJobController;
 use App\Http\Controllers\Api\ApiSearchVarController;
+use App\Http\Controllers\CmsController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\SectionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,9 +23,12 @@ use Illuminate\Support\Facades\Route;
 // Rutas públicas (sin autenticación)
 Route::post('/login', [ApiAuthController::class, 'login']);
 
+// API pública para tema Flutter
+Route::get('/flutter/theme', [CmsController::class, 'getActiveTheme']);
+
 // Rutas usadas por Web y App (sin autenticación Sanctum pero con sesión)
-Route::get('/searchvar', [ApiSearchVarController::class,'searchvar']);
-Route::post('/searchvar', [ApiSearchVarController::class,'searchvar']);
+Route::get('/searchvar', [ApiSearchVarController::class, 'searchvar']);
+Route::post('/searchvar', [ApiSearchVarController::class, 'searchvar']);
 
 // Rutas protegidas (requieren autenticación Sanctum)
 Route::middleware('auth:sanctum')->group(function () {

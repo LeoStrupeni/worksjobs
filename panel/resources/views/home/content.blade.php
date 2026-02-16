@@ -44,7 +44,7 @@
                       <div class="card" style="background-color: #ffffffd6!important;">
                         <div class="card-body">
                           <div class="text-center py-5">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <i class="fas fa-inbox fa-3x text-muted mb-3 me-2"></i>
                             <h5 class="text-muted">No hay tareas en estado {{ $tipo }}</h5>
                           </div>
                         </div>

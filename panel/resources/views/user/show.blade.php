@@ -9,7 +9,7 @@
             </div>
             <div class="modal-body d-none bg-light" id="modal-body-show-user-error">
                 <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3 me-2"></i>
                     <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>

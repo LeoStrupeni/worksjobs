@@ -12,7 +12,7 @@
             {{-- Estados de carga y error --}}
             <div class="modal-body d-none" id="modal-body-show-job-error">
                 <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3 me-2"></i>
                     <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
@@ -30,17 +30,17 @@
                     <ul class="nav nav-tabs px-4 pt-3 bg-light" id="jobTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-content" type="button">
-                                <i class="fas fa-info-circle me-1"></i>Información General
+                                <i class="fas fa-info-circle me-2"></i>Información General
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location-content" type="button">
-                                <i class="fas fa-map-marker-alt me-1"></i>Ubicaciones
+                                <i class="fas fa-map-marker-alt me-2"></i>Ubicaciones
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-content" type="button">
-                                <i class="fas fa-images me-1"></i>Imágenes
+                                <i class="fas fa-images me-2"></i>Imágenes
                             </button>
                         </li>
                     </ul>
@@ -56,7 +56,7 @@
                                         <div class="card-header bg-white border-0 pt-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-user fa-lg text-primary"></i>
+                                                    <i class="fas fa-user fa-lg text-primary me-2"></i>
                                                 </div>
                                                 <h6 class="mb-0 fw-bold">Información del Cliente</h6>
                                             </div>
@@ -84,7 +84,7 @@
                                         <div class="card-header bg-white border-0 pt-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-clipboard-list fa-lg text-success"></i>
+                                                    <i class="fas fa-clipboard-list fa-lg text-success me-2"></i>
                                                 </div>
                                                 <h6 class="mb-0 fw-bold">Descripción del Trabajo</h6>
                                             </div>
@@ -101,7 +101,7 @@
                                         <div class="card-header bg-white border-0 pt-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-comment-alt fa-lg text-warning"></i>
+                                                    <i class="fas fa-comment-alt fa-lg text-warning me-2"></i>
                                                 </div>
                                                 <h6 class="mb-0 fw-bold">Observaciones de Cierre</h6>
                                             </div>
@@ -118,7 +118,7 @@
                                         <div class="card-header bg-white border-0 pt-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-clock fa-lg text-info"></i>
+                                                    <i class="fas fa-clock fa-lg text-info me-2"></i>
                                                 </div>
                                                 <h6 class="mb-0 fw-bold">Registro de Tiempos</h6>
                                             </div>
@@ -126,13 +126,13 @@
                                         <div class="card-body">
                                             <div class="mb-3">
                                                 <label class="text-muted small mb-1">
-                                                    <i class="fas fa-sign-in-alt me-1 text-success"></i>Fecha y hora de arribo
+                                                    <i class="fas fa-sign-in-alt me-2 text-success"></i>Fecha y hora de arribo
                                                 </label>
                                                 <input type="datetime-local" class="form-control border-0 bg-light" name="arrival_datetime" readonly>
                                             </div>
                                             <div>
                                                 <label class="text-muted small mb-1">
-                                                    <i class="fas fa-sign-out-alt me-1 text-danger"></i>Fecha y hora de cierre
+                                                    <i class="fas fa-sign-out-alt me-2 text-danger"></i>Fecha y hora de cierre
                                                 </label>
                                                 <input type="datetime-local" class="form-control border-0 bg-light" name="closed_datetime" readonly>
                                             </div>
@@ -151,7 +151,7 @@
                                         <div class="card-header bg-white border-0 pt-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-map-marker-alt fa-lg text-success"></i>
+                                                    <i class="fas fa-map-marker-alt fa-lg text-success me-2"></i>
                                                 </div>
                                                 <h6 class="mb-0 fw-bold">Ubicación de Arribo</h6>
                                             </div>
@@ -176,7 +176,7 @@
                                         <div class="card-header bg-white border-0 pt-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-map-marker-alt fa-lg text-dark"></i>
+                                                    <i class="fas fa-map-marker-alt fa-lg text-dark me-2"></i>
                                                 </div>
                                                 <h6 class="mb-0 fw-bold">Ubicación de Cierre</h6>
                                             </div>
@@ -203,7 +203,7 @@
                                 <div class="card-header bg-white border-0 pt-3">
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
-                                            <i class="fas fa-images fa-lg text-danger"></i>
+                                            <i class="fas fa-images fa-lg text-danger me-2"></i>
                                         </div>
                                         <h6 class="mb-0 fw-bold">Galería de Imágenes</h6>
                                     </div>

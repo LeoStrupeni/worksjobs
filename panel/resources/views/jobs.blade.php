@@ -79,25 +79,25 @@
                                 <thead style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); position: sticky; top: 0; z-index: 10;">
                                     <tr>
                                         <th class="column_orden fw-bold text-dark" data-name="client_first_name" style="cursor: pointer; min-width: 150px; white-space: nowrap;">
-                                            <i class="fas fa-user me-1"></i>Cliente
+                                            <i class="fas fa-user me-2"></i>Cliente
                                         </th>
                                         <th class="column_orden fw-bold text-dark" data-name="created_at" style="cursor: pointer; min-width: 200px; white-space: nowrap;">
-                                            <i class="fas fa-calendar me-1"></i>Fechas
+                                            <i class="fas fa-calendar me-2"></i>Fechas
                                         </th>
                                         <th class="column_orden fw-bold text-dark" data-name="estatus" style="cursor: pointer; min-width: 120px; white-space: nowrap;">
-                                            <i class="fas fa-flag me-1"></i>Estado
+                                            <i class="fas fa-flag me-2"></i>Estado
                                         </th>
                                         <th class="column_orden fw-bold text-dark" data-name="job_description" style="cursor: pointer; min-width: 250px; white-space: nowrap;">
-                                            <i class="fas fa-clipboard me-1"></i>Descripción
+                                            <i class="fas fa-clipboard me-2"></i>Descripción
                                         </th>
                                         <th class="sorttable_nosort fw-bold text-dark" style="min-width: 80px; white-space: nowrap;">
-                                            <i class="fas fa-sticky-note me-1"></i>Notas
+                                            <i class="fas fa-sticky-note me-2"></i>Notas
                                         </th>
                                         <th class="column_orden fw-bold text-dark" data-name="closed_job_observation" style="cursor: pointer; min-width: 250px; white-space: nowrap;">
-                                            <i class="fas fa-comment me-1"></i>Observaciones
+                                            <i class="fas fa-comment me-2"></i>Observaciones
                                         </th>
                                         <th class="sorttable_nosort fw-bold text-dark" style="width:80px; min-width: 80px; white-space: nowrap;">
-                                            <i class="fas fa-cog"></i>
+                                            <i class="fas fa-cog me-2"></i>
                                         </th>
                                     </tr>
                                 </thead>

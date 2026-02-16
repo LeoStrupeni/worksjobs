@@ -62,6 +62,7 @@ $(document).ready(function() {
         $('#modal-body-show-rolusers-roller').removeClass('d-none');
         $('#modal-body-show-rolusers-error').addClass('d-none');
         $('#modal-body-show-rolusers-sindatos').addClass('d-none');
+        $('#modal-body-show-rolusers').addClass('d-none');
         $('#modal-body-show-rol').addClass('d-none');
 
         $.ajax({contenttype : 'application/json; charset=utf-8',
@@ -73,15 +74,17 @@ $(document).ready(function() {
                 if(data.datos.length == 0){$('#modal-body-show-rolusers-sindatos').removeClass('d-none');}
                 else { 
                     body='';
+                    const specialRoleIds = data.special_role_ids || [];
                     $.each(data.datos, function (key, val) {
                         imagen = val.imagen;
                         if(imagen == ''){imagen = app_url+"/assets/media/avatar.jpg"}
+                        const isSpecialRole = specialRoleIds.includes(val.role_id);
                         body += `<tr id="${val.id}">
                             <td class="align-middle"><img class="profile-pic-table" src="${imagen}"/></td>
                             <td class="align-middle">${val.name}</td>
                             <td class="align-middle">${val.email}</td>
                             <td class="align-middle">
-                                <button class="btn w-100 ${val.rolname != 'sistema' ? (val.estatus == 'Activo' ? 'btn-success' : 'btn-danger') : 'btn-secondary'} btn-sm">${val.estatus}</button>
+                                <button class="btn w-100 ${!isSpecialRole ? (val.estatus == 'Activo' ? 'btn-success' : 'btn-danger') : 'btn-secondary'} btn-sm">${val.estatus}</button>
                             </td>
                         </tr>`;
                     });
@@ -101,6 +104,7 @@ $(document).ready(function() {
         $('#modal-body-show-rolpermissions-roller').removeClass('d-none');
         $('#modal-body-show-rolpermissions-error').addClass('d-none');
         $('#modal-body-show-rolpermissions-sindatos').addClass('d-none');
+        $('#modal-body-show-rolpermissions').addClass('d-none');
         var rolid = $(this).data('id');
         $.ajax({contenttype : 'application/json; charset=utf-8',
             url : $('meta[name="app_url"]').attr('content')+'/permission/'+rolid,
@@ -117,7 +121,7 @@ $(document).ready(function() {
                             disabled = 'disabled';
                         }
                         body += `<tr id="${val.general}">
-                            <td class="align-middle text-start ps-3">${val.general}</td>
+                            <td class="align-middle text-start ps-3">${val.general_es ? val.general_es : val.general}</td>
                             <td class="align-middle text-center">
                                 <form>
                                     <input type="hidden" name="rolid" value="${rolid}">
@@ -211,7 +215,8 @@ $(document).ready(function() {
     $('body').on('click',"#btn-create-rol",function () {
         var error = 0
 
-        $( ".validate" ).each(function( index ) {
+        $( "#formnewrol .validate" ).each(function( index ) {
+            console.log($( this ).prop('name'));
             if($( this ).val() == ''){
                 $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
                 error++;
@@ -230,7 +235,7 @@ $(document).ready(function() {
     $('body').on('click',"#btn-update-rol",function () {
         var error = 0
 
-        $( ".e_validate" ).each(function( index ) {
+        $( "#formeditrol .e_validate" ).each(function( index ) {
             if($( this ).val() == ''){
                 $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
                 error++;
@@ -286,15 +291,17 @@ $(document).ready(function() {
 function tableregister(data, page, callpaginas, url_query){
     body='';
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
+    const specialRoleIds = data.special_role_ids || [];
 
     $.each(data.datos, function (key, val) {
         imagen = val.imagen;
         if(imagen == ''){imagen = app_url+"/assets/media/avatar.jpg"}
+        const isSpecialRole = specialRoleIds.includes(val.id);
         body += `<tr id="${val.id}">
             <td class="align-middle">${val.name}</td>
             <td class="align-middle">${val.description ?? ''}</td>
             <td class="align-middle">
-                <button class="btn w-100 ${val.name != 'sistema' ? (val.estatus == 'Activo' ? 'btn-success' : 'btn-danger') : 'btn-secondary'} btn-sm ${data.permissions.includes('update') && val.name != 'sistema' ? 'estatus' : ''}" data-id="${val.id}">${val.estatus}</button>
+                <button class="btn w-100 ${!isSpecialRole ? (val.estatus == 'Activo' ? 'btn-success' : 'btn-danger') : 'btn-secondary'} btn-sm ${data.permissions.includes('update') && !isSpecialRole ? 'estatus' : ''}" data-id="${val.id}">${val.estatus}</button>
             </td>
             <td class="align-middle">
 
@@ -305,25 +312,25 @@ function tableregister(data, page, callpaginas, url_query){
                     <ul class="dropdown-menu" >`;
                         if( data.permissions.includes('read') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read">
-                                <i class="flaticon-eye"></i> Ver
+                                <i class="flaticon-eye"></i>Ver
                             </a></li>
                             <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item readusers">
-                                <i class="flaticon-users-1"></i> Ver Usuarios
+                                <i class="flaticon-users-1"></i>Ver Usuarios
                             </a></li>
                             <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item readpermissions">
-                                <i class="flaticon-users-1"></i> Ver permisos
+                                <i class="fa-solid fa-key"></i>Permisos
                             </a></li>`
                         }
 
                         if( data.permissions.includes('update') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update">
-                                <i class="flaticon-upload"></i> Editar
+                                <i class="flaticon-upload"></i>Editar
                             </a></li>`
                         }
 
-                        if ( data.permissions.includes('delete') && val.name != 'sistema' ){
+                        if ( data.permissions.includes('delete') && !isSpecialRole ){
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.name}">
-                                <i class="flaticon-delete"></i> Eliminar
+                                <i class="flaticon-delete"></i>Eliminar
                             </a></li>`
                         }
                 body += `<ul></div>

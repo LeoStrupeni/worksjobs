@@ -95,6 +95,8 @@ class ApiJobController extends Controller
 
         $respuesta['roluser'] = $roluser;
         $respuesta['permissions'] = $permissions;
+        $respuesta['special_role_ids'] = get_special_role_ids();
+        $respuesta['user_role_id'] = get_role_id_by_name($roluser);
 
         return $respuesta;
     }

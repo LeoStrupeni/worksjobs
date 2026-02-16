@@ -38,7 +38,7 @@ $(document).ready(function() {
     $('body').on('click',"#btn-update-user",function () {
         var error = 0
 
-        $( ".e_validate" ).each(function( index ) {
+        $( "#formedituser .e_validate" ).each(function( index ) {
             if($( this ).val() == ''){
                 $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
                 error++;

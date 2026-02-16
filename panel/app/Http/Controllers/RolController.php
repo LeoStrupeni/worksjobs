@@ -31,7 +31,7 @@ class RolController extends Controller
     public function getUsersRol($id)
     {
 
-        $respuesta['datos'] = DB::select("SELECT U.id, U.name, U.email, R.name as rolname, U.imagen, 
+        $respuesta['datos'] = DB::select("SELECT U.id, U.name, U.email, R.id as role_id, R.name as rolname, U.imagen, 
             IF(U.estatus=1,'Activo','Inactivo') as estatus
             FROM users U
             JOIN model_has_roles MR ON U.id = MR.model_id
@@ -66,16 +66,16 @@ class RolController extends Controller
 
     public function show($id)
     {
-        $user = Rol::find($id);
-
-        if($user->estatus == 1){
-            $user->estatus = 0;
-            $user->save();
-        }else {
-            $user->estatus = 1;
-            $user->save();
+        $rol = Rol::find($id);
+        if (!$rol) {
+            return response()->json(['error' => 'Rol no encontrado'], 404);
         }
-
+        // No permitir desactivar roles de sistema
+        if ($rol->is_system_role == 1) {
+            return response()->json(['error' => 'No se puede desactivar un rol de sistema.'], 403);
+        }
+        $rol->estatus = $rol->estatus == 1 ? 0 : 1;
+        $rol->save();
         return 1;
     }
 
@@ -116,11 +116,25 @@ class RolController extends Controller
 
     public function destroy($id)
     {
-        Rol::find($id)->update([
+        $rol = Rol::find($id);
+        if (!$rol) {
+            return redirect()->route('roles.index')->with('error', 'Rol no encontrado.');
+        }
+        // No permitir eliminar roles de sistema
+        if ($rol->is_system_role == 1) {
+            return redirect()->route('roles.index')->with('error', 'No se puede eliminar un rol de sistema.');
+        }
+        // No permitir eliminar roles con usuarios asociados
+        $usuariosAsociados = DB::table('model_has_roles')
+            ->where('role_id', $rol->id)
+            ->count();
+        if ($usuariosAsociados > 0) {
+            return redirect()->route('roles.index')->with('error', 'No se puede eliminar un rol con usuarios asociados.');
+        }
+        $rol->update([
             'deleted_at' => Carbon::now(),
             'estatus' => 0
         ]);
-
-        return redirect()->route('roles.index');
+        return redirect()->route('roles.index')->with('success', 'Rol eliminado correctamente.');
     }
 }

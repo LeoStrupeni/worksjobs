@@ -9,11 +9,11 @@
           </span>
           <div class="dropdown">
             <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
-              <i class="fas fa-ellipsis-v"></i>
+              <i class="fas fa-ellipsis-v me-2"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               @if ($j->estatus != 'Cerrado')
-                @if (Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')
+                @if (user_has_special_role())
                   @if(in_array('update',Session::get('user')['permissions']['jobs']) && $j->arrival != null)
                     <li><a class="dropdown-item backarrival" href="javascript:void(0);" data-id="{{$j->id}}">
                       <i class="flaticon-reply me-2"></i>Volver a pendiente
@@ -68,14 +68,14 @@
         <div class="row g-2 mb-3">
           <div class="col-12">
             <small class="text-muted d-flex align-items-center">
-              <i class="fas fa-calendar-alt me-2" style="width: 16px;"></i>
+              <i class="fas fa-calendar-alt me-2"></i>
               <span>{{$j->visit_day}} {{$j->visit}}</span>
             </small>
           </div>
         </div>
 
         {{-- Descripción con altura fija --}}
-        @if (Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')
+        @if (user_has_special_role())
           <p class="card-text small text-muted mb-2" 
              style="min-height: 1.3rem; 
                     max-height: 1.3rem; 
@@ -87,7 +87,7 @@
             {{$j->job_description_short}}
           </p>
           <button type="button" class="btn btn-link btn-sm p-0 mb-2 btn-description" data-content="{{$j->job_description}}">
-            <i class="fas fa-eye me-1"></i>Ver descripción completa
+            <i class="fas fa-eye me-2"></i>Ver descripción completa
           </button>
         @else
           <p class="card-text small text-muted mb-2" 

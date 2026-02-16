@@ -28,10 +28,10 @@
             </div>
             <div class="modal-footer bg-light border-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Cancelar
+                    <i class="fas fa-times me-2"></i>Cancelar
                 </button>
                 <button type="button" class="btn btn-success rounded-pill px-4" id="btn-create-permission">
-                    <i class="fas fa-check me-1"></i> Guardar
+                    <i class="fas fa-check me-2"></i>Guardar
                 </button>
             </div>
         </div>

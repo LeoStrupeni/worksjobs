@@ -48,19 +48,19 @@ function tableregister(data, page, callpaginas, url_query){
             <td class="text-start py-3 align-middle">
                 <div class="d-flex flex-column gap-1">
                     <small class="text-muted" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Creación">
-                        <i class="fas fa-circle" style="color: #6c757d; font-size: 6px;"></i> ${val.created} <span class="text-secondary">(${val.created_day})</span>
+                        <i class="fas fa-circle me-2"></i>${val.created} <span class="text-secondary">(${val.created_day})</span>
                     </small>
                     <small class="text-primary" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Visita">
-                        <i class="fas fa-circle" style="color: #0d6efd; font-size: 6px;"></i> ${val.visit} <span class="text-secondary">(${val.visit_day})</span>
+                        <i class="fas fa-circle me-2"></i>${val.visit} <span class="text-secondary">(${val.visit_day})</span>
                     </small>`
                 if (val.arrival != null) {
                     body += `<small class="text-success" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Arribo a lugar">
-                        <i class="fas fa-circle" style="color: #198754; font-size: 6px;"></i> ${val.arrival} <span class="text-secondary">(${val.arrival_day})</span>
+                        <i class="fas fa-circle me-2"></i>${val.arrival} <span class="text-secondary">(${val.arrival_day})</span>
                     </small>`
                 }
                 if (val.closed != null) {
                     body += `<small class="text-danger" data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" data-bs-content="Fecha de Cierre Visita">
-                        <i class="fas fa-circle" style="color: #dc3545; font-size: 6px;"></i> ${val.closed} <span class="text-secondary">(${val.closed_day})</span>
+                        <i class="fas fa-circle me-2"></i>${val.closed} <span class="text-secondary">(${val.closed_day})</span>
                     </small>`
                 }
             body += `</div>
@@ -74,7 +74,7 @@ function tableregister(data, page, callpaginas, url_query){
                 <div class="d-flex align-items-center">
                     <span class="text-truncate me-2" style="max-width: 200px;">${val.job_description_short}</span>
                     <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.job_description}" title="Ver descripción completa">
-                        <i class="fas fa-eye"></i>
+                        <i class="fas fa-eye me-2"></i>
                     </button>
                 </div>
             </td>
@@ -92,7 +92,7 @@ function tableregister(data, page, callpaginas, url_query){
                 if (val.closed_job_observation != '') {
                     body += `<span class="text-truncate me-2" style="max-width: 200px;">${val.closed_job_observation_short}</span>
                     <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.closed_job_observation}" title="Ver observación completa">
-                        <i class="fas fa-eye"></i>
+                        <i class="fas fa-eye me-2"></i>
                     </button>`
                 } else {
                     body += `<span class="text-muted">-</span>`
@@ -152,7 +152,11 @@ function tableregister(data, page, callpaginas, url_query){
                             </a></li>`
                         }
 
-                        if (data.roluser == 'sistema' || data.roluser == 'admin') {
+                        const specialRoles = data.special_role_ids || [];
+                        const userRoleId = data.user_role_id;
+                        const isSpecialRole = specialRoles.includes(userRoleId);
+                        
+                        if (isSpecialRole) {
                             if ( data.permissions.includes('update') && val.arrival != null && val.closed == null) {
                                 body += `<li>
                                     <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item backarrival">

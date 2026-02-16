@@ -28,7 +28,8 @@
 
                     @if (in_array('read',Session::get('user')['permissions']['users']) || 
                         in_array('read',Session::get('user')['permissions']['roles']) ||
-                        in_array('read',Session::get('user')['permissions']['permissions'])
+                        in_array('read',Session::get('user')['permissions']['permissions']) ||
+                        in_array('read',Session::get('user')['permissions']['cms'])
                     )
                     <li class="nav-item dropdown btn-header-menu">
                         <button class="btn btn-lg text-white rounded h-100" data-bs-toggle="dropdown" aria-expanded="false">
@@ -41,8 +42,11 @@
                             @if (in_array('read',Session::get('user')['permissions']['roles']))
                                 <li><a class="dropdown-item rounded py-3" href="{{ route('roles.index') }}">Roles</a></li>
                             @endif
-                            @if (Session::get('user')['roles'][0] == 'sistema' || Session::get('user')['roles'][0] == 'admin')
+                            @if (user_has_special_role())
                                 <li><a class="dropdown-item rounded py-3" href="{{ route('permission.index') }}">Permisos</a></li>   
+                            @endif
+                            @if (in_array('read',Session::get('user')['permissions']['cms']))
+                                <li><a class="dropdown-item rounded py-3" href="{{ route('cms.index') }}">CMS</a></li>
                             @endif
                         </ul>
                     </li>

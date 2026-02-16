@@ -40,8 +40,11 @@ class LoginController extends Controller
         if(Auth::attempt(['email' => $request->email, 'password' => $request->password, 'estatus' => 1],$remember)) {
             $request->session()->regenerate();
 
+            // Guardar roles por nombre
             Session::put('user.roles', Auth::user()->roles->pluck('name') );
-            // Session::put('user.permissions', Auth::user()->getPermissionsViaRoles()->pluck('name') );
+            // Guardar si el usuario tiene un rol especial (is_system_role=1)
+            $specialRole = Auth::user()->roles()->where('is_system_role', 1)->first();
+            Session::put('user.is_system_role', $specialRole ? true : false);
             $this->getpermissions();
 
             $clients = Client::limit(20)->get();

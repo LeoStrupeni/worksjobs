@@ -82,7 +82,8 @@ class ApiDataTablesController extends Controller
         $respuesta['query'] = $query.$querylist;
         $respuesta['roluser'] = $roluser;
         $respuesta['permissions'] = $permissions;
-
+        $respuesta['special_role_ids'] = get_special_role_ids();
+        
         return $respuesta;
     }
 
@@ -102,12 +103,13 @@ class ApiDataTablesController extends Controller
 
         $totales = User::count();
 
-        $query = "SELECT U.id, U.name, U.email, R.name as rolname, U.imagen, 
+        $specialRoleIds = implode(',', get_special_role_ids());
+        $query = "SELECT U.id, U.name, U.email, R.id as role_id, R.name as rolname, U.imagen, 
             IF(U.estatus=1,'Activo','Inactivo') as estatus
             FROM users U
             JOIN model_has_roles MR ON U.id = MR.model_id
             JOIN roles R ON MR.role_id = R.id 
-            WHERE ISNULL(U.deleted_at) AND R.name != 'sistema' ";
+            WHERE ISNULL(U.deleted_at) ";
 
         if ($search != '' && isset($search)) {
             $query .= " AND (U.name LIKE '%$search%' 
@@ -170,7 +172,7 @@ class ApiDataTablesController extends Controller
         $query = "SELECT R.id, R.name, R.description, 
             IF(R.estatus=1,'Activo','Inactivo') as estatus
             FROM roles R
-            WHERE ISNULL(R.deleted_at) ";
+            WHERE ISNULL(R.deleted_at) AND R.id != 3 "; // Excluir rol 'sistema' con ID 3
 
         if ($search != '' && isset($search)) {
             $query .= " AND (R.name LIKE '%$search%' 
@@ -209,6 +211,7 @@ class ApiDataTablesController extends Controller
         $respuesta['query'] = $query.$querylist;
         $respuesta['roluser'] = $roluser;
         $respuesta['permissions'] = $permissions;
+        $respuesta['special_role_ids'] = get_special_role_ids();
 
         return $respuesta;
     }
@@ -257,22 +260,23 @@ class ApiDataTablesController extends Controller
         }
 
         $lista = DB::select(DB::raw($query . $querylist));
-
+        // Traducción de nombres
+        foreach ($lista as &$item) {
+            $item->general_es = __("permissions." . $item->general);
+        }
         $respuesta['totales'] = $totales;
         $respuesta['filtrados'] = count($filtrados);
         $respuesta['paginastotal'] = ceil(count($filtrados) / $limit);
         $respuesta['datos'] = $lista;
-
         if ($limit * $page > count($filtrados)) {
             $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . count($filtrados) . ' de un total de ' . count($filtrados);
         } else {
             $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados);
         }
-
         $respuesta['query'] = $query.$querylist;
         $respuesta['roluser'] = $roluser;
         $respuesta['permissions'] = $permissions;
-
+        $respuesta['special_role_ids'] = get_special_role_ids();
         return $respuesta;
     }
 
@@ -321,7 +325,7 @@ class ApiDataTablesController extends Controller
      */
     public function getUsersByRol($id)
     {
-        $respuesta['datos'] = DB::select("SELECT U.id, U.name, U.email, R.name as rolname, U.imagen, 
+        $respuesta['datos'] = DB::select("SELECT U.id, U.name, U.email, R.id as role_id, R.name as rolname, U.imagen, 
             IF(U.estatus=1,'Activo','Inactivo') as estatus
             FROM users U
             JOIN model_has_roles MR ON U.id = MR.model_id

@@ -9,7 +9,7 @@
             </div>
             <div class="modal-body d-none" id="modal-body-closed-job-error">
                 <div class="text-center py-5">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3 me-2"></i>
                     <h5 class="text-muted">Error al obtener la información. Por favor reintentelo o comuníquese con Soporte</h5>
                 </div>
             </div>
@@ -29,7 +29,7 @@
                     
                     <!-- Indicador de Geolocalización -->
                     <div class="alert alert-success mb-3 d-flex align-items-center">
-                        <i class="fas fa-map-marker-alt fa-2x me-3"></i>
+                        <i class="fas fa-map-marker-alt fa-2x me-2"></i>
                         <div class="flex-grow-1">
                             <strong>Registro de Ubicación GPS de Cierre</strong>
                             <p class="mb-0 small">Se guardará la ubicación GPS desde donde se cierra esta tarea.</p>
@@ -42,7 +42,7 @@
                                 <div class="card-header bg-white border-0 pt-3">
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                                            <i class="fas fa-map-marker-alt fa-lg text-primary"></i>
+                                            <i class="fas fa-map-marker-alt fa-lg text-primary me-2"></i>
                                         </div>
                                         <h6 class="mb-0 fw-bold">Información de la Tarea</h6>
                                     </div>
@@ -64,7 +64,7 @@
                                 <div class="card-header bg-white border-0 pt-3">
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
-                                            <i class="fas fa-comment-alt fa-lg text-success"></i>
+                                            <i class="fas fa-comment-alt fa-lg text-success me-2"></i>
                                         </div>
                                         <h6 class="mb-0 fw-bold">Observaciones de Cierre</h6>
                                     </div>
@@ -79,7 +79,7 @@
                                 <div class="card-header bg-white border-0 pt-3">
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
-                                            <i class="fas fa-images fa-lg text-danger"></i>
+                                            <i class="fas fa-images fa-lg text-danger me-2"></i>
                                         </div>
                                         <h6 class="mb-0 fw-bold">Cargar Archivos / Imágenes</h6>
                                     </div>
@@ -88,7 +88,7 @@
                                     <div style="position: relative;padding: 0;">
                                         <input class="form-control" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this,'lightgalleryClosed');">
                                         <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0],'lightgalleryClosed');">
-                                            <span><i class="fas fa-trash"></i></span>
+                                            <span><i class="fas fa-trash me-2"></i></span>
                                         </span>
                                     </div>
                                     <div id="lightgalleryClosedNone" class="d-none"></div>
