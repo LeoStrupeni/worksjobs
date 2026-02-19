@@ -142,6 +142,14 @@
             transition: all 0.7s ease;
         }
 
+        .slick-class .slick-slide {
+            margin: 0 15px;
+        }
+
+        .slick-class .slick-list {
+            margin: 0 -15px;
+        }
+
     </style>
 
     
@@ -160,18 +168,18 @@
             </div>
             <ul class="list-unstyled ps-0">
                 <li class="mb-2">
-                    <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">inicio</a>
+                    <a href="#inicio" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">inicio</a>
                 </li>
                 <li class="mb-2">
-                    <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">nuestros servicios</a>
-                </li>
-
-                <li class="mb-2">
-                    <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">nosotros</a>
+                    <a href="#servicios" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">nuestros servicios</a>
                 </li>
 
                 <li class="mb-2">
-                    <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">contacto</a>
+                    <a href="#nosotros" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">nosotros</a>
+                </li>
+
+                <li class="mb-2">
+                    <a href="#contacto" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">contacto</a>
                 </li>
 
                 @if(!in_array(request()->getHost(), ['www.strupeni.com.ar', 'strupeni.com.ar']))
@@ -195,7 +203,7 @@
             </ul>
         </div>
     </div>
-    <nav class="navbar navbar-expand-lg p-0 bg-se-primary" style="height: 10vh;">
+    <nav class="navbar navbar-expand-lg p-0 bg-se-primary" style="height: 10vh;" id="inicio">
         <div class="container">
             <a class="navbar-brand" href="{{ route('home.index') }}">
                 <img src="{{ $configs['header.logo'] ?? env('APP_URL').'/assets/media/Logo.png' }}" alt="Logo" height="60">
@@ -208,10 +216,10 @@
             </div>
             <div class="collapse navbar-collapse justify-content-end">
                 <ul class="navbar-nav">
-                    <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">inicio</a>
-                    <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nuestros servicios</a>
-                    <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nosotros</a>
-                    <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">contacto</a>
+                    <a href="#inicio" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">inicio</a>
+                    <a href="#servicios" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nuestros servicios</a>
+                    <a href="#nosotros" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nosotros</a>
+                    <a href="#contacto" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">contacto</a>
                     @if(!in_array(request()->getHost(), ['www.strupeni.com.ar', 'strupeni.com.ar']) && ($configs['header.mostrar_login'] ?? 'true') === 'true')
                         <a href="{{ route('login') }}" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">login</a>
                     @endif
@@ -334,7 +342,7 @@
         </div>
     </div>
 
-    <div class="container-fluid bg-se-primary">
+    <div class="container-fluid bg-se-primary" id="contacto">
         <div class="row justify-content-center">
             <div class="col-12 col-lg-10">
                 <div class="row my-3 py-2 align-items-center">
