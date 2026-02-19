@@ -150,7 +150,7 @@
 <body>
     <div class="offcanvas offcanvas-start bg-se-primary" data-bs-scroll="false" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel">
         <div class="offcanvas-header" data-bs-theme="dark">
-            <img src="{{env('APP_URL')}}/assets/media/icono.ico" alt="Logo" height="60">
+            <img src="{{env('APP_URL')}}/assets/media/icono.ico" alt="Logo" height="80">
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
 
@@ -174,27 +174,23 @@
                     <a href="javascript:;" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">contacto</a>
                 </li>
 
-                <li class="mb-2">
-                    <a href="{{ route('login') }}" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">LOGIN</a>
-                </li>
+                @if(!in_array(request()->getHost(), ['www.strupeni.com.ar', 'strupeni.com.ar']))
+                    <li class="mb-2">
+                        <a href="{{ route('login') }}" class="btn p-0 border-0 me-3 text-white text-uppercase hover-success">LOGIN</a>
+                    </li>
+                @endif
 
                 <li class="border-top my-3"></li>
                 <li class="mb-2">
-                    @if(!empty($configs['facebook_url'] ?? ''))
-                        <a href="{{ $configs['facebook_url'] }}" target="_blank" class="btn p-0 border-0 ms-3">
-                            <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
-                        </a>
-                    @endif
-                    @if(!empty($configs['instagram_url'] ?? ''))
-                        <a href="{{ $configs['instagram_url'] }}" target="_blank" class="btn p-0 border-0 mx-2">
-                            <i class="flaticon-instagram-logo text-se-success hover-white"></i>
-                        </a>
-                    @endif
-                    @if(!empty($configs['linkedin_url'] ?? ''))
-                        <a href="{{ $configs['linkedin_url'] }}" target="_blank" class="btn p-0 border-0">
-                            <i class="flaticon-linkedin text-se-success hover-white"></i>
-                        </a>
-                    @endif
+                    <a href="{{ $configs['facebook_url'] ?? ''}}" target="_blank" class="btn p-0 border-0 ms-3">
+                        <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
+                    </a>
+                    <a href="{{ $configs['instagram_url'] ?? '' }}" target="_blank" class="btn p-0 border-0 mx-2">
+                        <i class="flaticon-instagram-logo text-se-success hover-white"></i>
+                    </a>
+                    <a href="{{ $configs['linkedin_url'] ?? '' }}" target="_blank" class="btn p-0 border-0">
+                        <i class="flaticon-linkedin text-se-success hover-white"></i>
+                    </a>
                 </li>
             </ul>
         </div>
@@ -216,7 +212,7 @@
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nuestros servicios</a>
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">nosotros</a>
                     <a href="javascript:;" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">contacto</a>
-                    @if(($configs['header.mostrar_login'] ?? 'true') === 'true')
+                    @if(!in_array(request()->getHost(), ['www.strupeni.com.ar', 'strupeni.com.ar']) && ($configs['header.mostrar_login'] ?? 'true') === 'true')
                         <a href="{{ route('login') }}" class="btn p-0 border-0 mx-3 text-white text-uppercase hover-success">login</a>
                     @endif
 
@@ -252,7 +248,7 @@
                 <img src="{{env('APP_URL')}}/assets/media/imagenes/Home-Header-1.png" style="height: 90vh;" class="d-block w-100" alt="...">
                 <div class="carousel-se-caption d-none d-md-block">
                     <p class="text-start fs-1" style="font-size: xxx-large!important;">Llevamos la seguridad de<br>tu empresa <span class="text-se-success">al siguiente nivel.</span></p>
-                    <a href="javascript:;" class="btn btn-se-success  px-3 py-2 text-uppercase">conocé nuestros servicios</a>
+                    <a href="#servicios" class="btn btn-se-success  px-3 py-2 text-uppercase">conocé nuestros servicios</a>
                 </div>
             </div>
             <div class="carousel-item">
@@ -266,12 +262,12 @@
                 <div class="carousel-se-caption d-none d-md-block">
                     <br>
                     <br>
-                    <a href="javascript:;" class="btn btn-se-success  px-3 py-2 text-uppercase">contactanos</a>
+                    <a href="{{ $configs['whatsapp_url'] }}" target="_blank" class="btn btn-se-success  px-3 py-2 text-uppercase">contactanos</a>
                 </div>
             </div>
         </div>
     </div>
-    <div class="container">
+    <div class="container" id="nosotros">
         <div class="row justify-content-center align-items-center my-3">
             <div class="col-5 p-4">
                 <p class="text-start fs-1 text-uppercase text-se-success">Innovación y Soluciones para Empresas</p>
@@ -289,8 +285,8 @@
             </div>
         </div>
     </div>
-    <div class="container-fluid bg-se-secondary">
-        <div class="row my-3">
+    <div class="container-fluid bg-se-secondary" id="servicios">
+        <div class="row justify-content-center align-items-center">
             <div class="col">
                 <p class="text-center fs-1 text-uppercase text-se-success">nuestros servicios</p>
             </div>
@@ -312,14 +308,96 @@
                     </div>
                 </div>
             </div>
+        </div>    
+        <div class="row justify-content-center">
+            <div class="col-2">
+                <button class="btn btn-se-success my-5 px-3 py-2 text-uppercase">Ver todos los servicios</button> 
+            </div>
+        </div>    
+    </div>
+
+    <div class="container-fluid" style="background-image: url(/assets/media/imagenes/Home-Banner-Asesores.png); background-size: cover; background-repeat: no-repeat; height: 400px;">
+        <div class="row p-5">
+            <div class="col-6 p-5 text-white">
+                <h3>SOMOS VERDADEROS</h3>
+                <h3 class="mb-4">ASESORES <span class="text-se-success">EN SEGURIDAD</span></h3>
+                <p>Con más de 20 años de experiencia en el rubro, brindamos un nivel superior en soluciones integrales y a medida para cada tipo de necesidad de protección y conectividad.</p>
+            </div>
         </div>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
-        <br>
+    </div>
+
+    <div class="container-fluid bg-se-secondary">
+        <div class="row py-5 justify-content-center">
+            <div class="col-6 text-center">
+                <h4 class="text-se-success text-uppercase"> encontranos en instagram <a class="ms-5 btn btn-se-success px-3 py-2 text-uppercase" href="{{ $configs['instagram_url'] ?? '' }}" target="_blank">Seguinos</a> </h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid bg-se-primary">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="row my-3 py-2 align-items-center">
+                    <div class="col-6">
+                        <img src="{{ $configs['header.logo'] ?? env('APP_URL').'/assets/media/Logo.png' }}" alt="Logo" height="100">
+                    </div>
+                    <div class="col-4">
+                        <p class="text-se-success text-uppercase m-0">VERDADEROS ASESORES EN SEGURIDAD</p>
+                    </div>
+                    <div class="col-2">
+
+                        @if(!empty($configs['facebook_url'] ?? ''))
+                            <a href="{{ $configs['facebook_url'] }}" target="_blank" class="btn p-0 border-0">
+                                <i class="flaticon-facebook-logo-button text-se-success hover-white"></i>
+                            </a>
+                        @endif
+                        @if(!empty($configs['instagram_url'] ?? ''))
+                            <a href="{{ $configs['instagram_url'] }}" target="_blank" class="btn p-0 border-0 mx-2">
+                                <i class="flaticon-instagram-logo text-se-success hover-white"></i>
+                            </a>
+                        @endif
+                        @if(!empty($configs['linkedin_url'] ?? ''))
+                            <a href="{{ $configs['linkedin_url'] }}" target="_blank" class="btn p-0 border-0">
+                                <i class="flaticon-linkedin text-se-success hover-white"></i>
+                            </a>
+                        @endif
+
+                    </div>
+                </div>
+                <hr class="text-se-success" style="border-width: 3px; opacity: 1;">
+
+                <div class="row my-3 py-2 align-items-end">
+                    <div class="col-6">
+                        <p class="m-0 text-white">© Strupeni Tecnologías, 2025</p>
+                    </div>
+                    <div class="col-3">
+                        <p class="mb-3 text-uppercase text-se-success">Contenido </p>
+                        <p class="mb-2 text-uppercase text-white">
+                            <a href="#servicios" class="text-white text-decoration-none">NUESTROS SERVICIOS</a>
+                        </p>
+                        <p class="mb-2 text-uppercase text-white">
+                            <a href="#nosotros" class="text-white text-decoration-none">NOSOTROS</a>
+                        </p>
+                        <p class="mb-2 text-uppercase text-white">
+                            <a href="{{ $configs['whatsapp_url'] }}" target="_blank" class="text-white text-decoration-none">CONTACTO</a>
+                        </p>
+                    </div>
+                    <div class="col-3">
+                        <p class="mb-3 text-uppercase text-se-success">CONTACTO </p>
+                        <p class="mb-2 text-white">
+                            <a href="https://maps.google.com/?q=Necochea+2420,+Rosario,+Argentina" target="_blank" class="text-white text-decoration-none">Necochea 2420, Rosario, Argentina</a>
+                        </p>
+                        <p class="mb-2 text-white">
+                            <a href="{{ $configs['whatsapp_url'] }}" target="_blank" class="text-white text-decoration-none">(341) 305 2420</a>
+                        </p>
+                        <p class="mb-2 text-white">
+                            <a href="mailto:info@strupeni.com.ar" class="text-white text-decoration-none">info@strupeni.com.ar</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         
     </div>
 

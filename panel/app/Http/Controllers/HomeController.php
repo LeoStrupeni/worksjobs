@@ -61,8 +61,13 @@ class HomeController extends Controller
                 return [$section->slug => $section->config];
             })
             ->toArray();
-        
-        return view("public.home", compact('sections'));
+
+        $configs['instagram_url']="https://www.instagram.com/strupenitecnologias/";
+        $configs['facebook_url']="https://www.facebook.com/strupenitecnologias/";
+        $configs['linkedin_url']="https://www.linkedin.com/company/strupeni-tecnolog%C3%ADas/";
+        $configs['whatsapp_url']="https://wa.me/5493415703091";
+
+        return view("public.home", compact('sections', 'configs'));
         // return redirect()->route('login');
     }
 }
