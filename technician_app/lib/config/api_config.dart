@@ -23,6 +23,12 @@ class ApiConfig {
   static const String clientsEndpoint = '/jobs/clients';
   static const String clientAddressesEndpoint = '/client/address';
   
+  // Colppy API endpoints
+  static const String colppySessionEndpoint = '/colppy/session';
+  static const String colppyClientesEndpoint = '/colppy/clientes';
+  static const String colppyCallEndpoint = '/colppy/call';
+  static const String colppyInvalidateSessionEndpoint = '/colppy/invalidate-session';
+  
   // CMS endpoints
   static const String flutterThemeEndpoint = '/flutter/theme';
   

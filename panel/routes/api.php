@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ApiAuthController;
+use App\Http\Controllers\Api\ApiColppyController;
 use App\Http\Controllers\Api\ApiJobController;
 use App\Http\Controllers\Api\ApiSearchVarController;
 use App\Http\Controllers\CmsController;
@@ -66,5 +67,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('client')->group(function () {
         Route::get('/address/{id}', [ApiJobController::class, 'getClientAddresses']);
         Route::post('/address', [ApiJobController::class, 'createClientAddress']);
+    });
+
+    // Colppy API endpoints
+    Route::prefix('colppy')->group(function () {
+        Route::get('/clientes', [ApiColppyController::class, 'listarClientes']);
+        Route::get('/clientes/{idCliente}', [ApiColppyController::class, 'obtenerCliente']);
+        Route::post('/call', [ApiColppyController::class, 'hacerLlamada']);
+        Route::post('/invalidate-session', [ApiColppyController::class, 'invalidarSesion']);
     });
 });

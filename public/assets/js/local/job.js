@@ -40,7 +40,7 @@ function tableregister(data, page, callpaginas, url_query){
     body='';
     const formatter = new Intl.NumberFormat('en-US', {minimumFractionDigits: 2,maximumFractionDigits: 2,});
 
-    console.log('Verificando campo archived:', data.datos.length > 0 ? data.datos[0].archived : 'No hay datos');
+    // console.log('Verificando campo archived:', data.datos.length > 0 ? data.datos[0].archived : 'No hay datos');
 
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}" style="border-bottom: 1px solid #f0f0f0;">
@@ -81,7 +81,7 @@ function tableregister(data, page, callpaginas, url_query){
             <td class="align-middle">`
                 if(val.getnotes != 'no'){
                     body+= `<button type="button" class="btn btn-sm btn-primary btn-notes" data-id="${val.id}" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}" title="Ver notas">
-                        <i class="flaticon-notes"></i>
+                        <i class="flaticon-notes me-2"></i>
                     </button>`;
                 } else {
                     body+= `<span class="text-muted">-</span>`;
@@ -102,7 +102,7 @@ function tableregister(data, page, callpaginas, url_query){
             <td class="align-middle">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light dropdown-toggle-menu-body" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                        <i class="fa-solid fa-ellipsis-vertical me-2"></i>
                     </button>
                     <ul class="dropdown-menu shadow-sm" >`;
 

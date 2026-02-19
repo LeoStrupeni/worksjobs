@@ -118,6 +118,46 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Sección Dirección Fiscal (solo para clientes de Colppy) -->
+                    <div id="colppy-fiscal-section" class="d-none">
+                        <hr class="my-3">
+                        <h6 class="fw-bold text-primary mb-3">
+                            <i class="fa-solid fa-building me-2"></i> Dirección Fiscal
+                        </h6>
+                        <div class="row">
+                            <div class="col-12 col-lg-6">
+                                <div class="mb-2">
+                                    <label for="dir_fiscal" class="form-label mb-0 ps-3 fw-bold">Dirección</label>
+                                    <input type="text" class="form-control" name="dir_fiscal" readonly>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="mb-2">
+                                    <label for="dir_fiscal_ciudad" class="form-label mb-0 ps-3 fw-bold">Ciudad</label>
+                                    <input type="text" class="form-control" name="dir_fiscal_ciudad" readonly>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="mb-2">
+                                    <label for="dir_fiscal_cp" class="form-label mb-0 ps-3 fw-bold">Código Postal</label>
+                                    <input type="text" class="form-control" name="dir_fiscal_cp" readonly>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="mb-2">
+                                    <label for="dir_fiscal_provincia" class="form-label mb-0 ps-3 fw-bold">Provincia</label>
+                                    <input type="text" class="form-control" name="dir_fiscal_provincia" readonly>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <div class="mb-2">
+                                    <label for="dir_fiscal_pais" class="form-label mb-0 ps-3 fw-bold">País</label>
+                                    <input type="text" class="form-control" name="dir_fiscal_pais" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>

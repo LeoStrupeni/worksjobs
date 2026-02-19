@@ -35,7 +35,7 @@
                                 <div class="w-100 float-end mb-2" style="position: relative;padding: 0;">
                                     <input type="password" name="password" id="password" class="form-control validate" >
                                     <span style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 7px;width: 3.2rem;right: 0;">
-                                        <span><i class="fa-solid fa-eye verpass" style="cursor: pointer;"></i></span>
+                                        <span><i class="fa-solid fa-eye verpass me-2" style="cursor: pointer;"></i></span>
                                     </span>
                                 </div>
                             </div>
@@ -49,7 +49,7 @@
                             <div class="avatar">
                                 <img class="profile-pic" id="imagen-user-create"  src=""/>
                                 <label class="avatar_upload">
-                                    <i class="fa fa-pen"></i>
+                                    <i class="fa fa-pen me-2"></i>
                                     <input class="file-upload d-none" type="file" name="profile_avatar" accept="image/*" onchange="convert64(event,this);">
                                 </label>
                             </div>

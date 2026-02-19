@@ -216,7 +216,7 @@ $(document).ready(function() {
         var error = 0
 
         $( "#formnewrol .validate" ).each(function( index ) {
-            console.log($( this ).prop('name'));
+            // console.log($( this ).prop('name'));
             if($( this ).val() == ''){
                 $( this ).css('box-shadow', 'inset 0px 0px 2px 2px red');
                 error++;
@@ -312,25 +312,25 @@ function tableregister(data, page, callpaginas, url_query){
                     <ul class="dropdown-menu" >`;
                         if( data.permissions.includes('read') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read">
-                                <i class="flaticon-eye"></i>Ver
+                                <i class="flaticon-eye me-2"></i>Ver
                             </a></li>
                             <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item readusers">
-                                <i class="flaticon-users-1"></i>Ver Usuarios
+                                <i class="flaticon-users-1 me-2"></i>Ver Usuarios
                             </a></li>
                             <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item readpermissions">
-                                <i class="fa-solid fa-key"></i>Permisos
+                                <i class="fa-solid fa-key me-2"></i>Permisos
                             </a></li>`
                         }
 
                         if( data.permissions.includes('update') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update">
-                                <i class="flaticon-upload"></i>Editar
+                                <i class="flaticon-upload me-2"></i>Editar
                             </a></li>`
                         }
 
                         if ( data.permissions.includes('delete') && !isSpecialRole ){
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.name}">
-                                <i class="flaticon-delete"></i>Eliminar
+                                <i class="flaticon-delete me-2"></i>Eliminar
                             </a></li>`
                         }
                 body += `<ul></div>

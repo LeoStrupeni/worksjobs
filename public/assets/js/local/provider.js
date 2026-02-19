@@ -195,19 +195,19 @@ function tableregister(data, page, callpaginas, url_query){
                     <ul class="dropdown-menu" >`;
                         if( data.permissions.includes('read') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item read">
-                                <i class="flaticon-eye"></i>Ver
+                                <i class="flaticon-eye me-2"></i>Ver
                             </a></li>`
                         }
 
                         if( data.permissions.includes('update') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update">
-                                <i class="flaticon-upload"></i>Editar
+                                <i class="flaticon-upload me-2"></i>Editar
                             </a></li>`
                         }
 
                         if ( data.permissions.includes('delete') ){
                             body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item delete" data-name="${val.first_name} ${val.last_name}">
-                                <i class="flaticon-delete"></i>Eliminar
+                                <i class="flaticon-delete me-2"></i>Eliminar
                             </a></li>`
                         }
                 body += `<ul></div>

@@ -36,8 +36,8 @@ $(document).ready(function() {
     
     // Cargar imágenes de la librería
     function loadMediaLibrary() {
-        console.log('🔄 Cargando librería de medios...');
-        console.log('🌐 app_url:', app_url);
+        // console.log('🔄 Cargando librería de medios...');
+        // console.log('🌐 app_url:', app_url);
         
         $('#mediaLibraryContent').html(`
             <div class="col-12 text-center py-5">
@@ -59,10 +59,10 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                console.log('📦 Media response:', response);
+                // console.log('📦 Media response:', response);
                 
                 if (response.media && response.media.data && response.media.data.length > 0) {
-                    console.log('✅ Encontradas', response.media.data.length, 'imágenes');
+                    // console.log('✅ Encontradas', response.media.data.length, 'imágenes');
                     
                     let html = '<div class="row">';
                     response.media.data.forEach(function(item) {
@@ -70,7 +70,7 @@ $(document).ready(function() {
                         let imagePath = item.path;
                         let displayPath = imagePath; // Path para guardar en el campo
                         
-                        console.log('📁 Path DB:', imagePath);
+                        // console.log('📁 Path DB:', imagePath);
                         
                         // Si el path es 'cms-media/...' (formato nuevo), convertir a 'storage/cms-media/...'
                         if (imagePath.startsWith('cms-media/')) {
@@ -84,7 +84,7 @@ $(document).ready(function() {
                         
                         const fullUrl = displayPath.startsWith('/') ? app_url + displayPath : app_url + '/' + displayPath;
                         
-                        console.log('🖼️  URL final:', fullUrl);
+                        // console.log('🖼️  URL final:', fullUrl);
                         
                         // Usar display_name si existe, sino filename sin extensión
                         const displayName = item.display_name || item.filename.replace(/\.[^/.]+$/, '');
@@ -134,7 +134,7 @@ $(document).ready(function() {
         let path = $(this).data('path');
         let displayName = $(this).data('display-name');
         
-        console.log('🎯 Imagen seleccionada. Path:', path, 'Display:', displayName);
+        // console.log('🎯 Imagen seleccionada. Path:', path, 'Display:', displayName);
         
         // Resaltar selección
         $('.media-item').css('border-color', 'transparent');
@@ -154,12 +154,12 @@ $(document).ready(function() {
                 $(displayTarget).val(displayName);
             }
             
-            console.log('💾 URL guardada:', finalPath, '| Nombre visible:', displayName);
+            // console.log('💾 URL guardada:', finalPath, '| Nombre visible:', displayName);
             
             // Construir URL completa para el preview
             let previewUrl = finalPath.startsWith('/') ? app_url + finalPath : app_url + '/' + finalPath;
             
-            console.log('🖼️  Preview URL:', previewUrl);
+            // console.log('🖼️  Preview URL:', previewUrl);
             
             // Actualizar preview si existe
             const previewContainer = $(currentImageTarget).closest('.col-md-6').find('.img-thumbnail');
@@ -217,18 +217,8 @@ $(document).ready(function() {
             config[fieldName] = value;
         }
 
-        // Mostrar loading
-        Swal.fire({
-            title: 'Procesando...',
-            text: 'Guardando cambios',
-            imageUrl: app_url + '/assets/media/Cargando.gif',
-            imageWidth: 100,
-            imageHeight: 100,
-            imageAlt: 'Cargando',
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            allowEscapeKey: false
-        });
+        // Mostrar loading con alerta personalizada
+        showSavingAlert();
 
         $.ajax({
             url: '/cms/sections/' + slug,
@@ -238,20 +228,10 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Guardado exitosamente',
-                    text: response.message || 'Los cambios se guardaron correctamente',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
+                showSuccessAlert('Guardado exitosamente', response.message || 'Los cambios se guardaron correctamente');
             },
             error: function(xhr) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error al guardar',
-                    text: 'Ocurrió un error al guardar los cambios. Por favor intenta nuevamente.',
-                });
+                showErrorAlert('Error al guardar', 'Ocurrió un error al guardar los cambios. Por favor intenta nuevamente.');
             }
         });
     });

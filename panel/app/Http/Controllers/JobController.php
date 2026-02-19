@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Clients_Addres;
+
 use App\Models\Job;
 use App\Models\Jobs_file;
 use App\Models\Jobs_Note;
@@ -100,7 +101,11 @@ class JobController extends Controller
                 jobs.closed_job_observation")
         ->first();
 
-        $address = Clients_Addres::where('client_id',$job->client_id)->get();
+        // Obtener direcciones de la tabla clients_address
+        $address = Clients_Addres::where('client_id', $job->client_id)
+            ->whereNull('deleted_at')
+            ->get();
+        
         $files = Jobs_file::where('job_id',$id)->get();
         $repuesta['job'] = $job;
         $repuesta['address'] = $address;

@@ -36,7 +36,7 @@
                             <div class="col">
                                 <h5 class="mb-0 fw-bold d-flex align-items-center">
                                     <span class="rounded-circle bg-white bg-opacity-25 p-2 me-2">
-                                        <i class="fa-solid fa-users"></i>
+                                        <i class="fa-solid fa-users me-2"></i>
                                     </span>
                                     Listado de Usuarios
                                 </h5>

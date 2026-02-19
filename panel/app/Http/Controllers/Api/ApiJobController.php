@@ -363,10 +363,13 @@ class ApiJobController extends Controller
     /**
      * Obtener direcciones de un cliente
      * Usado por: App Móvil
+     * Soporta clientes locales (ID numérico) y externos (ID con prefijo como 'colppy_123')
      */
     public function getClientAddresses(Request $request, $clientId)
     {
+        // Obtener direcciones de la tabla clients_address
         $addresses = \App\Models\Clients_Addres::where('client_id', $clientId)
+            ->whereNull('deleted_at')
             ->get();
         
         return response()->json([
@@ -378,19 +381,30 @@ class ApiJobController extends Controller
     /**
      * Crear nueva dirección para un cliente
      * Usado por: App Móvil
+     * Soporta clientes locales (ID numérico) y externos (ID con prefijo como 'colppy_123')
      */
     public function createClientAddress(Request $request)
     {
+        // Validar campos base
         $validated = $request->validate([
-            'client_id' => 'required|integer|exists:clients,id',
+            'client_id' => 'required', // Puede ser int o string con prefijo
             'address_street' => 'required|string',
             'address_nro' => 'nullable|string',
             'city' => 'required|string',
             'address_detail' => 'nullable|string',
         ]);
         
-        $address = \App\Models\Clients_Addres::create([
-            'client_id' => $validated['client_id'],
+        $clientId = $validated['client_id'];
+        
+        // Validar que el cliente existe
+        if (!\App\Models\Client::find($clientId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cliente no encontrado'
+            ], 404);
+        }
+        
+        $addressData = [
             'address_street' => $validated['address_street'],
             'address_nro' => $validated['address_nro'] ?? null,
             'city' => $validated['city'],
@@ -398,7 +412,12 @@ class ApiJobController extends Controller
             'country' => 'Argentina',
             'state' => 'Santa Fe',
             'cp' => '2000',
-        ]);
+        ];
+        
+        // Guardar en tabla clients_address
+        $address = \App\Models\Clients_Addres::create(array_merge($addressData, [
+            'client_id' => $clientId
+        ]));
         
         return response()->json([
             'success' => true,

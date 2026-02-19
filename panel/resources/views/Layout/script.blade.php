@@ -7,6 +7,7 @@
 <script src="{{env('APP_URL')}}/assets/plugins/bootstrap-daterangepicker/daterangepicker.js"></script>
 
 <script src="{{env('APP_URL')}}/assets/plugins/sweetalert2/dist/sweetalert2.min.js"></script>
+<script src="{{env('APP_URL')}}/assets/js/local/custom-alerts.js"></script>
 <script src="{{env('APP_URL')}}/assets/plugins/toastr/build/toastr.min.js"></script>
 
 <script src="{{env('APP_URL')}}/assets/icons/fontawesome-free-6.7.0-web/js/all.min.js"></script>

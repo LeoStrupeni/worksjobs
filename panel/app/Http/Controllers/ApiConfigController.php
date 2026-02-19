@@ -25,7 +25,8 @@ class ApiConfigController extends Controller
             'user_api',
             'pass_api',
             'id_empresa_api',
-            'google_api_key'
+            'google_api_key',
+            'colppy_clientes_modo'
         ])->get();
 
         // Crear array con valores por defecto si no existen
@@ -36,7 +37,8 @@ class ApiConfigController extends Controller
             'user_api' => $apiConfigs->where('name', 'user_api')->first()->value ?? '',
             'pass_api' => $apiConfigs->where('name', 'pass_api')->first()->value ?? '',
             'id_empresa_api' => $apiConfigs->where('name', 'id_empresa_api')->first()->value ?? '',
-            'google_api_key' => $apiConfigs->where('name', 'google_api_key')->first()->value ?? ''
+            'google_api_key' => $apiConfigs->where('name', 'google_api_key')->first()->value ?? '',
+            'colppy_clientes_modo' => $apiConfigs->where('name', 'colppy_clientes_modo')->first()->value ?? 'local'
         ];
 
         return view('cms.api-config.index', compact('configArray'));
@@ -59,7 +61,8 @@ class ApiConfigController extends Controller
             'user_api' => 'nullable|string|max:255',
             'pass_api' => 'nullable|string|max:255',
             'id_empresa_api' => 'nullable|string|max:255',
-            'google_api_key' => 'nullable|string|max:255'
+            'google_api_key' => 'nullable|string|max:255',
+            'colppy_clientes_modo' => 'required|in:local,api,hibrido'
         ]);
 
         // Actualizar o crear cada configuración

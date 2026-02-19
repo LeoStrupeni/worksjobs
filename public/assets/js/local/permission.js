@@ -148,11 +148,11 @@ function tableregister(data, page, callpaginas, url_query){
 
         $.each(permisos, function (key, val) {
             switch (val) {  
-                case 'create':  btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para agregar"><i class="flaticon-plus"></i></div>`; break;
-                case 'read':    btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para ver"><i class="flaticon-eye"></i></div>`; break;
-                case 'update':  btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para actualizar"><i class="flaticon-upload"></i></div>`; break;
-                case 'delete':  btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para Borrar"><i class="flaticon-delete"></i></div>`; break;
-                default:        btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="otros"><i class="flaticon-info"></i></div>`; break;
+                case 'create':  btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para agregar"><i class="flaticon-plus me-2"></i></div>`; break;
+                case 'read':    btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para ver"><i class="flaticon-eye me-2"></i></div>`; break;
+                case 'update':  btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para actualizar"><i class="flaticon-upload me-2"></i></div>`; break;
+                case 'delete':  btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Permiso para Borrar"><i class="flaticon-delete me-2"></i></div>`; break;
+                default:        btnpermisos+=`<div class="btn btn-primary rounded m-1" data-bs-toggle="tooltip" data-bs-placement="top" title="otros"><i class="flaticon-info me-2"></i></div>`; break;
             }
             
         });
@@ -171,13 +171,13 @@ function tableregister(data, page, callpaginas, url_query){
 
                         if( data.permissions.includes('update') ) {
                             body += `<li><a href="javascript:void(0);" data-id="${val.general}" class="dropdown-item update">
-                                <i class="flaticon-upload"></i>Editar
+                                <i class="flaticon-upload me-2"></i>Editar
                             </a></li>`
                         }
 
                         if ( data.permissions.includes('delete') ){
                             body += `<li><a href="javascript:void(0);" data-id="${val.general}" class="dropdown-item delete" data-name="${val.general}">
-                                <i class="flaticon-delete"></i>Eliminar
+                                <i class="flaticon-delete me-2"></i>Eliminar
                             </a></li>`
                         }
                 body += `<ul></div>

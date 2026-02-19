@@ -21,6 +21,7 @@
                                 <form action="" method="POST" id="formnewaddressclient">
                                     @csrf
                                     <input type="hidden" class="validate" name="client_id" id="client_id">
+                                    <input type="hidden" id="is_api_client">
                                     <div class="row">
                                         <div class="col-12 col-lg-6">
                                             <div class="mb-2">

@@ -44,12 +44,26 @@
                                     <i class="fa-solid fa-arrows-rotate me-1"></i>Actualizar
                                 </button>
                                 @if (in_array('create',Session::get('user')['permissions']['clients']))
-                                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 create" title="Nuevo cliente">
-                                        <i class="fa-solid fa-plus me-1"></i>Nuevo
-                                    </button>
-                                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 excel" title="Importar desde Excel">
-                                        <i class="fa-solid fa-file-excel me-1"></i>Excel
-                                    </button>
+                                    @if(isset($colppyModo) && ($colppyModo === 'api' || $colppyModo === 'hibrido'))
+                                        {{-- Botones deshabilitados en modo API/Híbrido --}}
+                                        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 mx-1" disabled title="No disponible: clientes desde Colppy API">
+                                            <i class="fa-solid fa-plus me-1"></i>Nuevo
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 mx-1" disabled title="No disponible: clientes desde Colppy API">
+                                            <i class="fa-solid fa-file-excel me-1"></i>Excel
+                                        </button>
+                                        {{-- <small class="text-muted d-block mt-1">
+                                            <i class="fa-solid fa-info-circle me-1"></i>Modo: <strong>{{ ucfirst($colppyModo) }}</strong> - Alta de clientes desde Colppy
+                                        </small> --}}
+                                    @else
+                                        {{-- Botones normales en modo local --}}
+                                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 create" title="Nuevo cliente">
+                                            <i class="fa-solid fa-plus me-1"></i>Nuevo
+                                        </button>
+                                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 excel" title="Importar desde Excel">
+                                            <i class="fa-solid fa-file-excel me-1"></i>Excel
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </div>

@@ -131,7 +131,7 @@
           <button data-id="{{$j->id}}" class="btn btn-sm btn-outline-success addnote flex-fill me-1" 
             data-name="{{$j->client_first_name.' '.$j->client_last_name.' del '.$j->visit_day.' '.$j->visit}}"
             title="Agregar nota">
-            <i class="flaticon-upload"></i>
+            <i class="flaticon-upload me-2"></i>
           </button>
 
           <button data-id="{{$j->id}}" 
@@ -140,14 +140,14 @@
             title="Ver notas"
             style="{{$j->getnotes == 'no' ? 'opacity: 0.3; cursor: not-allowed;' : ''}}"
             {{$j->getnotes == 'no' ? 'disabled' : ''}}>
-            <i class="flaticon-notes"></i>
+            <i class="flaticon-notes me-2"></i>
           </button>
 
           @if (in_array('update',Session::get('user')['permissions']['jobs']))
             <button data-id="{{$j->id}}" class="btn btn-sm btn-outline-success addfiles flex-fill"
               data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}"
               title="Agregar imágenes">
-              <i class="flaticon-photo-camera"></i>
+              <i class="flaticon-photo-camera me-2"></i>
             </button>
           @endif
         </div>

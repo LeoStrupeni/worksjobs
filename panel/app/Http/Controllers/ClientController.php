@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Clients_Addres;
+use App\Models\Config;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,11 @@ class ClientController extends Controller
                 return redirect()->route('logout');     
             }
             $countries = DB::table('countries')->select('country')->get();
-            return view("clients", compact("countries"));
+            
+            // Obtener modo de clientes (para deshabilitar botón "Nuevo")
+            $colppyModo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
+            
+            return view("clients", compact("countries", "colppyModo"));
         }
 
         return redirect()->route('login');
@@ -169,7 +174,12 @@ class ClientController extends Controller
 
     public function getAddress($client_id)
     {
-        $adress = Clients_Addres::where('client_id',$client_id)->get();
+        // Detectar origen del cliente por el ID
+        // Obtener direcciones de la tabla clients_address
+        $adress = Clients_Addres::where('client_id', $client_id)
+            ->whereNull('deleted_at')
+            ->get();
+        
         return $adress;
     }
 
@@ -195,8 +205,7 @@ class ClientController extends Controller
 
     protected function storeAddress(Request $request, $client_id)
     {
-        Clients_Addres::create([
-            'client_id' => $client_id,
+        $addressData = [
             'country' => $request->country,
             'state' => $request->state,
             'cp' => $request->cp,
@@ -205,16 +214,31 @@ class ClientController extends Controller
             'address_nro' => $request->address_nro,
             'address_apartament' => $request->address_apartament,
             'address_detail' => $request->address_detail,
-        ]);
+        ];
+        
+        // Guardar en tabla clients_address
+        Clients_Addres::create(array_merge($addressData, [
+            'client_id' => $client_id
+        ]));
     }
 
-    public function detroyAddress($id)
+    public function detroyAddress(Request $request, $id)
     {
-        Clients_Addres::find($id)->update([
-            'deleted_at' => Carbon::now()
-        ]);
+        // Buscar en tabla clients_address
+        $address = Clients_Addres::find($id);
+            
+        if ($address) {
+            $address->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Domicilio eliminado correctamente'
+            ]);
+        }
 
-        return redirect()->route('client.index');
+        return response()->json([
+            'success' => false,
+            'message' => 'Domicilio no encontrado'
+        ], 404);
     }
     
 }

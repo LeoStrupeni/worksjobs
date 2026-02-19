@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncColppyClientsJob;
 use App\Models\Client;
 use App\Models\Clients_Addres;
+use App\Models\Config;
 use App\Models\Permission;
 use App\Models\Rol;
 use App\Models\User;
+use App\Services\ColppyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 class ApiDataTablesController extends Controller
@@ -17,6 +21,9 @@ class ApiDataTablesController extends Controller
     /**
      * Obtener datos para DataTable de Clientes
      * Usado por: Web (AJAX)
+     * CONFIGURABLE: Obtiene datos según configuración (local, api, hibrido)
+     * 
+     * NOTA: Modo 'local' es el recomendado - sincroniza automáticamente desde Colppy en background
      */
     public function getClientsDataTable(Request $request)
     {        
@@ -28,27 +35,55 @@ class ApiDataTablesController extends Controller
         $limit = $request->limit ?? 10;
         $search = $request->search;
 
+        // Obtener modo de operación desde configuración
+        $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
+        
+        Log::info('=== MODO CLIENTES ===', ['modo' => $modo]);
+
+        // Ejecutar según modo configurado
+        switch ($modo) {
+            case 'api':
+                return $this->getClientsFromColppyOnly($request, $roluser, $permissions, $order, $page, $limit, $search);
+            
+            case 'hibrido':
+                return $this->getClientsHibrido($request, $roluser, $permissions, $order, $page, $limit, $search);
+            
+            case 'local':
+            default:
+                return $this->getClientsFromLocalOnly($request, $roluser, $permissions, $order, $page, $limit, $search);
+        }
+    }
+
+    /**
+     * Obtener clientes SOLO de base de datos local
+     * MUESTRA: TODOS los clientes (locales + sincronizados desde Colppy)
+     */
+    private function getClientsFromLocalOnly(Request $request, $roluser, $permissions, $order, $page, $limit, $search)
+    {
         $totales = Client::count();
 
-        $query = "SELECT C.*, (CASE WHEN C.type_doc = 2 THEN 'CUIL' WHEN C.type_doc = 3 THEN 'CUIT' ELSE 'DNI' END ) as tipodoc
+        $query = "SELECT C.id, C.colppy_id, C.first_name, C.last_name, C.nombre_fantasia,
+            CASE 
+                WHEN C.type_doc = '1' THEN 'DNI'
+                WHEN C.type_doc = '2' THEN 'CUIL'
+                WHEN C.type_doc = '3' THEN 'CUIT'
+                ELSE ''
+            END as tipodoc,
+            C.type_doc, C.num_doc, C.email, C.phone1, C.phone2, C.fax,
+            C.country, C.state, C.city, C.cp, C.address_street, 
+            C.address_nro, C.address_apartament, C.address_detail,
+            C.other_obs, C.is_from_colppy, C.created_at, C.updated_at
             FROM clients C
-            WHERE ISNULL(C.deleted_at) ";
+            WHERE ISNULL(C.deleted_at) 
+            AND (C.is_from_colppy != 1 OR ISNULL(C.is_from_colppy)) ";
 
         if ($search != '' && isset($search)) {
             $query .= " AND (C.first_name LIKE '%$search%' 
                 OR C.last_name LIKE '%$search%'
+                OR C.nombre_fantasia LIKE '%$search%'
                 OR C.num_doc LIKE '%$search%'
                 OR C.email LIKE '%$search%'
-                OR C.phone1 LIKE '%$search%'
-                OR C.phone2 LIKE '%$search%'
-                OR C.country LIKE '%$search%'
-                OR C.state LIKE '%$search%'
-                OR C.city LIKE '%$search%'
-                OR C.address_street LIKE '%$search%'
-                OR C.address_nro LIKE '%$search%'
-                OR C.address_apartament LIKE '%$search%'
-                OR C.address_detail LIKE '%$search%'
-                OR (CASE WHEN C.type_doc = 2 THEN 'CUIL' WHEN C.type_doc = 3 THEN 'CUIT' ELSE 'DNI' END ) LIKE '%$search%' ) ";
+                OR C.phone1 LIKE '%$search%' ) ";
         }
 
         $filtrados = DB::select($query);
@@ -79,7 +114,146 @@ class ApiDataTablesController extends Controller
             $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados);
         }
 
-        $respuesta['query'] = $query.$querylist;
+        $respuesta['query'] = $query . $querylist;
+        $respuesta['roluser'] = $roluser;
+        $respuesta['permissions'] = $permissions;
+        $respuesta['special_role_ids'] = get_special_role_ids();
+
+        return $respuesta;
+    }
+
+    /**
+     * Obtener clientes SOLO sincronizados desde Colppy (BD local)
+     * MUESTRA: Solo clientes con is_from_colppy = true
+     */
+    private function getClientsFromColppyOnly(Request $request, $roluser, $permissions, $order, $page, $limit, $search)
+    {
+        $totales = Client::where('is_from_colppy', true)->count();
+
+        $query = "SELECT C.id, C.colppy_id, C.first_name, C.last_name, C.nombre_fantasia,
+            CASE 
+                WHEN C.type_doc = '1' THEN 'DNI'
+                WHEN C.type_doc = '2' THEN 'CUIL'
+                WHEN C.type_doc = '3' THEN 'CUIT'
+                ELSE ''
+            END as tipodoc,
+            C.type_doc, C.num_doc, C.email, C.phone1, C.phone2, C.fax,
+            C.country, C.state, C.city, C.cp, C.address_street, 
+            C.address_nro, C.address_apartament, C.address_detail,
+            C.other_obs, C.is_from_colppy, C.created_at, C.updated_at
+            FROM clients C
+            WHERE ISNULL(C.deleted_at) 
+            AND C.is_from_colppy = 1 ";
+
+        if ($search != '' && isset($search)) {
+            $query .= " AND (C.first_name LIKE '%$search%' 
+                OR C.last_name LIKE '%$search%'
+                OR C.nombre_fantasia LIKE '%$search%'
+                OR C.num_doc LIKE '%$search%'
+                OR C.email LIKE '%$search%'
+                OR C.phone1 LIKE '%$search%' ) ";
+        }
+
+        $filtrados = DB::select($query);
+
+        $querylist = '';
+        if ($order) {
+            $querylist .= " ORDER BY $order ";
+        } else {
+            $querylist .= " ORDER BY C.colppy_id ASC "; // Ordenar por colppy_id para mantener secuencia original de Colppy
+        }
+        if ($limit) {
+            $querylist .= " LIMIT " . $limit;
+        }
+        if ($page) {
+            $querylist .= " OFFSET " . ($limit * $page - $limit);
+        }
+
+        $lista = DB::select(DB::raw($query . $querylist));
+
+        $respuesta['totales'] = $totales;
+        $respuesta['filtrados'] = count($filtrados);
+        $respuesta['paginastotal'] = ceil(count($filtrados) / $limit);
+        $respuesta['datos'] = $lista;
+
+        if ($limit * $page > count($filtrados)) {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . count($filtrados) . ' de un total de ' . count($filtrados) . ' (Solo Colppy)';
+        } else {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados) . ' (Solo Colppy)';
+        }
+
+        $respuesta['query'] = $query . $querylist;
+        $respuesta['roluser'] = $roluser;
+        $respuesta['permissions'] = $permissions;
+        $respuesta['special_role_ids'] = get_special_role_ids();
+
+        return $respuesta;
+    }
+
+    /**
+     * Obtener clientes de BD local (modo híbrido)
+     * MUESTRA: TODOS los clientes con distinción de origen
+     */
+    private function getClientsHibrido(Request $request, $roluser, $permissions, $order, $page, $limit, $search)
+    {
+        $totales = Client::count();
+
+        $query = "SELECT C.id, C.colppy_id, C.first_name, C.last_name, C.nombre_fantasia,
+            CASE 
+                WHEN C.type_doc = '1' THEN 'DNI'
+                WHEN C.type_doc = '2' THEN 'CUIL'
+                WHEN C.type_doc = '3' THEN 'CUIT'
+                ELSE ''
+            END as tipodoc,
+            C.type_doc, C.num_doc, C.email, C.phone1, C.phone2, C.fax,
+            C.country, C.state, C.city, C.cp, C.address_street, 
+            C.address_nro, C.address_apartament, C.address_detail,
+            C.other_obs, C.is_from_colppy, C.created_at, C.updated_at
+            FROM clients C
+            WHERE ISNULL(C.deleted_at) ";
+
+        if ($search != '' && isset($search)) {
+            $query .= " AND (C.first_name LIKE '%$search%' 
+                OR C.last_name LIKE '%$search%'
+                OR C.nombre_fantasia LIKE '%$search%'
+                OR C.num_doc LIKE '%$search%'
+                OR C.email LIKE '%$search%'
+                OR C.phone1 LIKE '%$search%' ) ";
+        }
+
+        $filtrados = DB::select($query);
+
+        $querylist = '';
+        if ($order) {
+            $querylist .= " ORDER BY $order ";
+        } else {
+            $querylist .= " ORDER BY C.id ASC ";
+        }
+        if ($limit) {
+            $querylist .= " LIMIT " . $limit;
+        }
+        if ($page) {
+            $querylist .= " OFFSET " . ($limit * $page - $limit);
+        }
+
+        $lista = DB::select(DB::raw($query . $querylist));
+
+        // Contar clientes por origen
+        $totalesLocales = Client::where('is_from_colppy', false)->orWhereNull('is_from_colppy')->count();
+        $totalesColppy = Client::where('is_from_colppy', true)->count();
+
+        $respuesta['totales'] = $totales;
+        $respuesta['filtrados'] = count($filtrados);
+        $respuesta['paginastotal'] = ceil(count($filtrados) / $limit);
+        $respuesta['datos'] = $lista;
+
+        // Mensaje informativo con distinción de origen
+        if ($limit * $page > count($filtrados)) {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . count($filtrados) . ' de un total de ' . count($filtrados) . " (Locales: $totalesLocales | Colppy: $totalesColppy)";
+        } else {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados) . " (Locales: $totalesLocales | Colppy: $totalesColppy)";
+        }
+        $respuesta['query'] = $query . $querylist;
         $respuesta['roluser'] = $roluser;
         $respuesta['permissions'] = $permissions;
         $respuesta['special_role_ids'] = get_special_role_ids();
@@ -344,8 +518,61 @@ class ApiDataTablesController extends Controller
     {
         $permission = Session::get('user')['permissions']['clients'];
         $respuesta['permission'] = $permission;
-        $respuesta['datos'] = Clients_Addres::where('client_id', $id)->get();
+        
+        // Leer de tabla clients_address (todos los clientes, locales y Colppy)
+        $respuesta['datos'] = Clients_Addres::where('client_id', $id)
+            ->whereNull('deleted_at')
+            ->get();
+        
         return $respuesta;
+    }
+
+    /**
+     * Disparar sincronización de clientes Colppy en background
+     * Usado por: Vista de clientes al cargar la página
+     * NO BLOQUEANTE - Se ejecuta en un job de cola
+     */
+    public function syncColppyClients()
+    {
+        try {
+            // Obtener modo de operación
+            $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
+            
+            // Solo sincronizar si el modo es 'api' o 'hibrido'
+            if ($modo === 'api' || $modo === 'hibrido') {
+                // Verificar si no hay un job de sincronización reciente (últimos 5 minutos)
+                $ultimaSinc = Session::get('ultima_sinc_colppy');
+                $tiempoActual = time();
+                
+                // Solo sincronizar si pasaron más de 5 minutos desde la última sincronización
+                if (!$ultimaSinc || ($tiempoActual - $ultimaSinc) > 300) {
+                    SyncColppyClientsJob::dispatch();
+                    Session::put('ultima_sinc_colppy', $tiempoActual);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Sincronización de clientes Colppy iniciada en background'
+                    ]);
+                } else {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Sincronización reciente, no es necesario ejecutar nuevamente'
+                    ]);
+                }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Modo configurado no requiere sincronización'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al disparar sincronización Colppy', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar sincronización: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

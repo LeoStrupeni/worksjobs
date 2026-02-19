@@ -102,12 +102,15 @@ $(document).ready(function() {
             cancelButtonText: `Cancelar`,
         }).then((result) => {
             if (result.dismiss != 'cancel') {
+                showSavingAlert();
                 $('#formdestroy').attr('action',app_url+"/jobs/"+$(this).data('id'));
                 $('#formdestroy').submit();
             }
         });
     });
     $('body').on('click',"#btn-create-job",function () {
+        $('#btn-create-job').prop('disabled','disabled');
+        showSavingAlert();
         var error = 0
         form = document.getElementById("formnewjob");
 
@@ -123,14 +126,16 @@ $(document).ready(function() {
         });
             
         if (error > 0) {
+            $('#btn-create-job').prop('disabled',false);
+            closeSwal();
             toastr["error"]("Debe completar los datos correctamente.")
         } else {
             document.getElementById("formnewjob").submit();
         }
     });
     $('body').on('click',"#btn-update-job",function () {
-        var error = 0
-
+        $('#btn-update-job').prop('disabled','disabled');
+        showSavingAlert();
         var error = 0
         form = document.getElementById("formeditjob");
 
@@ -143,6 +148,8 @@ $(document).ready(function() {
             }
         });
         if (error > 0) {
+            $('#btn-update-job').prop('disabled',false);
+            closeSwal();
             toastr["error"]("Debe completar los datos correctamente para editar el jobe.")
         } else {
             document.getElementById("formeditjob").submit();
@@ -394,7 +401,7 @@ $(document).ready(function() {
                         <td class="align-middle">${val.created}</td>
                         <td class="align-middle">
                             <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-sm btn-danger deletenote">
-                                <i class="flaticon-delete"></i>
+                                <i class="flaticon-delete me-2"></i>
                             </a>
                         </td>
                     </tr>`;
@@ -509,7 +516,7 @@ $(document).ready(function() {
     $('.bs-searchbox').children().keyup(function (e) {
         valor = this.value;
         if ($($($(e.target)).parent().parent().parent()[0]).hasClass('searchvar')) {            
-            console.log(valor.length);
+            // console.log(valor.length);
             if(valorbuscado != valor && valor.length > 0){
                 valorbuscado = valor;
 
@@ -622,7 +629,7 @@ function getAddress(client_id) {
             $('#address_id').append('<option></option>');
             datos = data;
             $.each(datos, function() {
-                var option = `<option value="${this.id}">${this.address_detail ?? ''} ${this.address_street} ${this.address_nro ?? ''} ${this.city ?? ''}</option>`;
+                var option = `<option value="${this.id}">${this.address_street} ${this.address_nro ?? ''} ${this.city ?? ''} ${this.address_detail ?? ''}</option>`;
                 $('#address_id').append(option);
             });
             $('#address_id').selectpicker('refresh');

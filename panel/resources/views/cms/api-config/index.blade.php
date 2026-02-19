@@ -134,6 +134,43 @@
                             </div>
                         </div>
 
+                        <!-- Configuración de Colppy -->
+                        <div class="card mb-4" style="border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                            <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <h5 class="mb-0 fw-bold"><i class="fas fa-users me-2"></i>Configuración de Clientes (Colppy)</h5>
+                            </div>
+                            <div class="card-body" style="background: white;">
+                                <!-- Modo de Clientes -->
+                                <div class="form-group mb-4">
+                                    <label class="form-label font-weight-bold">
+                                        <i class="fas fa-database me-2 text-primary"></i>Modo de Gestión de Clientes
+                                        <small class="text-muted">(Define de dónde se obtienen los clientes)</small>
+                                    </label>
+                                    <select name="colppy_clientes_modo" class="form-select @error('colppy_clientes_modo') is-invalid @enderror" style="border-radius: 10px;">
+                                        <option value="local" {{ old('colppy_clientes_modo', $configArray['colppy_clientes_modo'] ?? 'local') == 'local' ? 'selected' : '' }}>
+                                            🏠 Local - Solo base de datos local
+                                        </option>
+                                        <option value="api" {{ old('colppy_clientes_modo', $configArray['colppy_clientes_modo'] ?? 'local') == 'api' ? 'selected' : '' }}>
+                                            ☁️ API - Solo clientes de Colppy
+                                        </option>
+                                        <option value="hibrido" {{ old('colppy_clientes_modo', $configArray['colppy_clientes_modo'] ?? 'local') == 'hibrido' ? 'selected' : '' }}>
+                                            🔄 Híbrido - Base de datos local + Colppy
+                                        </option>
+                                    </select>
+                                    <div class="form-text mt-2">
+                                        <small>
+                                            <strong>Local:</strong> Solo clientes almacenados en tu base de datos (recomendado si no usas Colppy)<br>
+                                            <strong>API:</strong> Solo clientes desde Colppy (requiere credenciales configuradas arriba)<br>
+                                            <strong>Híbrido:</strong> Combina ambos orígenes (útil durante migración o transición)
+                                        </small>
+                                    </div>
+                                    @error('colppy_clientes_modo')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="card mb-4" style="border: none; border-radius: 15px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
                             <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                                 <h5 class="mb-0 fw-bold"><i class="fas fa-map me-2"></i>Configuración Adicional</h5>

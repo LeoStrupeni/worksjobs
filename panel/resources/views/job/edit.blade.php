@@ -28,13 +28,13 @@
                     <input type="hidden" name="client_id">
                     
                     <!-- Indicador de Geolocalización -->
-                    <div class="alert alert-warning mb-3 d-flex align-items-center">
+                    {{-- <div class="alert alert-warning mb-3 d-flex align-items-center">
                         <i class="fas fa-map-marker-alt fa-2x me-2"></i>
                         <div class="flex-grow-1">
                             <strong>Actualización de Ubicación GPS</strong>
                             <p class="mb-0 small">Al editar la tarea, se actualizará la ubicación GPS desde donde se realiza esta modificación.</p>
                         </div>
-                    </div>
+                    </div> --}}
                     
                     <div class="row g-3">
                         <div class="col-md-6">

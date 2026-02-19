@@ -7,12 +7,15 @@ use App\Models\Client;
 use App\Models\Permission;
 use App\Models\Rol;
 use App\Models\User;
+use App\Models\Config;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
+
+use function Symfony\Component\String\b;
 
 class LoginController extends Controller
 {
@@ -47,7 +50,27 @@ class LoginController extends Controller
             Session::put('user.is_system_role', $specialRole ? true : false);
             $this->getpermissions();
 
-            $clients = Client::limit(20)->get();
+            $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
+            
+            switch ($modo) {
+                case 'api':
+                    $clients = Client::wherenull('deleted_at')
+                            ->where('is_from_colppy', 1)
+                            ->limit(20)->get();
+                    break;
+                case 'hibrido':
+                    $clients = Client::wherenull('deleted_at')
+                            ->limit(20)->get();
+                    break;
+                default:
+                    $clients = Client::wherenull('deleted_at')
+                        ->where(function($query) {
+                            $query->where('is_from_colppy', '!=', 1)
+                                  ->orWhereNull('is_from_colppy');
+                        })
+                        ->limit(20)->get();
+            }    
+
             $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
 
             Session::put('user.clients', $clients );

@@ -1,6 +1,6 @@
 function geosuccess(pos) {
     const crd = pos.coords;
-    console.log(`✅ Geolocalización obtenida - Lat: ${crd.latitude}, Lng: ${crd.longitude}`);
+    // console.log(`✅ Geolocalización obtenida - Lat: ${crd.latitude}, Lng: ${crd.longitude}`);
 
     $('input[name="latitude"]').val(crd.latitude);
     $('input[name="longitude"]').val(crd.longitude);
@@ -11,7 +11,7 @@ function geosuccess(pos) {
 }
 
 function geoerror(err) {
-    console.warn(`❌ Error de geolocalización (${err.code}): ${err.message}`);
+    // console.warn(`❌ Error de geolocalización (${err.code}): ${err.message}`);
     
     // Limpiar campos de ubicación
     $('input[name="latitude"]').val('');
@@ -64,7 +64,7 @@ function showGeoStatus(type, message) {
 
 function getGeolocation() {
     if (navigator.geolocation) {
-        console.log('🔍 Solicitando geolocalización...');
+        // console.log('🔍 Solicitando geolocalización...');
         navigator.geolocation.getCurrentPosition(geosuccess, geoerror, {
             enableHighAccuracy: true,
             timeout: 10000,

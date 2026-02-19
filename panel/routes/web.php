@@ -18,6 +18,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Session;
 
 // Route::get('test', function () {
 // 	dd( base_path(). '/../public/storage/',env('APP_URL'),storage_path('app'), storage_path('app/public'));
@@ -39,6 +40,7 @@ Route::get('/clear-cache', function() {
 })->name('cache.clear');
 
 Route::get('/test', function() {
+    dd(Session::all());
     echo md5("Alma2024");
     echo "<br>";
     echo md5("strU1184!!");
@@ -83,6 +85,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::resource('/client',ClientController::class)->except(['edit']);
     Route::get('/client/{id}/edit', [ApiDataTablesController::class,'getClientEdit']);
     Route::post('/client/table', [ApiDataTablesController::class,'getClientsDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::post('/client/sync-colppy', [ApiDataTablesController::class,'syncColppyClients'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     Route::post('/client/excel', [ExcelController::class,'importaClientsExcel'])->name('importaExcelClient');
 
     Route::get('/client/address/{id}', [ApiDataTablesController::class,'getClientAddresses']);
