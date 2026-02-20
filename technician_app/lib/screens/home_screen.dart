@@ -107,11 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(_getTitleForIndex(_selectedIndex), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-            tooltip: 'Nueva Tarea',
-            onPressed: _navigateToCreateJob,
-          ),
+          // Botón crear tarea - Solo si tiene permiso
+          if (authProvider.user?.permissions.contains('create jobs') ?? false)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+              tooltip: 'Nueva Tarea',
+              onPressed: _navigateToCreateJob,
+            ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {

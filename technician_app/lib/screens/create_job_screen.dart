@@ -580,15 +580,28 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                             border: OutlineInputBorder(),
                             hintText: 'Selecciona una dirección',
                           ),
+                          isExpanded: true,
                           items: _addresses.map((address) {
                             return DropdownMenuItem<Address>(
                               value: address,
                               child: Text(
                                 address.fullAddress,
+                                maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13),
                               ),
                             );
                           }).toList(),
+                          selectedItemBuilder: (BuildContext context) {
+                            return _addresses.map((address) {
+                              return Text(
+                                address.fullAddress,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13),
+                              );
+                            }).toList();
+                          },
                           onChanged: (Address? value) {
                             setState(() {
                               _selectedAddress = value;

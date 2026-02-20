@@ -51,7 +51,7 @@ Route::get('/test', function() {
 Route::get('/', [HomeController::class,'index'])->name('home.index');
 
 // Ruta para ver la web pública (sin afectar login/dashboard)
-Route::view('/web-publica', 'public.home')->name('web.publica');
+Route::get('/web-publica', [HomeController::class,'webPublica'])->name('web.publica');
 
 // Route::view('/login','Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value])->name('login');
 Route::get('/login', [LoginController::class,'loginget'])->name('login');

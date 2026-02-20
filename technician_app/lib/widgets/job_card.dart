@@ -85,36 +85,46 @@ class JobCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Expanded(
-                        child: Text(
-                          job.fullAddress!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _formatAddress(job.fullAddress!),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                height: 1.3,
+                              ),
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            // Descripción como subtexto
+                            if (job.jobDescription != null && job.jobDescription!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  job.jobDescription!.length > 80
+                                      ? '${job.jobDescription!.substring(0, 80)}...'
+                                      : job.jobDescription!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              
-              // Descripción (preview)
-              if (job.jobDescription != null && job.jobDescription!.isNotEmpty)
-                Text(
-                  job.jobDescription!.length > 60
-                      ? '${job.jobDescription!.substring(0, 60)}...'
-                      : job.jobDescription!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               
               const SizedBox(height: 8),
@@ -142,7 +152,7 @@ class JobCard extends StatelessWidget {
     return Column(
       children: [
         // Botones principales grandes
-        if (!job.isInPlace && !job.isClosed)
+        if (permissions.update && !job.isInPlace && !job.isClosed)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -160,7 +170,7 @@ class JobCard extends StatelessWidget {
             ),
           ),
         
-        if (!job.isInPlace && !job.isClosed)
+        if (permissions.update && !job.isInPlace && !job.isClosed)
           const SizedBox(height: 8),
         
         if (permissions.read)
@@ -183,7 +193,7 @@ class JobCard extends StatelessWidget {
         
         const SizedBox(height: 8),
         
-        if (!job.isClosed)
+        if (permissions.update && !job.isClosed)
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -208,30 +218,33 @@ class JobCard extends StatelessWidget {
         // Botones secundarios pequeños en fila
         Row(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _handleAddNote(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.green,
-                  side: const BorderSide(color: Colors.green),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+            if (permissions.update)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _handleAddNote(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: const Icon(Icons.note_add, size: 20),
                 ),
-                child: const Icon(Icons.note_add, size: 20),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _handleViewNotes(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blue,
-                  side: const BorderSide(color: Colors.blue),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+            if (permissions.update && permissions.read)
+              const SizedBox(width: 8),
+            if (permissions.read)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _handleViewNotes(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.blue,
+                    side: const BorderSide(color: Colors.blue),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  child: const Icon(Icons.notes, size: 20),
                 ),
-                child: const Icon(Icons.notes, size: 20),
               ),
-            ),
-            if (permissions.update) ...[
+            if ((permissions.update || permissions.read) && permissions.update) ...[
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
@@ -744,5 +757,15 @@ class JobCard extends StatelessWidget {
     if (result == true && onRefresh != null) {
       onRefresh!();
     }
+  }
+
+  String _formatAddress(String address) {
+    // Dividir por comas para poner cada parte en una línea diferente
+    final parts = address.split(',');
+    if (parts.length > 1) {
+      // Retornar con saltos de línea explícitos
+      return parts.map((p) => p.trim()).join('\n');
+    }
+    return address;
   }
 }

@@ -220,12 +220,39 @@ class ApiJobController extends Controller
      * Buscar clientes
      * Usado por: Web (AJAX) y App Móvil
      */
+    /**
+     * Obtener clientes para la app móvil
+     * Filtra según el modo configurado (local/api/hibrido)
+     * Usado por: App Móvil
+     */
     public function getClients(Request $request)
     {
         $search = $request->input('search', '');
         
-        $query = Client::query();
+        // Obtener modo configurado
+        $modo = \App\Models\Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
         
+        $query = Client::query()->whereNull('deleted_at');
+        
+        // Aplicar filtro según modo
+        switch ($modo) {
+            case 'api':
+                // Solo clientes de Colppy
+                $query->where('is_from_colppy', 1);
+                break;
+            case 'hibrido':
+                // Todos los clientes (no aplicar filtro adicional)
+                break;
+            default: // 'local'
+                // Solo clientes locales (no de Colppy)
+                $query->where(function($q) {
+                    $q->where('is_from_colppy', '!=', 1)
+                      ->orWhereNull('is_from_colppy');
+                });
+                break;
+        }
+        
+        // Aplicar búsqueda si existe
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('first_name', 'LIKE', "%$search%")
@@ -239,7 +266,8 @@ class ApiJobController extends Controller
         
         return response()->json([
             'success' => true,
-            'clients' => $clients
+            'clients' => $clients,
+            'modo' => $modo // Incluir modo en la respuesta para debugging
         ]);
     }
     

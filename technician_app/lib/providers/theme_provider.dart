@@ -62,7 +62,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
 
       // Cards
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: config.cards.elevation,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(config.cards.borderRadius),

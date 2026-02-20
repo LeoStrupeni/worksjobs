@@ -119,6 +119,31 @@
             color: white!important;
         }
 
+        #offcanvasMenu .btn-close {
+            background-color: transparent !important;
+        }
+
+        #offcanvasMenu .btn-toggle {
+            color: #fff !important;
+        }
+
+        #offcanvasMenu .btn-toggle::before {
+            content: "▸";
+            width: 1.25em;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: currentColor;
+            transition: transform .35s ease, color .2s ease;
+            transform-origin: .5em 50%;
+        }
+
+        #offcanvasMenu .hover-success:hover,
+        #offcanvasMenu .hover-success:focus {
+            color: rgb(var(--bs-success-rgb)) !important;
+        }
+
     </style>
 
     @yield('link_by_page')
@@ -135,6 +160,18 @@
             background-attachment: fixed;
         }
 
+    </style>
+
+    <style>
+        html, body {
+            overflow-x: hidden;
+        }
+
+        .recaptcha-safe-wrapper {
+            min-height: 100dvh;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
     </style>
 
     <style>
@@ -599,6 +636,11 @@
             border-color: transparent!important;
             cursor: pointer;
         }
-
+        .bg-se-primary {
+            background-color: #00274e !important; 
+        }
+        .hover-success:hover {
+            color: #60d075 !important;
+        }
     </style>
 </head>

@@ -21,12 +21,17 @@ class LoginController extends Controller
 {
     public function loginget()
     {
-        return view('Auth.login', ['google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value]);
+        return view('Auth.login', [
+            'google_api_key' => DB::table('configs')->where('name','google_api_key')->first()->value,
+            'recaptcha_key_site' => DB::table('configs')->where('name','recaptcha_key_site')->first()->value
+        ]);
     }
 
     
     public function login(Request $request)
     {   
+        $this->validate_recaptcha($request);
+
         $credentials = $request->validate([
                 'email' => ['required','string'],
                 'password' => ['required','string']
@@ -71,10 +76,14 @@ class LoginController extends Controller
                         ->limit(20)->get();
             }    
 
-            $google_api_key = DB::table('configs')->where('name','google_api_key')->first();
+            $google_api_key = DB::table('configs')->where('name','google_api_key')->value('value') ?? '';
+            $recaptcha_key_site = DB::table('configs')->where('name','recaptcha_key_site')->value('value') ?? '';
+            // $recaptcha_key_secret = DB::table('configs')->where('name','recaptcha_key_secret')->value('value') ?? '';
 
             Session::put('user.clients', $clients );
-            Session::put('user.google_api_key', $google_api_key->value );
+            Session::put('user.google_api_key', $google_api_key );
+            Session::put('user.recaptcha_key_site', $recaptcha_key_site );
+            // Session::put('user.recaptcha_key_secret', $recaptcha_key_secret );
 
             return redirect()->intended('home')->with('status','estas logueado!');
         }

@@ -26,7 +26,6 @@
             flex-direction: column;
             justify-content: center;
             width: 100%;
-            min-height: 100vh;
             padding: 20px;
         }
         #formContent {
@@ -292,7 +291,7 @@
 
 @section('Content')
 
-    <div class="wrapper fadeInDown">
+    <div class="wrapper recaptcha-safe-wrapper fadeInDown">
         <div id="formContent">
             <div class="fadeIn first">
                 <img src="{{env('APP_URL')}}/assets/media/Logo.png" id="icon" alt="User Icon" class="rounded-circle my-3"/>
@@ -325,6 +324,7 @@
                 </label><br>
 
                 <input type="submit" class="fadeIn fourth" value="Ingresar">
+
             </form>
         <!-- Remind Passowrd -->
             <div id="formFooter">
@@ -336,4 +336,19 @@
 @endsection
 
 @section('script_by_page')
+<script src="https://www.google.com/recaptcha/api.js?render={{$recaptcha_key_site}}"></script>
+<script>
+    (function( $ ) {
+        $( document ).ready(function() {
+            grecaptcha.ready(function() {
+                grecaptcha.execute("{{$recaptcha_key_site}}", {action: 'loginform'}).then(function(token) {
+                    $('#loginForm').prepend('<input type="hidden" name="token" value="' + token + '">');
+                    $('#loginForm').prepend('<input type="hidden" name="action" value="loginform">');
+                    $('#loginForm input[type="submit"]').prop('disabled',false);
+                });
+            });                     
+        });
+        
+    })( jQuery );
+</script>
 @endsection

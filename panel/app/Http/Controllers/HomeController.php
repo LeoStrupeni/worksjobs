@@ -13,6 +13,24 @@ use Illuminate\Support\Facades\Session;
 
 class HomeController extends Controller
 {
+    public function webPublica()
+    {
+        $sections = CmsSection::where('is_active', true)
+            ->orderBy('order')
+            ->get()
+            ->mapWithKeys(function ($section) {
+                return [$section->slug => $section->config];
+            })
+            ->toArray();
+
+        $configs['instagram_url']="https://www.instagram.com/strupenitecnologias/";
+        $configs['facebook_url']="https://www.facebook.com/strupenitecnologias/";
+        $configs['linkedin_url']="https://www.linkedin.com/company/strupeni-tecnolog%C3%ADas/";
+        $configs['whatsapp_url']="https://wa.me/5493415703091";
+
+        return view("public.home", compact('sections', 'configs'));
+    }
+
     public function index()
     {
         if(Auth::check()){
@@ -53,21 +71,7 @@ class HomeController extends Controller
             return view("home", compact("jobs"));
         }
         
-        // Cargar secciones del CMS para la vista pública
-        $sections = CmsSection::where('is_active', true)
-            ->orderBy('order')
-            ->get()
-            ->mapWithKeys(function ($section) {
-                return [$section->slug => $section->config];
-            })
-            ->toArray();
-
-        $configs['instagram_url']="https://www.instagram.com/strupenitecnologias/";
-        $configs['facebook_url']="https://www.facebook.com/strupenitecnologias/";
-        $configs['linkedin_url']="https://www.linkedin.com/company/strupeni-tecnolog%C3%ADas/";
-        $configs['whatsapp_url']="https://wa.me/5493415703091";
-
-        return view("public.home", compact('sections', 'configs'));
+        return $this->webPublica();
         // return redirect()->route('login');
     }
 }
