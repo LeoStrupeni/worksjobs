@@ -24,7 +24,7 @@ $(document).ready(function() {
             error : function(jqXHR,textStatus,errorThrown) { $('#modal-body-edit-rol-error').removeClass('d-none'); },
             success : function(data) {
                 $('#e_name').val(data.name);
-                $('#e_description').val(data.e_description);
+                $('#e_description').val(data.description);
                 $('#modal-body-edit-rol').removeClass('d-none');
                 $('#modal-footer-edit-rol').removeClass('d-none');
             }
@@ -48,7 +48,7 @@ $(document).ready(function() {
             error : function(jqXHR,textStatus,errorThrown) { $('#modal-body-edit-rol-error').removeClass('d-none'); },
             success : function(data) {
                 $('#s_name').val(data.name);
-                $('#s_description').val(data.email);
+                $('#s_description').val(data.description);
                 $('#modal-body-show-rol').removeClass('d-none');
             }
         }).always(function() {
@@ -182,14 +182,15 @@ $(document).ready(function() {
     $('body').on('click','.delete',function(){ 
         rolid=$(this).data('id');
         Swal.fire({
-            title: "Borrar Usuario",
-            html: "Esta seguro que desea eliminar al usuario "+$(this).data('name')+"?<br>No podrá revertir el cambio.",
+            title: "Borrar Rol",
+            html: "Esta seguro que desea eliminar al rol "+$(this).data('name')+"?<br>No podrá revertir el cambio.",
             type: "question",
             showCancelButton: true,
             confirmButtonText: "Borrar",
             cancelButtonText: `Cancelar`,
         }).then((result) => {
             if (result.dismiss != 'cancel') {
+                showSavingAlert();
                 $('#formdestroy').attr('action',app_url+"/roles/"+$(this).data('id'));
                 $('#formdestroy').submit();
             }
@@ -229,6 +230,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente para generar el nuevo usuario.")
         } else {
+            showSavingAlert();
             document.getElementById("formnewrol").submit();
         }
     });
@@ -247,6 +249,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente para generar editar el Rol.")
         } else {
+            showSavingAlert();
             document.getElementById("formeditrol").submit();
         }
     });
@@ -284,8 +287,6 @@ $(document).ready(function() {
             });
         }
     });
-
-
 });
 
 function tableregister(data, page, callpaginas, url_query){

@@ -73,15 +73,21 @@ function tableregister(data, page, callpaginas, url_query){
             <td class="text-start px-3 align-middle">
                 <div class="d-flex align-items-center">
                     <span class="text-truncate me-2" style="max-width: 200px;">${val.job_description_short}</span>
-                    <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.job_description}" title="Ver descripción completa">
-                        <i class="fas fa-eye me-2"></i>
-                    </button>
-                </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.job_description ?? ''}" title="Ver descripción completa">
+                        <i class="fas fa-eye"></i>
+                    </button>`;
+
+                if (val.images_count > 0 && data.permissions.includes('update') ) {
+                    body += `<button type="button" class="btn btn-sm btn-outline-secondary addfiles ms-1" data-id="${val.id}" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}" title="Ver imágenes">
+                        <i class="flaticon-photo-camera"></i>
+                    </button>`
+                }
+                body+= `</div>
             </td>
             <td class="align-middle">`
                 if(val.getnotes != 'no'){
-                    body+= `<button type="button" class="btn btn-sm btn-primary btn-notes" data-id="${val.id}" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}" title="Ver notas">
-                        <i class="flaticon-notes me-2"></i>
+                    body+= `<button type="button" class="btn btn-sm btn-primary btn-notes" data-id="${val.id}" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}" title="Ver notas">
+                        <i class="flaticon-notes"></i>
                     </button>`;
                 } else {
                     body+= `<span class="text-muted">-</span>`;
@@ -91,7 +97,7 @@ function tableregister(data, page, callpaginas, url_query){
                 <div class="d-flex align-items-center">`
                 if (val.closed_job_observation != '') {
                     body += `<span class="text-truncate me-2" style="max-width: 200px;">${val.closed_job_observation_short}</span>
-                    <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.closed_job_observation}" title="Ver observación completa">
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-description" data-content="${val.closed_job_observation ?? ''}" title="Ver observación completa">
                         <i class="fas fa-eye me-2"></i>
                     </button>`
                 } else {
@@ -102,7 +108,7 @@ function tableregister(data, page, callpaginas, url_query){
             <td class="align-middle">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-light dropdown-toggle-menu-body" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fa-solid fa-ellipsis-vertical me-2"></i>
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
                     <ul class="dropdown-menu shadow-sm" >`;
 
@@ -119,12 +125,12 @@ function tableregister(data, page, callpaginas, url_query){
                                 </li>`
                         } 
 
-                        body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addnote" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                        body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addnote" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">
                             <i class="flaticon-upload me-2"></i>Agregar Nota
                         </a></li>`;
                         
                         if (val.getnotes != 'no') {
-                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item btn-notes" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                            body += `<li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item btn-notes" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">
                                 <i class="flaticon-notes me-2"></i>Ver Notas
                             </a></li>`;
                         }
@@ -139,7 +145,7 @@ function tableregister(data, page, callpaginas, url_query){
 
                         if( data.permissions.includes('update') ) {
                             body += `<li>
-                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addfiles" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addfiles" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">
                                     <i class="flaticon-photo-camera me-2"></i>Agregar Imágenes
                                 </a>
                             </li>`;
@@ -147,7 +153,7 @@ function tableregister(data, page, callpaginas, url_query){
 
                         if ( data.permissions.includes('delete') && val.arrival == null && val.closed == null){
                             body += `<li><hr class="dropdown-divider"></li>
-                            <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-danger delete-job" data-name="${val.client_first_name} ${val.client_last_name} del ${val.visit_day} ${val.visit}">
+                            <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-danger delete-job" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">
                                 <i class="flaticon-delete me-2"></i>Eliminar
                             </a></li>`
                         }
@@ -168,7 +174,7 @@ function tableregister(data, page, callpaginas, url_query){
                         
                         if ( val.arrival != null && val.closed == null){
                             body += `<li>
-                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-success closetask">
+                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-success closetask" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">
                                     <i class="flaticon-book me-2"></i>Cerrar Tarea
                                 </a>
                             </li>`;

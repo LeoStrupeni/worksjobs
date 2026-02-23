@@ -57,9 +57,10 @@ $(document).ready(function() {
             inputAttributes: { autocapitalize: "off" },
             }).then((result) => {
                 if (result.dismiss != 'cancel') {
-                   $('#d_descripcion').val(result.value);
-                   $('#formdestroy').attr('action',app_url+"/users/"+$(this).data('id'));
-                   $('#formdestroy').submit();
+                    showSavingAlert();  
+                    $('#d_descripcion').val(result.value);
+                    $('#formdestroy').attr('action',app_url+"/users/"+$(this).data('id'));
+                    $('#formdestroy').submit();
                 }
             });
     });
@@ -122,6 +123,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente para generar el nuevo usuario.")
         } else {
+            showSavingAlert();
             document.getElementById("formnewuser").submit();
         }
     });

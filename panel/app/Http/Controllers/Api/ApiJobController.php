@@ -57,7 +57,8 @@ class ApiJobController extends Controller
             });
         }
 
-        $filtrados = $query->get();
+        // Optimización: contar filtrados sin hacer get() completo
+        $filtrados = ($search != '' && isset($search)) ? $query->count() : $totales;
 
         // Aplicar ordenamiento
         if ($order) {
@@ -80,17 +81,20 @@ class ApiJobController extends Controller
         foreach ($lista as $j) {
             $note = Jobs_Note::where('jobs_id', $j->id)->first();   
             $j->getnotes = $note ? 'si' : 'no';
+            
+            // Agregar contador de imágenes
+            $j->images_count = Jobs_file::where('job_id', $j->id)->count();
         }
 
         $respuesta['totales'] = $totales;
-        $respuesta['filtrados'] = count($filtrados);
-        $respuesta['paginastotal'] = ceil(count($filtrados) / $limit);
+        $respuesta['filtrados'] = $filtrados;
+        $respuesta['paginastotal'] = ceil($filtrados / $limit);
         $respuesta['datos'] = $lista;
 
-        if ($limit * $page > count($filtrados)) {
-            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . count($filtrados) . ' de un total de ' . count($filtrados);
+        if ($limit * $page > $filtrados) {
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . $filtrados . ' de un total de ' . $filtrados;
         } else {
-            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . count($filtrados);
+            $respuesta['infototal'] = 'Mostrando registros del ' . ($limit * $page - $limit + 1) . ' al ' . ($limit * $page) . ' de un total de ' . $filtrados;
         }
 
         $respuesta['roluser'] = $roluser;

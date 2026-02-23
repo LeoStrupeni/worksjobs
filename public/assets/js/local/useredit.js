@@ -55,6 +55,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente para generar el nuevo usuario.")
         } else {
+            showSavingAlert();
             document.getElementById("formedituser").submit();
         }
     });

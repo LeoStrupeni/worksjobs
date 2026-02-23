@@ -57,6 +57,7 @@ $(document).ready(function() {
             cancelButtonText: `Cancelar`,
         }).then((result) => {
             if (result.dismiss != 'cancel') {
+                showSavingAlert();
                 $('#formdestroy').attr('action',app_url+"/permission/"+$(this).data('id'));
                 $('#formdestroy').submit();
             }
@@ -78,6 +79,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente.")
         } else {
+            showSavingAlert();
             document.getElementById("formnewpermission").submit();
         }
     });
@@ -98,6 +100,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente para editar el permissione.")
         } else {
+            showSavingAlert();
             document.getElementById("formeditpermission").submit();
         }
     });

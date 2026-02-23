@@ -1,10 +1,105 @@
 var controladorTiempo = 3000;
 var valorbuscado = '';
+// Array global para mantener los archivos seleccionados
+var selectedFiles = [];
+
 $(document).ready(function() {
     getGeolocation();
+    
+    // Manejador para el formulario de archivos
+    $('#formaddfilesjob').on('submit', function(e) {
+        e.preventDefault();
+        
+        if (selectedFiles.length === 0) {
+            toastr["warning"]("No hay archivos seleccionados para subir");
+            closeSwal();
+            return false;
+        }
+        
+        var formData = new FormData();
+        var jobId = $('#id_job_file').val();
+        var csrfToken = $('meta[name="csrf-token"]').attr('content');
+        
+        // Agregar el token CSRF y el ID del trabajo
+        formData.append('_token', csrfToken);
+        formData.append('id', jobId);
+        
+        // Agregar solo los archivos no eliminados
+        selectedFiles.forEach(function(item, index) {
+            formData.append('images[]', item.file);
+        });
+        
+        // Enviar con AJAX
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                toastr["success"]("Archivos subidos correctamente");
+                $('#filesjob').modal('hide');
+                
+                // Recargar la tabla si estamos en la página de jobs
+                if(window.location.href.includes('jobs')){
+                    callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si');
+                } else {
+                    window.location.reload();
+                }
+            },
+            error: function(xhr, status, error) {
+                toastr["error"]("Error al subir los archivos. Intente nuevamente.");
+            }
+        }).always(function() {
+            closeSwal();
+        });
+        
+        return false;
+    });
+    
+    // Manejador para el botón de guardar archivos
+    $('body').on('click', '#btn-submit-files', function() {
+        showSavingAlert();
+        $('#formaddfilesjob').submit();
+    });
+    
+    // Manejador para el botón "Agregar más archivos"
+    $('body').on('click', '#btn-add-more-files', function() {
+        $('#file-input').val(''); // Limpiar el input para nueva selección
+        $('#file-input-container').show();
+        $('#file-input-help').show();
+        $(this).hide();
+    });
+    
+    // Manejador para el botón "Agregar más archivos" en modal de crear
+    $('body').on('click', '#btn-add-more-files-create', function() {
+        $('#file-input-create').val('');
+        $('#file-input-container-create').show();
+        $('#file-input-help-create').show();
+        $(this).hide();
+    });
+    
+    // Manejador para el botón "Agregar más archivos" en modal de editar
+    $('body').on('click', '#btn-add-more-files-edit', function() {
+        $('#file-input-edit').val('');
+        $('#file-input-container-edit').show();
+        $('#file-input-help-edit').show();
+        $(this).hide();
+    });
+    
     $('body').on('click','.create-job',function(){ 
         $('#name').val('');
         $('#description').val('');
+        
+        // Resetear el array de archivos y elementos de UI para crear
+        selectedFiles = [];
+        $('#lightgallery').empty();
+        $('#file-input-create').val('');
+        $('#file-input-container-create').show();
+        $('#file-input-help-create').show();
+        $('#btn-add-more-files-create').hide();
+        updateFilesCounter('create');
+        
         $('#createjob').modal('show');
 
         getGeolocation();
@@ -13,6 +108,14 @@ $(document).ready(function() {
         $("#lightgalleryEditNone").empty();
         $("#lightgalleryEdit").empty();     
         $('#formeditjob').attr('action',app_url+"/jobs/"+$(this).data('id'));
+        
+        // Resetear el array de archivos y elementos de UI para editar
+        selectedFiles = [];
+        $('#file-input-edit').val('');
+        $('#file-input-container-edit').show();
+        $('#file-input-help-edit').show();
+        $('#btn-add-more-files-edit').hide();
+        updateFilesCounter('edit');
 
         form = document.getElementById("formeditjob");
         var countimg = 0;
@@ -164,6 +267,7 @@ $(document).ready(function() {
         } 
     });
     $('body').on('click',".markarrival", function(){
+        showSavingAlert();
         var idtarea = $(this).data('id');
         $.ajax({contenttype : 'application/json; charset=utf-8',
             url : $('meta[name="app_url"]').attr('content')+'/jobs/markarrival',
@@ -184,6 +288,8 @@ $(document).ready(function() {
                     window.location.reload();
                 }
             }
+        }).always(function() {
+            closeSwal();
         });
     });
     
@@ -200,6 +306,7 @@ $(document).ready(function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.value) {
+                showSavingAlert();
                 $.ajax({
                     contenttype : 'application/json; charset=utf-8',
                     url : $('meta[name="app_url"]').attr('content')+'/jobs/archive/'+idtarea,
@@ -218,6 +325,8 @@ $(document).ready(function() {
                             window.location.reload();
                         }
                     }
+                }).always(function() {
+                    closeSwal();
                 });
             }
         });
@@ -240,6 +349,7 @@ $(document).ready(function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.value) {
+                showSavingAlert();
                 $.ajax({
                     contenttype : 'application/json; charset=utf-8',
                     url : $('meta[name="app_url"]').attr('content')+'/jobs/archive/'+idtarea,
@@ -254,12 +364,15 @@ $(document).ready(function() {
                         toastr["success"](data.message);
                         callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
                     }
+                }).always(function() {
+                    closeSwal();
                 });
             }
         });
     });
     
     $('body').on('click',".backarrival", function(){
+        showSavingAlert();
         var idtarea = $(this).data('id');
         $.ajax({contenttype : 'application/json; charset=utf-8',
             url : $('meta[name="app_url"]').attr('content')+'/jobs/backarrival',
@@ -275,6 +388,8 @@ $(document).ready(function() {
                     window.location.reload();
                 }
             }
+        }).always(function() {
+            closeSwal();
         });
     });
     $('body').on('click',".addnote", function(){
@@ -298,6 +413,7 @@ $(document).ready(function() {
             
             } else {
                 if (text.value != '') {
+                    showSavingAlert();
                     $.ajax({contenttype : 'application/json; charset=utf-8',
                         url : $('meta[name="app_url"]').attr('content')+'/jobs/addnote',
                         type : 'POST',
@@ -322,6 +438,8 @@ $(document).ready(function() {
                                 callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
                             }
                         }
+                    }).always(function() {
+                        closeSwal();
                     });
                 } else {
                     toastr["error"]("No hay detalle para guardar sobre la nota.");
@@ -330,12 +448,30 @@ $(document).ready(function() {
         });
 
     });
-    $('body').on('click',".addfiles", function(){
+    // Manejador para el botón "Agregar más archivos"
+    $('body').on('click', '#btn-add-more-files', function() {
+        $('#file-input').val(''); // Limpiar el input para nueva selección
+        $('#file-input-container').show();
+        $('#file-input-help').show();
+        $('#btn-add-more-files').hide();
+    });
+    
+    $('body').on('click','.addfiles', function(){
         var idtarea = $(this).data('id');
         var nombre = $(this).data('name');
 
         $("#lightgalleryFilesNone").empty();
-        $("#lightgalleryFiles").empty();     
+        $("#lightgalleryFiles").empty();
+        
+        // Resetear el array de archivos y el contador
+        selectedFiles = [];
+        updateFilesCounter('files');
+        
+        // Resetear visibilidad de elementos
+        $('#file-input-container').show();
+        $('#file-input-help').show();
+        $('#btn-add-more-files').hide();
+        $('#file-input').val('');
 
         form = document.getElementById("formeditjob");
         var countimg = 0;
@@ -352,6 +488,8 @@ $(document).ready(function() {
 
         $('#titlefilesjob').text(nombre);
         $('#id_job_file').val(idtarea);    
+
+        $('#loadingFiles').removeClass('d-none');
         $('#filesjob').modal('show');
 
         $.ajax({contenttype : 'application/json; charset=utf-8',
@@ -364,6 +502,7 @@ $(document).ready(function() {
                 viewfiles(data,'lightgalleryFiles');
             }
         }).always(function() {
+            $('#loadingFiles').addClass('d-none');
         });
 
     });
@@ -426,6 +565,7 @@ $(document).ready(function() {
             cancelButtonText: `Cancelar`,
         }).then((result) => {
             if (result.dismiss != 'cancel') {
+                showSavingAlert();
                 parent.remove();
                 
                 // Verificar si quedan más notas después de eliminar
@@ -450,8 +590,9 @@ $(document).ready(function() {
                             callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
                         }
                     }
+                }).always(function() {
+                    closeSwal();
                 });
-
             }
         });
     });
@@ -510,6 +651,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Complete la observación para cerrar la tarea.")
         } else {
+            showSavingAlert();
             document.getElementById("formclosedjob").submit();
         }
     });
@@ -589,9 +731,9 @@ $(document).ready(function() {
                 <a class="gallery" href="/storage/${this.name}">
                     <img src="/storage/${this.name}" style='border-radius:.5rem; height: 100px; width: 100px;'>
                 </a>`
-                if(id_elemento == 'lightgalleryEdit'){
+                if(id_elemento == 'lightgalleryEdit' || id_elemento == 'lightgalleryFiles'){
                     imagen += `<span class="btn-danger-pro" 
-                        style=" position: relative; top: -25px; right: -40px;"
+                        style=" position: relative; top: -25px; right: -40px; cursor: pointer;"
                         onclick="deleteimg(this,${this.id},'${id_elemento}')">
                         <i class="fas fa-trash me-2"></i>
                     </span>`;
@@ -642,21 +784,63 @@ function getAddress(client_id) {
 }
 
 function scaleImage(inputnew,id_elemento) {    
-    $("#"+id_elemento).empty();
-    if(id_elemento!='lightgallery'){
-        $("#"+id_elemento).append($("#"+id_elemento+"None").html());
-    }
-
+    // No limpiar el contenedor para mantener las imágenes anteriores
+    
     form = inputnew.form;
     idform = form.id;
     inputfiles = form.elements['images[]'];
     inputnone = 0;
+    
+    // Determinar qué contador usar según el elemento
+    var counterType = 'files'; // Por defecto para lightgalleryFiles
+    if(id_elemento === 'lightgallery') {
+        counterType = 'create';
+    } else if(id_elemento === 'lightgalleryEdit') {
+        counterType = 'edit';
+    }
+    
+    // NO reiniciar el array - agregar los nuevos archivos a los existentes
+    
     $( inputfiles ).each(function( i, input ) { if (input.files.length == 0) {inputnone++;} });
     $( inputfiles ).each(function( i, input ) {
         if (input.files.length > 0) {
+            // Agregar todos los archivos al array con IDs únicos
+            for (let index = 0; index < input.files.length; index++) {
+                selectedFiles.push({
+                    file: input.files[index],
+                    index: selectedFiles.length, // Índice basado en el tamaño actual
+                    id: Date.now() + Math.random() // ID único para cada archivo
+                });
+            }
+            
+            // Ocultar el input y mostrar botón para agregar más según el tipo
+            if(counterType === 'create') {
+                $('#file-input-container-create').hide();
+                $('#file-input-help-create').hide();
+                $('#btn-add-more-files-create').show();
+            } else if(counterType === 'edit') {
+                $('#file-input-container-edit').hide();
+                $('#file-input-help-edit').hide();
+                $('#btn-add-more-files-edit').show();
+            } else {
+                $('#file-input-container').hide();
+                $('#file-input-help').hide();
+                $('#btn-add-more-files').show();
+            }
+            
+            // Actualizar el contador
+            updateFilesCounter(counterType);
+            
+            // Calcular el índice inicial para los nuevos archivos
+            var startIndex = selectedFiles.length - input.files.length;
+            
+            // Procesar cada archivo para preview
             for (let index = 0; index < input.files.length; index++) {
                 var cant = input.files.length;
                 let file = input.files[index];
+                // Usar el índice correcto del array global
+                let fileId = selectedFiles[startIndex + index].id;
+                
                 if (file != undefined) {
                     let filetype = file.type;
                     let reader = new FileReader();
@@ -664,8 +848,8 @@ function scaleImage(inputnew,id_elemento) {
                         let image = new Image();
         
                         image.addEventListener("load", function () {
-                            let width = Math.floor(image.width / 2);      // Make it an integer, just in case
-                            let height = Math.floor(image.height / 2);    // Make it an integer, just in case
+                            let width = Math.floor(image.width / 2);
+                            let height = Math.floor(image.height / 2);
         
                             let canvas = document.createElement("canvas");
                             canvas.width = width;
@@ -678,12 +862,15 @@ function scaleImage(inputnew,id_elemento) {
                             let link = document.createElement("img");
                             link.src = url;
 
-                            let imagen = `<div class="text-center" style="width: 120px;"> 
-
+                            let imagen = `<div class="text-center preview-file-item" data-file-id="${fileId}" style="width: 120px; position: relative;"> 
                                 <a class="gallery" href="${url}">
                                     <img src="${url}" style='border-radius:.5rem; height: 100px; width: 100px;'>
                                 </a>
-                                
+                                <span class="btn-danger-pro" 
+                                    style="position: relative; top: -25px; right: -40px; cursor: pointer;"
+                                    onclick="removePreviewFile(${fileId}, '${id_elemento}')">
+                                    <i class="fas fa-times"></i>
+                                </span>
                             <div>`;
         
                             $("#"+id_elemento).append(imagen);
@@ -699,19 +886,83 @@ function scaleImage(inputnew,id_elemento) {
                     reader.readAsDataURL(file);
                 }
             }
-            if(inputnone < 1){
-                $(inputnew.parentNode.parentNode.parentNode).append(`<div class="col-12 mb-2">
-                    <div style="position: relative;padding: 0;">
-                        <input class="form-control form-control-sm" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this);">
-                        <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0]);">
-                            <span><i class="fas fa-trash me-2"></i></span>
-                        </span>
-                    </div>
-                </div>`);
-                inputnone++;
-            }
         }
     });
+}
+
+// Función para eliminar un archivo individual del preview
+function removePreviewFile(fileId, id_elemento) {
+    // Eliminar del array de archivos seleccionados
+    selectedFiles = selectedFiles.filter(item => item.id !== fileId);
+    
+    // Determinar qué contador usar según el elemento
+    var counterType = 'files';
+    if(id_elemento === 'lightgallery') {
+        counterType = 'create';
+    } else if(id_elemento === 'lightgalleryEdit') {
+        counterType = 'edit';
+    }
+    
+    // Eliminar del DOM
+    $(`.preview-file-item[data-file-id="${fileId}"]`).remove();
+    
+    // Actualizar la galería
+    var gallery = $("#"+id_elemento);
+    if (gallery.data('lightGallery')) {
+        gallery.data('lightGallery').destroy(true);
+    }
+    if (selectedFiles.length > 0) {
+        galleryimagen(id_elemento);
+    }
+    
+    // Actualizar el contador
+    updateFilesCounter(counterType);
+    
+    // Mostrar mensaje indicando cuántos archivos quedan
+    if (selectedFiles.length > 0) {
+        toastr["info"](`${selectedFiles.length} archivo(s) seleccionado(s)`);
+    } else {
+        toastr["info"]("No hay archivos seleccionados");
+    }
+}
+
+// Función para actualizar el contador de archivos
+function updateFilesCounter(type) {
+    type = type || 'files'; // Por defecto 'files' si no se especifica
+    
+    var count = selectedFiles.length;
+    var counterId = '#files-count';
+    var containerId = '#files-counter';
+    var inputContainerId = '#file-input-container';
+    var helpId = '#file-input-help';
+    var buttonId = '#btn-add-more-files';
+    
+    // Determinar qué elementos usar según el tipo
+    if(type === 'create') {
+        counterId = '#files-count-create';
+        containerId = '#files-counter-create';
+        inputContainerId = '#file-input-container-create';
+        helpId = '#file-input-help-create';
+        buttonId = '#btn-add-more-files-create';
+    } else if(type === 'edit') {
+        counterId = '#files-count-edit';
+        containerId = '#files-counter-edit';
+        inputContainerId = '#file-input-container-edit';
+        helpId = '#file-input-help-edit';
+        buttonId = '#btn-add-more-files-edit';
+    }
+    
+    $(counterId).text(count);
+    
+    if (count > 0) {
+        $(containerId).show();
+    } else {
+        $(containerId).hide();
+        // Si no hay archivos, mostrar el input nuevamente
+        $(inputContainerId).show();
+        $(helpId).show();
+        $(buttonId).hide();
+    }
 }
 
 function galleryimagen(id_elemento) {
@@ -723,10 +974,12 @@ function galleryimagen(id_elemento) {
 }
 
 function deleteimg(e,idjob,id_elemento){
+    showSavingAlert();
     $.ajax({contenttype : 'application/json; charset=utf-8',
         url : $('meta[name="app_url"]').attr('content')+'/jobs/destroyfile/'+idjob,
         type : 'GET',
         success : function(data) {
+            
             toastr["warning"]("Archivo eliminado correctamente.");
             e.parentNode.remove();
 
@@ -750,5 +1003,7 @@ function deleteimg(e,idjob,id_elemento){
                 galleryimagen(id_elemento);  
 
         }
+    }).always(function() {
+        closeSwal();
     });
 }

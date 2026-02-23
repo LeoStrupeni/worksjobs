@@ -21,11 +21,24 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div style="position: relative;padding: 0;">
-                                <input class="form-control" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this,'lightgalleryFiles');">
+                            <div id="file-input-container" style="position: relative;padding: 0;">
+                                <input id="file-input" class="form-control" type="file" name="images[]" accept="video/*,image/*" multiple onchange="scaleImage(this,'lightgalleryFiles');">
                                 <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0],'lightgalleryFiles');">
                                     <span><i class="fas fa-trash me-2"></i></span>
                                 </span>
+                            </div>
+                            <button type="button" id="btn-add-more-files" class="btn btn-outline-primary btn-sm mt-2" style="display: none;">
+                                <i class="fas fa-plus-circle me-1"></i>Agregar más archivos
+                            </button>
+                            <small id="file-input-help" class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>Puedes seleccionar múltiples archivos a la vez
+                            </small>
+                            <div id="files-counter" class="mt-2" style="display: none; font-size: 0.85rem; color: #6c757d;">
+                                <i class="fas fa-images me-1"></i>
+                                <span id="files-count">0</span> archivo(s) listo(s) para enviar
+                            </div>
+                            <div style="display:block;" class="text-center mt-3" id="loadingFiles">
+                                <div class="lds-roller"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
                             </div>
                             <div id="lightgalleryFilesNone" class="d-none"></div>
                             <div id="lightgalleryFiles" class="row g-3 mt-2"></div>
@@ -35,7 +48,9 @@
             </div>
             <div class="modal-footer border-0 bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" onclick="$('#formaddfilesjob').submit();">Guardar</button>
+                <button type="button" class="btn btn-success" id="btn-submit-files">
+                    <i class="fas fa-save me-2"></i>Guardar
+                </button>
             </div>
         </div>
     </div>

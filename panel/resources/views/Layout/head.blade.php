@@ -512,7 +512,7 @@
                 width: 7px;
                 height: 7px;
                 border-radius: 50%;
-                background: rgb(39, 57, 92);
+                background: #60d075;
                 margin: -4px 0 0 -4px;
             }
 

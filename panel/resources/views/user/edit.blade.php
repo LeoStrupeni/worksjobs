@@ -60,7 +60,12 @@
                                 </div>
                                 <div class="mb-2">
                                     <label for="password" class="form-label mb-0 ps-3">Confirmar nueva contraseña</label>
-                                    <input type="password" name="password_confirmation" id="e_password_confirmation" class="form-control">
+                                    <div class="w-100 float-end mb-2" style="position: relative;padding: 0;">
+                                        <input type="password" name="password_confirmation" id="e_password_confirmation" class="form-control">
+                                        <span style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 7px;width: 3.2rem;right: 0;">
+                                            <span><i class="fa-solid fa-eye verpass me-2" style="cursor: pointer;"></i></span>
+                                        </span>
+                                    </div>
                                     <small style="font-style: italic;" class="ps-3 password form-text text-danger"></small>
                                 </div>
                             </div>

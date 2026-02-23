@@ -16,7 +16,7 @@ $(document).ready(function() {
             console.log('Error sincronización Colppy:', textStatus);
         }
     });
-        $('body').on('click','.create',function(){ 
+    $('body').on('click','.create',function(){ 
         $('#name').val('');
         $('#description').val('');
         $('#createclient').modal('show')}
@@ -24,8 +24,6 @@ $(document).ready(function() {
     $('body').on('click','.excel',function(){ 
         $('#excelclient').modal('show')}
     );
-    
-
     $('body').on('click','.update',function(){ 
         $('#formeditclient').attr('action',app_url+"/client/"+$(this).data('id'));
 
@@ -227,14 +225,15 @@ $(document).ready(function() {
     $('body').on('click','.delete',function(){ 
         rolid=$(this).data('id');
         Swal.fire({
-            title: "Borrar Usuario",
-            html: "Esta seguro que desea eliminar al usuario "+$(this).data('name')+"?<br>No podrá revertir el cambio.",
+            title: "Borrar Cliente",
+            html: "Esta seguro que desea eliminar al cliente "+$(this).data('name')+"?<br>No podrá revertir el cambio.",
             type: "question",
             showCancelButton: true,
             confirmButtonText: "Borrar",
             cancelButtonText: `Cancelar`,
         }).then((result) => {
             if (result.value) {
+                showSavingAlert();
                 $('#formdestroy').attr('action',app_url+"/client/"+$(this).data('id'));
                 $('#formdestroy').submit();
             }
@@ -255,7 +254,7 @@ $(document).ready(function() {
             if (result.value) {
                 // Obtener token del formulario existente
                 var token = $('#formdestroyaddress').find('input[name="_token"]').val();
-                
+                showSavingAlert();
                 // Hacer petición DELETE con AJAX
                 $.ajax({
                     url: app_url + "/client/address/" + addressId,
@@ -312,6 +311,8 @@ $(document).ready(function() {
                         toastr["error"]("Error al eliminar el domicilio");
                         console.error("Error:", xhr.responseText);
                     }
+                }).always(function() {
+                    closeSwal();
                 });
             }
         });
@@ -352,6 +353,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente.")
         } else {
+            showSavingAlert();
             document.getElementById("formnewaddressclient").submit();
         }
     });
@@ -373,6 +375,7 @@ $(document).ready(function() {
         if (error > 0) {
             toastr["error"]("Debe completar los datos correctamente para editar el Cliente.")
         } else {
+            showSavingAlert();
             document.getElementById("formeditclient").submit();
         }
     });

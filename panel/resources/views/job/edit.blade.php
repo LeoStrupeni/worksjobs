@@ -102,11 +102,21 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <div style="position: relative;padding: 0;">
-                                        <input class="form-control" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this,'lightgalleryEdit');">
+                                    <div id="file-input-container-edit" style="position: relative;padding: 0;">
+                                        <input id="file-input-edit" class="form-control" type="file" name="images[]" accept="video/*,image/*" multiple onchange="scaleImage(this,'lightgalleryEdit');">
                                         <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px;" onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0],'lightgalleryEdit');">
                                             <span><i class="fas fa-trash me-2"></i></span>
                                         </span>
+                                    </div>
+                                    <button type="button" id="btn-add-more-files-edit" class="btn btn-outline-primary btn-sm mt-2" style="display: none;">
+                                        <i class="fas fa-plus-circle me-1"></i>Agregar más archivos
+                                    </button>
+                                    <small id="file-input-help-edit" class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i>Puedes seleccionar múltiples archivos a la vez
+                                    </small>
+                                    <div id="files-counter-edit" class="mt-2" style="display: none; font-size: 0.85rem; color: #6c757d;">
+                                        <i class="fas fa-images me-1"></i>
+                                        <span id="files-count-edit">0</span> archivo(s) listo(s) para enviar
                                     </div>
                                     <div id="lightgalleryEditNone" class="d-none"></div>
                                     <div id="lightgalleryEdit" class="row g-3 mt-2"></div>

@@ -104,11 +104,21 @@
                                 Cargar Archivos / Imágenes
                             </h6>
                             <div class="mb-2">
-                                <div style="position: relative;padding: 0;">
-                                    <input class="form-control form-control-sm" type="file" name="images[]" accept="video/*,image/*" onchange="scaleImage(this,'lightgallery');">
+                                <div id="file-input-container-create" style="position: relative;padding: 0;">
+                                    <input id="file-input-create" class="form-control form-control-sm" type="file" name="images[]" accept="video/*,image/*" multiple onchange="scaleImage(this,'lightgallery');">
                                     <span class="btn-danger-pro" style="position: absolute; height: 100%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: center;-ms-flex-pack: center;justify-content: center;top: 4px;right: 10px; " onclick="this.parentNode.children[0].value='';scaleImage(this.parentNode.children[0],'lightgallery');">
                                         <span><i class="fas fa-trash me-2"></i></span>
                                     </span>
+                                </div>
+                                <button type="button" id="btn-add-more-files-create" class="btn btn-outline-primary btn-sm mt-2" style="display: none;">
+                                    <i class="fas fa-plus-circle me-1"></i>Agregar más archivos
+                                </button>
+                                <small id="file-input-help-create" class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>Puedes seleccionar múltiples archivos a la vez
+                                </small>
+                                <div id="files-counter-create" class="mt-2" style="display: none; font-size: 0.85rem; color: #6c757d;">
+                                    <i class="fas fa-images me-1"></i>
+                                    <span id="files-count-create">0</span> archivo(s) listo(s) para enviar
                                 </div>
                             </div>
                             <div id="lightgallery" class="row justify-content-start">

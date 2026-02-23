@@ -346,7 +346,7 @@ class ApiDataTablesController extends Controller
         $query = "SELECT R.id, R.name, R.description, 
             IF(R.estatus=1,'Activo','Inactivo') as estatus
             FROM roles R
-            WHERE ISNULL(R.deleted_at) AND R.id != 3 "; // Excluir rol 'sistema' con ID 3
+            WHERE ISNULL(R.deleted_at) "; // Excluir rol 'sistema' con ID 3
 
         if ($search != '' && isset($search)) {
             $query .= " AND (R.name LIKE '%$search%' 
