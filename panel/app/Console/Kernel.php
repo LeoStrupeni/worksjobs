@@ -14,11 +14,11 @@ class Kernel extends ConsoleKernel
      * @return void
      */
     protected function schedule(Schedule $schedule)
-    {
+    {       
         // Sincronizar clientes de Colppy cada hora
         $schedule->call(function () {
             \App\Jobs\SyncColppyClientsJob::dispatch();
-        })->hourly()
+        })->everyMinute()
           ->name('sync-colppy-clients')
           ->withoutOverlapping()
           ->onOneServer();
