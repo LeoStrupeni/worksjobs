@@ -6,6 +6,8 @@ import 'dart:convert';
 import '../providers/job_provider.dart';
 import '../models/client.dart';
 import '../models/address.dart';
+import '../models/technician.dart';
+import '../services/auth_service.dart';
 import '../utils/custom_alerts.dart';
 
 class CreateJobScreen extends StatefulWidget {
@@ -28,12 +30,28 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
   List<Address> _addresses = [];
   bool _isSearching = false;
   bool _isLoadingAddresses = false;
+  List<Technician> _technicians = [];
+  List<int> _selectedTechnicianIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTechnicians();
+  }
 
   @override
   void dispose() {
     _descriptionController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTechnicians() async {
+    final authService = AuthService();
+    final technicians = await authService.getTechnicians();
+    setState(() {
+      _technicians = technicians;
+    });
   }
 
   Future<void> _searchClients(String query) async {
@@ -384,6 +402,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
             latitude: location?['latitude'],
             longitude: location?['longitude'],
             jsonGeolocation: location?['jsongeolocation'],
+            technicianIds: _selectedTechnicianIds.isNotEmpty ? _selectedTechnicianIds : null,
           );
           return result;
         },
@@ -753,6 +772,75 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
                         return null;
                       },
                     ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Técnicos (Opcional)
+            Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              shadowColor: const Color(0xFF00274E).withOpacity(0.3),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.engineering, color: Color(0xFF00274E)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Técnicos',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          '(Opcional)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_technicians.isEmpty)
+                      const Text(
+                        'No hay técnicos disponibles',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _technicians.map((tech) {
+                          final isSelected = _selectedTechnicianIds.contains(tech.id);
+                          return FilterChip(
+                            label: Text(tech.name),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedTechnicianIds.add(tech.id);
+                                } else {
+                                  _selectedTechnicianIds.remove(tech.id);
+                                }
+                              });
+                            },
+                            selectedColor: const Color(0xFF00274E).withOpacity(0.2),
+                            checkmarkColor: const Color(0xFF00274E),
+                          );
+                        }).toList(),
+                      ),
                   ],
                 ),
               ),

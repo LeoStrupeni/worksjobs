@@ -99,6 +99,10 @@ $(document).ready(function() {
         $('#file-input-help-create').show();
         $('#btn-add-more-files-create').hide();
         updateFilesCounter('create');
+
+        // Resetear select de técnicos
+        $('#technician_ids_create').selectpicker('deselectAll');
+        $('#technician_ids_create').selectpicker('refresh');
         
         $('#createjob').modal('show');
 
@@ -154,6 +158,9 @@ $(document).ready(function() {
                 viewjob(data,form,'editjob');
                 viewfiles(data,'lightgalleryEdit');
 
+                // Poblar técnicos asignados en el select de edición
+                setTechnicianSelect('#technician_ids_edit', data.technicians);
+
                 $('#modal-body-edit-job').removeClass('d-none');
                 $('#modal-foot-edit-job').removeClass('d-none');
             }
@@ -187,6 +194,9 @@ $(document).ready(function() {
 
                 viewjob(data,form,'showjob');
                 viewfiles(data,'lightgalleryShow');
+
+                // Mostrar técnicos asignados en el panel de show
+                renderTechniciansShow(data.technicians);
 
                 $('#modal-body-show-job').removeClass('d-none');
             }
@@ -626,6 +636,10 @@ $(document).ready(function() {
             viewjob(data,form,'closedjob');
             viewfiles(data,'lightgalleryClosed');
 
+            // Poblar técnicos asignados en el select de cierre
+            setTechnicianSelect('#technician_ids_closed', data.technicians);
+            $('#technician_ids_closed_error').addClass('d-none');
+
             $('#modal-body-closed-job').removeClass('d-none');
             $('#modal-foot-closed-job').removeClass('d-none');
           }
@@ -648,8 +662,18 @@ $(document).ready(function() {
                 $( this ).css('box-shadow', '');
             }
         });
+
+        // Validar que se seleccionó al menos un técnico
+        var techSelected = $('#technician_ids_closed').val();
+        if (!techSelected || techSelected.length === 0) {
+            $('#technician_ids_closed_error').removeClass('d-none');
+            error++;
+        } else {
+            $('#technician_ids_closed_error').addClass('d-none');
+        }
+
         if (error > 0) {
-            toastr["error"]("Complete la observación para cerrar la tarea.")
+            toastr["error"]("Complete la observación y seleccione al menos un técnico para cerrar la tarea.")
         } else {
             showSavingAlert();
             document.getElementById("formclosedjob").submit();
@@ -753,6 +777,49 @@ $(document).ready(function() {
 
     }
 });
+
+/**
+ * Setea los técnicos seleccionados en un selectpicker múltiple.
+ * @param {string} selector - Selector jQuery del select
+ * @param {Array}  technicians - Array de {id, name} desde el servidor
+ */
+function setTechnicianSelect(selector, technicians) {
+    var $select = $(selector);
+    $select.selectpicker('deselectAll');
+    if (technicians && technicians.length > 0) {
+        var ids = technicians.map(function(t) { return String(t.id); });
+        $select.find('option').each(function() {
+            if (ids.indexOf($(this).val()) !== -1) {
+                $(this).prop('selected', true);
+            }
+        });
+    }
+    $select.selectpicker('refresh');
+}
+
+/**
+ * Muestra los técnicos asignados en el modal show.
+ * Si no hay ninguno, oculta el contenedor; si hay, lo muestra con badges.
+ */
+function renderTechniciansShow(technicians) {
+    var $container = $('#technicians_show_container');
+    var $body = $('#technicians_show_body');
+    $body.empty();
+
+    if (!technicians || technicians.length === 0) {
+        $container.addClass('d-none');
+        return;
+    }
+
+    $container.removeClass('d-none');
+    var html = '';
+    $.each(technicians, function(i, t) {
+        html += '<span class="badge bg-secondary fs-6 px-3 py-2">' +
+                    '<i class="fas fa-hard-hat me-2"></i>' + t.name +
+                '</span>';
+    });
+    $body.html(html);
+}
 
 function getAddress(client_id) {
     $('#address_id').empty();

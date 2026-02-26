@@ -320,6 +320,10 @@ class ApiJobController extends Controller
         
         $files = Jobs_file::where('job_id', $id)->get();
         
+        // Obtener técnicos asignados
+        $jobModel = Job::find($id);
+        $technicians = $jobModel->technicians()->select('users.id', 'users.name')->get();
+        
         $permissions = $this->getUserPermissions($request->user());
         
         return response()->json([
@@ -327,6 +331,7 @@ class ApiJobController extends Controller
             'job' => $job,
             'notes' => $notes,
             'files' => $files,
+            'technicians' => $technicians,
             'permissions' => $permissions
         ]);
     }

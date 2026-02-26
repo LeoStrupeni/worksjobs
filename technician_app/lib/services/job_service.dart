@@ -249,7 +249,7 @@ class JobService {
   }
 
   // Cerrar cita
-  Future<Map<String, dynamic>> closeJob(int jobId, String observation, {double? lat, double? lng}) async {
+  Future<Map<String, dynamic>> closeJob(int jobId, String observation, {double? lat, double? lng, List<int>? technicianIds}) async {
     try {
       final token = await _authService.getToken();
       
@@ -257,14 +257,20 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
+      final Map<String, dynamic> bodyData = {
+        'observation': observation,
+      };
+      
+      if (lat != null) bodyData['latitud'] = lat;
+      if (lng != null) bodyData['longitud'] = lng;
+      if (technicianIds != null && technicianIds.isNotEmpty) {
+        bodyData['technician_ids'] = technicianIds;
+      }
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/close'),
         headers: ApiConfig.getHeaders(token: token),
-        body: jsonEncode({
-          'observation': observation,
-          'latitud': lat,
-          'longitud': lng,
-        }),
+        body: jsonEncode(bodyData),
       );
 
       final data = jsonDecode(response.body);
@@ -537,6 +543,7 @@ class JobService {
     double? latitude,
     double? longitude,
     String? jsonGeolocation,
+    List<int>? technicianIds,
   }) async {
     try {
       final token = await _authService.getToken();
@@ -559,6 +566,9 @@ class JobService {
       if (latitude != null) bodyData['latitude'] = latitude;
       if (longitude != null) bodyData['longitude'] = longitude;
       if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
+      if (technicianIds != null && technicianIds.isNotEmpty) {
+        bodyData['technician_ids'] = technicianIds;
+      }
       
       print('📦 createJob: Body: $bodyData');
       
@@ -707,6 +717,7 @@ class JobService {
     double? latitude,
     double? longitude,
     String? jsonGeolocation,
+    List<int>? technicianIds,
   }) async {
     try {
       final token = await _authService.getToken();
@@ -728,6 +739,9 @@ class JobService {
       if (latitude != null) bodyData['latitude'] = latitude;
       if (longitude != null) bodyData['longitude'] = longitude;
       if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
+      if (technicianIds != null) {
+        bodyData['technician_ids'] = technicianIds;
+      }
       
       print('📦 updateJob: Body: $bodyData');
       

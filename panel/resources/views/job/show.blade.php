@@ -106,7 +106,16 @@
                                                 <h6 class="mb-0 fw-bold">Observaciones de Cierre</h6>
                                             </div>
                                         </div>
-                                        <div class="card-body">
+                                        <div class="card-body pt-1">
+                                            {{-- Técnicos asignados (solo visible si hay técnicos) --}}
+                                            <div id="technicians_show_container" class="d-none mb-2 pb-2" style="border-bottom: 1px dashed #dee2e6;">
+                                                <label class="text-muted small mb-2">
+                                                    <i class="fas fa-hard-hat me-2 text-secondary"></i>Técnicos asignados
+                                                </label>
+                                                <div id="technicians_show_body" class="d-flex flex-wrap gap-2">
+                                                    {{-- llenado vía JS --}}
+                                                </div>
+                                            </div>
                                             <textarea class="form-control border-0 bg-light" name="closed_job_observation" rows="9" readonly style="resize: none;"></textarea>
                                         </div>
                                     </div>

@@ -3,12 +3,14 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/user.dart';
+import '../models/technician.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
   static const String _savedEmailKey = 'saved_email';
   static const String _savedPasswordKey = 'saved_password';
+  static const String _techniciansKey = 'technicians_list';
 
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -28,6 +30,11 @@ class AuthService {
         // Guardar token y datos del usuario
         await _saveToken(data['data']['token']);
         await _saveUser(data['data']['user']);
+        
+        // Guardar técnicos si vienen en la respuesta
+        if (data['data']['technicians'] != null) {
+          await _saveTechnicians(data['data']['technicians']);
+        }
         
         return {
           'success': true,
@@ -89,6 +96,25 @@ class AuthService {
     await prefs.setString(_userKey, jsonEncode(user));
   }
 
+  // Guardar técnicos
+  Future<void> _saveTechnicians(List<dynamic> technicians) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_techniciansKey, jsonEncode(technicians));
+  }
+
+  // Obtener técnicos guardados
+  Future<List<Technician>> getTechnicians() async {
+    final prefs = await SharedPreferences.getInstance();
+    final techniciansJson = prefs.getString(_techniciansKey);
+    
+    if (techniciansJson != null) {
+      final List<dynamic> decoded = jsonDecode(techniciansJson);
+      return decoded.map((json) => Technician.fromJson(json)).toList();
+    }
+    
+    return [];
+  }
+
   // Obtener token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -118,6 +144,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+    await prefs.remove(_techniciansKey);
   }
 
   // Obtener información del usuario actual desde la API

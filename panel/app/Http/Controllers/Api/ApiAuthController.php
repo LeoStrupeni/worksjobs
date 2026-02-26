@@ -52,6 +52,16 @@ class ApiAuthController extends Controller
         $roles = $user->getRoleNames();
         $permissions = $user->getAllPermissions()->pluck('name');
 
+        // Obtener lista de técnicos (misma lógica que en web)
+        $_users = User::join('model_has_roles','users.id','=','model_has_roles.model_id')
+            ->where('estatus', 1)
+            ->whereNotIn('model_has_roles.role_id', [3,4])
+            ->select('users.id', 'users.name')
+            ->get();
+        $technicians = $_users->map(function($u) {
+            return ['id' => $u->id, 'name' => $u->name];
+        })->values()->toArray();
+
         return response()->json([
             'success' => true,
             'message' => 'Login exitoso',
@@ -64,7 +74,8 @@ class ApiAuthController extends Controller
                     'roles' => $roles,
                     'permissions' => $permissions
                 ],
-                'token' => $token
+                'token' => $token,
+                'technicians' => $technicians
             ]
         ], 200);
     }

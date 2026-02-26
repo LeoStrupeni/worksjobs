@@ -35,6 +35,12 @@ class Job extends Model
         return $this->hasMany(Jobs_Note::class, 'jobs_id');
     }
 
+    // Relación con técnicos asignados (tabla pivote job_technicians)
+    public function technicians()
+    {
+        return $this->belongsToMany(\App\Models\User::class, 'job_technicians', 'job_id', 'user_id')->withTimestamps();
+    }
+
     /**
      * Query centralizado para obtener jobs con toda la lógica de negocio
      * Usado tanto en web (JobController) como en API (ApiJobController)

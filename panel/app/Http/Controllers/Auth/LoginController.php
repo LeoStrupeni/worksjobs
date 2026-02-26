@@ -85,6 +85,15 @@ class LoginController extends Controller
             Session::put('user.recaptcha_key_site', $recaptcha_key_site );
             // Session::put('user.recaptcha_key_secret', $recaptcha_key_secret );
 
+            $_users = User::join('model_has_roles','users.id','=','model_has_roles.model_id')
+                ->where('estatus', 1)
+                ->whereNotIn('model_has_roles.role_id', [3,4])
+            ->get();
+            $users = array();
+            foreach ($_users as $u) {
+                $users[] = ['id' => $u->id, 'name' => $u->name];
+            }
+            Session::put('users', $users );
             return redirect()->intended('home')->with('status','estas logueado!');
         }
 

@@ -22,6 +22,7 @@ class Job {
   final String? colorStatus;
   final String? createdAt;
   final String? updatedAt;
+  final List<Map<String, dynamic>>? technicians;
   
   // Dirección completa del backend
   final String? clientAddresName;
@@ -60,6 +61,7 @@ class Job {
     this.colorStatus,
     this.createdAt,
     this.updatedAt,
+    this.technicians,
     this.clientAddresName,
     this.addressStreet,
     this.addressNumber,
@@ -109,6 +111,9 @@ class Job {
         colorStatus: json['color_status'],
         createdAt: json['created_at'],
         updatedAt: json['updated_at'],
+        technicians: json['technicians'] != null 
+          ? (json['technicians'] as List).cast<Map<String, dynamic>>() 
+          : null,
         clientAddresName: json['client_addres_name'],
         addressStreet: json['address_street'],
         addressNumber: json['address_number'],

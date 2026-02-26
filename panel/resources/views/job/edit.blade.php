@@ -67,12 +67,26 @@
                                         <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
                                             <i class="fas fa-calendar-alt fa-lg text-info me-2"></i>
                                         </div>
-                                        <h6 class="mb-0 fw-bold">Fecha y Hora</h6>
+                                        <h6 class="mb-0 fw-bold">Fecha, Hora y Técnicos</h6>
                                     </div>
                                 </div>
                                 <div class="card-body">
                                     <label class="form-label text-muted small mb-1">Fecha y hora de visita</label>
                                     <input type="datetime-local" class="form-control validate" name="visit_datetime" value="{{ old('visit_datetime') }}" required>
+
+                                    <div class="mt-3">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-hard-hat me-1 text-secondary"></i>Técnicos asignados
+                                        </label>
+                                        <select class="form-control selectpicker" name="technician_ids[]" id="technician_ids_edit"
+                                            title="Sin técnicos asignados" multiple
+                                            data-selected-text-format="count > 1"
+                                            data-count-selected-text="{0} técnico(s)">
+                                            @foreach(Session::get('users') as $u)
+                                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>

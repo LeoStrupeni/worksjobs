@@ -28,13 +28,13 @@
                     <input type="hidden" name="id">
                     
                     <!-- Indicador de Geolocalización -->
-                    <div class="alert alert-success mb-3 d-flex align-items-center">
+                    {{-- <div class="alert alert-success mb-3 d-flex align-items-center">
                         <i class="fas fa-map-marker-alt fa-2x me-2"></i>
                         <div class="flex-grow-1">
                             <strong>Registro de Ubicación GPS de Cierre</strong>
                             <p class="mb-0 small">Se guardará la ubicación GPS desde donde se cierra esta tarea.</p>
                         </div>
-                    </div>
+                    </div> --}}
                     
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -70,10 +70,29 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <textarea class="form-control border-0 bg-white validate" name="closed_job_observation" rows="5" style="resize: none;"></textarea>
+                                    <textarea class="form-control bg-white validate" name="closed_job_observation" rows="5" style="resize: none;"></textarea>
+                                    
+                                    {{-- Técnicos asignados (Obligatorio) --}}
+                                    <div class="mt-3 pt-3" style="border-top: 1px dashed #dee2e6;">
+                                        <label class="form-label fw-semibold">
+                                            <i class="fas fa-hard-hat me-2 text-secondary"></i>Técnicos <span class="text-danger">*</span>
+                                        </label>
+                                        <select class="form-control selectpicker" name="technician_ids[]" id="technician_ids_closed"
+                                            title="Seleccione al menos un técnico..." multiple
+                                            data-selected-text-format="count > 1"
+                                            data-count-selected-text="{0} técnico(s)">
+                                            @foreach(Session::get('users') as $u)
+                                                <option value="{{ $u['id'] }}">{{ $u['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                        <div id="technician_ids_closed_error" class="text-danger small mt-1 d-none">
+                                            <i class="fas fa-exclamation-circle me-1"></i>Debe seleccionar al menos un técnico.
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
                         <div class="col-12">
                             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                                 <div class="card-header bg-white border-0 pt-3">

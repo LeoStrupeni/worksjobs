@@ -40,7 +40,7 @@ Route::get('/clear-cache', function() {
 })->name('cache.clear');
 
 Route::get('/test', function() {
-    dd(Session::all());
+    dd(Session::get('users'));
     echo md5("Alma2024");
     echo "<br>";
     echo md5("strU1184!!");

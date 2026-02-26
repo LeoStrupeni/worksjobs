@@ -207,7 +207,7 @@ class JobProvider with ChangeNotifier {
   }
 
   // Cerrar cita
-  Future<bool> closeJob(int jobId, String observation) async {
+  Future<bool> closeJob(int jobId, String observation, [List<int>? technicianIds]) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -221,6 +221,7 @@ class JobProvider with ChangeNotifier {
         observation,
         lat: position?.latitude,
         lng: position?.longitude,
+        technicianIds: technicianIds,
       );
       
       if (result['success'] == true) {
@@ -432,6 +433,7 @@ class JobProvider with ChangeNotifier {
     double? latitude,
     double? longitude,
     String? jsonGeolocation,
+    List<int>? technicianIds,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -446,6 +448,7 @@ class JobProvider with ChangeNotifier {
         latitude: latitude,
         longitude: longitude,
         jsonGeolocation: jsonGeolocation,
+        technicianIds: technicianIds,
       );
       
       if (result['success'] == true) {
@@ -477,6 +480,7 @@ class JobProvider with ChangeNotifier {
     double? latitude,
     double? longitude,
     String? jsonGeolocation,
+    List<int>? technicianIds,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -491,6 +495,7 @@ class JobProvider with ChangeNotifier {
         latitude: latitude,
         longitude: longitude,
         jsonGeolocation: jsonGeolocation,
+        technicianIds: technicianIds,
       );
       
       if (result['success'] == true) {

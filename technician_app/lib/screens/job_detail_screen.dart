@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/job_provider.dart';
 import '../models/job.dart';
+import '../models/technician.dart';
+import '../services/auth_service.dart';
 import '../utils/custom_alerts.dart';
 
 class JobDetailScreen extends StatefulWidget {
@@ -18,10 +20,13 @@ class JobDetailScreen extends StatefulWidget {
 class _JobDetailScreenState extends State<JobDetailScreen> {
   final _noteController = TextEditingController();
   final _observationController = TextEditingController();
+  List<Technician> _technicians = [];
+  List<int> _selectedTechnicianIdsForClose = [];
 
   @override
   void initState() {
     super.initState();
+    _loadTechnicians();
     Future.microtask(() {
       context.read<JobProvider>().fetchJobDetail(widget.jobId);
     });
@@ -32,6 +37,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     _noteController.dispose();
     _observationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadTechnicians() async {
+    final authService = AuthService();
+    final technicians = await authService.getTechnicians();
+    setState(() {
+      _technicians = technicians;
+    });
   }
 
   Future<void> _showOptionsDialog() async {
@@ -275,31 +288,134 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _showCloseJobDialog() async {
     _observationController.clear();
+    _selectedTechnicianIdsForClose.clear();
+    
+    // Pre-seleccionar técnicos ya asignados a la tarea
+    final job = context.read<JobProvider>().selectedJob;
+    if (job?.technicians != null) {
+      _selectedTechnicianIdsForClose = job!.technicians!
+        .map((t) => t['id'] as int)
+        .toList();
+    }
     
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cerrar Cita'),
-        content: TextField(
-          controller: _observationController,
-          decoration: const InputDecoration(
-            hintText: 'Observaciones finales...',
-            border: OutlineInputBorder(),
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Cerrar Cita'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _observationController,
+                  decoration: const InputDecoration(
+                    labelText: 'Observaciones finales',
+                    hintText: 'Ingrese las observaciones...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Icon(Icons.engineering, color: Color(0xFF00274E), size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Técnicos *',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_technicians.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      'No hay técnicos disponibles',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                else
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _technicians.map((tech) {
+                        final isSelected = _selectedTechnicianIdsForClose.contains(tech.id);
+                        return FilterChip(
+                          label: Text(tech.name),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              if (selected) {
+                                _selectedTechnicianIdsForClose.add(tech.id);
+                              } else {
+                                _selectedTechnicianIdsForClose.remove(tech.id);
+                              }
+                            });
+                          },
+                          selectedColor: const Color(0xFF00274E).withOpacity(0.2),
+                          checkmarkColor: const Color(0xFF00274E),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                if (_selectedTechnicianIdsForClose.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      'Debe seleccionar al menos un técnico',
+                      style: TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
           ),
-          maxLines: 4,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_observationController.text.trim().isNotEmpty) {
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Validar que haya observaciones
+                if (_observationController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Debe ingresar observaciones'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                
+                // Validar que haya al menos un técnico seleccionado
+                if (_selectedTechnicianIdsForClose.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Debe seleccionar al menos un técnico'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                
                 Navigator.pop(context);
                 final success = await context.read<JobProvider>().closeJob(
                   widget.jobId,
                   _observationController.text.trim(),
+                  _selectedTechnicianIdsForClose,
                 );
                 
                 if (mounted) {
@@ -312,14 +428,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     ),
                   );
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+              ),
+              child: const Text('Cerrar Cita'),
             ),
-            child: const Text('Cerrar Cita'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -569,6 +685,32 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             ],
                           ),
                         ),
+                    ],
+                  ),
+                
+                // Técnicos asignados
+                if (job.technicians != null && job.technicians!.isNotEmpty)
+                  _buildSection(
+                    'Técnicos Asignados',
+                    [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: job.technicians!.map((tech) {
+                          return Chip(
+                            avatar: const CircleAvatar(
+                              backgroundColor: Color(0xFF00274E),
+                              child: Icon(
+                                Icons.engineering,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                            label: Text(tech['name'] ?? ''),
+                            backgroundColor: const Color(0xFF00274E).withOpacity(0.1),
+                          );
+                        }).toList(),
+                      ),
                     ],
                   ),
                 

@@ -61,6 +61,11 @@ class JobController extends Controller
             'visit_json_coords' => $request->jsongeolocation
         ]);
 
+        // Sincronizar técnicos asignados
+        if ($request->has('technician_ids')) {
+            $job->technicians()->sync($request->technician_ids ?? []);
+        }
+
         $this->addfiles($request, $job->id);
 
         if ($request->expectsJson()) {
@@ -107,6 +112,11 @@ class JobController extends Controller
             ->get();
         
         $files = Jobs_file::where('job_id',$id)->get();
+        
+        // Obtener técnicos asignados al job
+        $jobModel = Job::find($id);
+        $repuesta['technicians'] = $jobModel->technicians()->select('users.id', 'users.name')->get();
+
         $repuesta['job'] = $job;
         $repuesta['address'] = $address;
         $repuesta['files'] = $files;
@@ -155,6 +165,13 @@ class JobController extends Controller
         if(count($datos) > 0){
             Job::where('id',$id)->update($datos);
         }
+
+        // Sincronizar técnicos asignados
+        if ($request->has('technician_ids')) {
+            $jobModel = Job::find($id);
+            $jobModel->technicians()->sync($request->technician_ids ?? []);
+        }
+
         $this->addfiles($request, $id);
 
         if ($request->expectsJson()) {
@@ -190,6 +207,19 @@ class JobController extends Controller
             'arrival_coords_status' => '1',
             'arrival_json_coords' => $request->jsongeolocation
         ]);
+
+        // Auto-asignar al técnico actual si no fue asignado previamente
+        $currentUserId = Auth::id();
+        if ($currentUserId) {
+            $isTechnician = DB::table('model_has_roles')
+                ->where('model_id', $currentUserId)
+                ->whereNotIn('role_id', [3, 4])
+                ->exists();
+            if ($isTechnician) {
+                $jobModel = Job::find($job_id);
+                $jobModel->technicians()->syncWithoutDetaching([$currentUserId]);
+            }
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Arribo marcado correctamente']);
@@ -240,6 +270,13 @@ class JobController extends Controller
             'closed_json_coords' => $request->jsongeolocation,
             'closed_job_observation' => $observation
         ]);
+
+        // Sincronizar técnicos asignados al cerrar
+        if ($request->has('technician_ids')) {
+            $jobModel = Job::find($job_id);
+            $jobModel->technicians()->sync($request->technician_ids ?? []);
+        }
+
         $this->addfiles($request, $job_id);
 
         if ($request->expectsJson()) {
