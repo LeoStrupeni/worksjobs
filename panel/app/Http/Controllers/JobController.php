@@ -166,11 +166,9 @@ class JobController extends Controller
             Job::where('id',$id)->update($datos);
         }
 
-        // Sincronizar técnicos asignados
-        if ($request->has('technician_ids')) {
-            $jobModel = Job::find($id);
-            $jobModel->technicians()->sync($request->technician_ids ?? []);
-        }
+        // Sincronizar técnicos asignados (siempre, incluso si viene vacío para permitir deseleccionar todos)
+        $jobModel = Job::find($id);
+        $jobModel->technicians()->sync($request->technician_ids ?? []);
 
         $this->addfiles($request, $id);
 

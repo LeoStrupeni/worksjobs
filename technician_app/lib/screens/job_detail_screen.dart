@@ -371,34 +371,27 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.pop(context);
-                
-                // Necesitamos crear un endpoint simple para solo actualizar técnicos
-                // Por ahora usaremos updateJob con los datos actuales
                 final jobProvider = context.read<JobProvider>();
                 
-                // Guardar técnicos mediante API
                 try {
                   final success = await CustomAlerts.executeWithLoading(
                     context,
                     operation: () async {
-                      // Llamar directamente al JobService para actualizar solo técnicos
-                      final result = await jobProvider.jobService.updateJobTechnicians(
+                      return await jobProvider.updateJobTechnicians(
                         job.id!,
-                        selectedIds.isNotEmpty ? selectedIds : null,
+                        selectedIds,
                       );
-                      return result['success'] == true;
                     },
                     loadingMessage: 'Actualizando técnicos...',
                     successTitle: 'Técnicos actualizados',
                     successMessage: 'Los técnicos se actualizaron correctamente',
                     errorTitle: 'Error',
-                    getErrorMessage: () => 'No se pudo actualizar los técnicos',
+                    getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo actualizar los técnicos',
                   );
                   
-                  if (success) {
-                    // Recargar el detalle de la tarea
-                    await jobProvider.fetchJobDetail(widget.jobId);
+                  // Cerrar el modal DESPUÉS de que termine la operación
+                  if (mounted && success) {
+                    Navigator.pop(context);
                   }
                 } catch (e) {
                   if (mounted) {

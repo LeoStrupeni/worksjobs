@@ -324,14 +324,17 @@ class ApiJobController extends Controller
         $jobModel = Job::find($id);
         $technicians = $jobModel->technicians()->select('users.id', 'users.name')->get();
         
+        // Convertir job a array y agregar técnicos
+        $jobData = json_decode(json_encode($job), true);
+        $jobData['technicians'] = $technicians->toArray();
+        
         $permissions = $this->getUserPermissions($request->user());
         
         return response()->json([
             'success' => true,
-            'job' => $job,
+            'job' => $jobData,
             'notes' => $notes,
             'files' => $files,
-            'technicians' => $technicians,
             'permissions' => $permissions
         ]);
     }

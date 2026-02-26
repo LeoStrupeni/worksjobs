@@ -521,4 +521,35 @@ class JobProvider with ChangeNotifier {
       return false;
     }
   }
+
+  // Actualizar solo los técnicos de una tarea
+  Future<bool> updateJobTechnicians(int jobId, List<int> technicianIds) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.updateJobTechnicians(
+        jobId,
+        technicianIds.isNotEmpty ? technicianIds : null,
+      );
+      
+      if (result['success'] == true) {
+        // Refrescar el detalle del job
+        if (_selectedJob?.id == jobId) {
+          await fetchJobDetail(jobId);
+        }
+        return true;
+      } else {
+        _errorMessage = result['message'] ?? 'Error al actualizar técnicos';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error: ${e.toString()}';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

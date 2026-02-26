@@ -721,6 +721,11 @@ $(document).ready(function() {
         }
     });
 
+    // Refrescar selectpicker de clientes después de seleccionar para corregir visualización
+    $('body').on('change', '#client_id', function() {
+        $(this).selectpicker('refresh');
+    });
+
     function viewjob(data,form,origen){
         $.each( data.job , function( index, value ) {
             $( form.elements ).each(function( b ) {
