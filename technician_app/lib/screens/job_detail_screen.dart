@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../providers/job_provider.dart';
 import '../models/job.dart';
+import '../utils/custom_alerts.dart';
 
 class JobDetailScreen extends StatefulWidget {
   final int jobId;
@@ -247,19 +247,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             onPressed: () async {
               if (_noteController.text.trim().isNotEmpty) {
                 Navigator.pop(context);
-                final success = await context.read<JobProvider>().addNote(
-                  widget.jobId,
-                  _noteController.text.trim(),
-                );
                 
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success ? 'Nota añadida' : 'Error al añadir nota',
-                      ),
-                      backgroundColor: success ? Colors.green : Colors.red,
-                    ),
+                  await CustomAlerts.executeWithLoading(
+                    context,
+                    operation: () async {
+                      return await context.read<JobProvider>().addNote(
+                        widget.jobId,
+                        _noteController.text.trim(),
+                      );
+                    },
+                    loadingMessage: 'Agregando nota...',
+                    successTitle: 'Nota agregada',
+                    successMessage: 'La nota se agregó correctamente',
+                    errorTitle: 'Error al agregar nota',
+                    getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo agregar la nota',
                   );
                 }
               }

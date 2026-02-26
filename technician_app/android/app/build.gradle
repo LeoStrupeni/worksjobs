@@ -50,7 +50,22 @@ android {
 
     buildTypes {
         release {
+            // Firmar con debug key para desarrollo (cambiar en producción)
             signingConfig signingConfigs.debug
+            
+            // Habilitar minificación básica (no agresiva para evitar problemas)
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+    
+    // Split APK por arquitectura para reducir tamaño
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a', 'x86_64'
+            universalApk true
         }
     }
 }

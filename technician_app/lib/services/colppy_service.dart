@@ -173,7 +173,7 @@ class ColppyService {
     Map<String, dynamic>? parameters,
   }) async {
     try {
-      final body = {
+      final Map<String, dynamic> body = {
         'provision': provision,
         'operacion': operacion,
       };

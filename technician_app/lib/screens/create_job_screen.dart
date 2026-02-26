@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../providers/job_provider.dart';
 import '../models/client.dart';
 import '../models/address.dart';
+import '../utils/custom_alerts.dart';
 
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
@@ -14,7 +15,7 @@ class CreateJobScreen extends StatefulWidget {
   State<CreateJobScreen> createState() => _CreateJobScreenState();
 }
 
-class _CreateJobScreenState extends State<CreateJobScreen> {
+class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _searchController = TextEditingController();
@@ -301,7 +302,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           'latitude': position.latitude,
           'longitude': position.longitude,
           'accuracy': position.accuracy,
-          'timestamp': position.timestamp?.toIso8601String(),
+          'timestamp': position.timestamp.toIso8601String(),
         }),
       };
     } catch (e) {
@@ -311,88 +312,99 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   }
 
   Future<void> _createJob() async {
+    // Prevenir múltiples envíos
+    if (isButtonLocked) return;
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (_selectedClient == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes seleccionar un cliente'),
-          backgroundColor: Colors.orange,
-        ),
+      await CustomAlerts.showInfoAlert(
+        context,
+        title: 'Selecciona un cliente',
+        message: 'Debes seleccionar un cliente antes de continuar',
       );
       return;
     }
 
     if (_selectedAddress == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes seleccionar una dirección'),
-          backgroundColor: Colors.orange,
-        ),
+      await CustomAlerts.showInfoAlert(
+        context,
+        title: 'Selecciona una dirección',
+        message: 'Debes seleccionar una dirección antes de continuar',
       );
       return;
     }
 
-    // Combinar fecha y hora
-    final visitDateTime = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-      _selectedTime.hour,
-      _selectedTime.minute,
-    );
+    // Bloquear botón para prevenir doble clic
+    lockButton();
 
-    print('🔄 _createJob: Iniciando creación...');
-    
-    // Obtener ubicación GPS con timeout
-    Map<String, dynamic>? location;
     try {
-      print('📍 _createJob: Obteniendo ubicación GPS...');
-      location = await _getCurrentLocation().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          print('⏱️ _createJob: Timeout obteniendo ubicación');
-          return null;
-        },
+      // Combinar fecha y hora
+      final visitDateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
       );
-      print('📍 _createJob: Ubicación obtenida: $location');
-    } catch (e) {
-      print('❌ _createJob: Error obteniendo ubicación: $e');
-      location = null;
-    }
 
-    print('🚀 _createJob: Llamando a jobProvider.createJob...');
-    final jobProvider = context.read<JobProvider>();
-    final success = await jobProvider.createJob(
-      clientId: _selectedClient!.id,
-      addressId: _selectedAddress!.id,
-      visitDateTime: visitDateTime,
-      description: _descriptionController.text.trim(),
-      latitude: location?['latitude'],
-      longitude: location?['longitude'],
-      jsonGeolocation: location?['jsongeolocation'],
-    );
-    print('📊 _createJob: Resultado: $success');
+      print('🔄 _createJob: Iniciando creación...');
+      
+      final jobProvider = context.read<JobProvider>();
+      
+      // Mostrar loading INMEDIATAMENTE y ejecutar todo dentro
+      final success = await CustomAlerts.executeWithLoading(
+        context,
+        operation: () async {
+          // Obtener ubicación GPS dentro del loading
+          Map<String, dynamic>? location;
+          try {
+            print('📍 _createJob: Obteniendo ubicación GPS...');
+            location = await _getCurrentLocation().timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                print('⏱️ _createJob: Timeout obteniendo ubicación');
+                return null;
+              },
+            );
+            print('📍 _createJob: Ubicación obtenida: $location');
+          } catch (e) {
+            print('❌ _createJob: Error obteniendo ubicación: $e');
+            location = null;
+          }
 
-    if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Tarea creada exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true); // Retornar true para indicar que se creó
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ ${jobProvider.errorMessage ?? "Error al crear tarea"}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+          print('🚀 _createJob: Llamando a jobProvider.createJob...');
+          final result = await jobProvider.createJob(
+            clientId: _selectedClient!.id,
+            addressId: _selectedAddress!.id,
+            visitDateTime: visitDateTime,
+            description: _descriptionController.text.trim(),
+            latitude: location?['latitude'],
+            longitude: location?['longitude'],
+            jsonGeolocation: location?['jsongeolocation'],
+          );
+          return result;
+        },
+        loadingMessage: 'Creando tarea...',
+        successTitle: 'Tarea creada',
+        successMessage: 'La tarea se creó exitosamente',
+        errorTitle: 'Error al crear',
+        getErrorMessage: () => jobProvider.errorMessage ?? 'Error inesperado al crear la tarea',
+      );
+      
+      print('📊 _createJob: Resultado: $success');
+
+      if (mounted && success) {
+        // Cerrar la pantalla después de un momento
+        if (mounted) {
+          Navigator.pop(context, true); // Retornar true para indicar que se creó
+        }
       }
+    } finally {
+      // Desbloquear botón
+      unlockButton();
     }
   }
 
@@ -753,27 +765,42 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
               width: double.infinity,
               height: 56,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [Color(0xFF00274E), Color(0xFF004B87)],
+                  colors: isButtonLocked 
+                    ? [Colors.grey.shade400, Colors.grey.shade500]
+                    : [const Color(0xFF00274E), const Color(0xFF004B87)],
                 ),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00274E).withOpacity(0.4),
+                    color: isButtonLocked 
+                      ? Colors.grey.withOpacity(0.3)
+                      : const Color(0xFF00274E).withOpacity(0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: ElevatedButton.icon(
-                onPressed: _createJob,
-                icon: const Icon(Icons.save, color: Colors.white),
-                label: const Text('Crear Tarea', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                onPressed: isButtonLocked ? null : _createJob,
+                icon: Icon(
+                  isButtonLocked ? Icons.lock : Icons.save, 
+                  color: Colors.white,
+                ),
+                label: Text(
+                  isButtonLocked ? 'Guardando...' : 'Crear Tarea',
+                  style: const TextStyle(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.bold, 
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
+                  disabledBackgroundColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),

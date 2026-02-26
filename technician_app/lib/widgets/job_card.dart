@@ -6,6 +6,7 @@ import '../models/job.dart';
 import '../models/job_permissions.dart';
 import '../providers/job_provider.dart';
 import '../screens/edit_job_screen.dart';
+import '../utils/custom_alerts.dart';
 
 class JobCard extends StatelessWidget {
   final Job job;
@@ -262,9 +263,12 @@ class JobCard extends StatelessWidget {
         ),
         
         // Menú dropdown para opciones avanzadas
-        if (isAdmin && permissions.update && job.isInPlace && !job.isClosed ||
-            permissions.update && !job.isInPlace && !job.isClosed ||
-            permissions.delete && !job.isInPlace && !job.isClosed)
+        // Solo mostrar si hay al menos una opción disponible
+        if (!job.isClosed && (
+            (permissions.update && job.isInPlace) || // Volver a pendiente
+            (isAdmin && permissions.update && !job.isInPlace) || // Editar
+            (isAdmin && permissions.delete && !job.isInPlace) // Eliminar
+          ))
           PopupMenuButton<String>(
             child: Container(
               margin: const EdgeInsets.only(top: 8),
@@ -424,40 +428,29 @@ class JobCard extends StatelessWidget {
   // HANDLERS
   
   Future<void> _handleMarkArrival(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Marcar Llegada'),
-        content: const Text('¿Deseas marcar tu llegada al lugar de trabajo?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
+    final confirmed = await CustomAlerts.showConfirmAlert(
+      context,
+      title: 'Marcar Llegada',
+      message: '¿Deseas marcar tu llegada al lugar de trabajo?',
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
     );
 
-    if (confirmed == true && context.mounted) {
-      final success = await context.read<JobProvider>().markArrival(job.id!);
+    if (confirmed && context.mounted) {
+      final jobProvider = context.read<JobProvider>();
       
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? '✅ Llegada registrada' : '❌ Error al registrar llegada',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
-        
-        if (success && onRefresh != null) {
-          onRefresh!();
-        }
+      final success = await CustomAlerts.executeWithLoading(
+        context,
+        operation: () => jobProvider.markArrival(job.id!),
+        loadingMessage: 'Registrando llegada...',
+        successTitle: 'Llegada registrada',
+        successMessage: 'Tu llegada fue registrada exitosamente',
+        errorTitle: 'Error al registrar',
+        getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo registrar la llegada',
+      );
+      
+      if (success && onRefresh != null) {
+        onRefresh!();
       }
     }
   }
@@ -556,18 +549,17 @@ class JobCard extends StatelessWidget {
     );
 
     if (result != null && context.mounted) {
-      final success = await context.read<JobProvider>().addNote(job.id!, result);
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? '✅ Nota agregada' : '❌ Error al agregar nota',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
-      }
+      final success = await CustomAlerts.executeWithLoading(
+        context,
+        operation: () async {
+          return await context.read<JobProvider>().addNote(job.id!, result);
+        },
+        loadingMessage: 'Agregando nota...',
+        successTitle: 'Nota agregada',
+        successMessage: 'La nota se agregó correctamente',
+        errorTitle: 'Error al agregar nota',
+        getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo agregar la nota',
+      );
     }
   }
 
@@ -605,23 +597,20 @@ class JobCard extends StatelessWidget {
           
           if (images.isNotEmpty && context.mounted) {
             final filePaths = images.map((e) => e.path).toList();
-            final success = await context.read<JobProvider>().uploadFiles(job.id!, filePaths);
+            final jobProvider = context.read<JobProvider>();
             
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    success 
-                      ? '✅ ${images.length} imagen(es) subida(s) exitosamente' 
-                      : '❌ Error al subir imágenes',
-                  ),
-                  backgroundColor: success ? Colors.green : Colors.red,
-                ),
-              );
-              
-              if (success && onRefresh != null) {
-                onRefresh!();
-              }
+            final success = await CustomAlerts.executeWithLoading(
+              context,
+              operation: () => jobProvider.uploadFiles(job.id!, filePaths),
+              loadingMessage: 'Subiendo ${images.length} imagen(es)...',
+              successTitle: 'Imágenes subidas',
+              successMessage: '${images.length} imagen(es) subida(s) exitosamente',
+              errorTitle: 'Error al subir',
+              getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudieron subir las imágenes',
+            );
+            
+            if (success && onRefresh != null) {
+              onRefresh!();
             }
           }
         } else {
@@ -629,31 +618,29 @@ class JobCard extends StatelessWidget {
           final XFile? photo = await picker.pickImage(source: source);
           
           if (photo != null && context.mounted) {
-            final success = await context.read<JobProvider>().uploadFiles(job.id!, [photo.path]);
+            final jobProvider = context.read<JobProvider>();
             
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    success ? '✅ Imagen subida exitosamente' : '❌ Error al subir imagen',
-                  ),
-                  backgroundColor: success ? Colors.green : Colors.red,
-                ),
-              );
-              
-              if (success && onRefresh != null) {
-                onRefresh!();
-              }
+            final success = await CustomAlerts.executeWithLoading(
+              context,
+              operation: () => jobProvider.uploadFiles(job.id!, [photo.path]),
+              loadingMessage: 'Subiendo imagen...',
+              successTitle: 'Imagen subida',
+              successMessage: 'La imagen se subió exitosamente',
+              errorTitle: 'Error al subir',
+              getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo subir la imagen',
+            );
+            
+            if (success && onRefresh != null) {
+              onRefresh!();
             }
           }
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
+          await CustomAlerts.showErrorAlert(
+            context,
+            title: 'Error',
+            message: 'Error al procesar las imágenes: ${e.toString()}',
           );
         }
       }
@@ -706,41 +693,29 @@ class JobCard extends StatelessWidget {
   }
 
   Future<void> _handleDeleteJob(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Tarea'),
-        content: Text('¿Estás seguro que deseas eliminar la tarea de ${job.clientName}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await CustomAlerts.showConfirmAlert(
+      context,
+      title: 'Eliminar Tarea',
+      message: '¿Estás seguro que deseas eliminar la tarea de ${job.clientName}?',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
     );
 
-    if (confirmed == true && context.mounted) {
-      final success = await context.read<JobProvider>().deleteJob(job.id!);
+    if (confirmed && context.mounted) {
+      final jobProvider = context.read<JobProvider>();
       
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? '✅ Tarea eliminada exitosamente' : '❌ Error al eliminar tarea',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-          ),
-        );
-        
-        if (success && onRefresh != null) {
-          onRefresh!();
-        }
+      final success = await CustomAlerts.executeWithLoading(
+        context,
+        operation: () => jobProvider.deleteJob(job.id!),
+        loadingMessage: 'Eliminando tarea...',
+        successTitle: 'Tarea eliminada',
+        successMessage: 'La tarea fue eliminada exitosamente',
+        errorTitle: 'Error al eliminar',
+        getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo eliminar la tarea',
+      );
+      
+      if (success && onRefresh != null) {
+        onRefresh!();
       }
     }
   }

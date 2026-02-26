@@ -37,9 +37,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     context.read<JobProvider>().fetchJobsByDateRange(startDate, endDate);
   }
 
-  List<Job> _getJobsForDay(DateTime day) {
-    final jobProvider = context.read<JobProvider>();
-    return jobProvider.calendarJobs.where((job) {
+  List<Job> _getJobsForDay(DateTime day, List<Job> calendarJobs) {
+    return calendarJobs.where((job) {
       if (job.visitDatetime == null) return false;
       try {
         final jobDate = DateTime.parse(job.visitDatetime!);
@@ -55,7 +54,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Consumer<JobProvider>(
       builder: (context, jobProvider, child) {
         final selectedDayJobs = _selectedDay != null 
-            ? _getJobsForDay(_selectedDay!) 
+            ? _getJobsForDay(_selectedDay!, jobProvider.calendarJobs) 
             : <Job>[];
 
         return Column(
@@ -88,7 +87,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 _focusedDay = focusedDay;
                 _loadJobsForMonth();
               },
-              eventLoader: _getJobsForDay,
+              eventLoader: (day) => _getJobsForDay(day, jobProvider.calendarJobs),
               calendarStyle: CalendarStyle(
                 todayDecoration: BoxDecoration(
                   color: Theme.of(context).primaryColor.withOpacity(0.3),

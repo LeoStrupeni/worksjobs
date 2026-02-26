@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../providers/job_provider.dart';
 import '../models/job.dart';
 import '../models/address.dart';
+import '../utils/custom_alerts.dart';
 
 class EditJobScreen extends StatefulWidget {
   final Job job;
@@ -16,7 +17,7 @@ class EditJobScreen extends StatefulWidget {
   State<EditJobScreen> createState() => _EditJobScreenState();
 }
 
-class _EditJobScreenState extends State<EditJobScreen> {
+class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   
@@ -296,7 +297,7 @@ class _EditJobScreenState extends State<EditJobScreen> {
           'latitude': position.latitude,
           'longitude': position.longitude,
           'accuracy': position.accuracy,
-          'timestamp': position.timestamp?.toIso8601String(),
+          'timestamp': position.timestamp.toIso8601String(),
         }),
       };
     } catch (e) {
@@ -306,78 +307,91 @@ class _EditJobScreenState extends State<EditJobScreen> {
   }
 
   Future<void> _updateJob() async {
+    // Prevenir múltiples envíos
+    if (isButtonLocked) return;
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (_selectedAddress == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes seleccionar una dirección'),
-          backgroundColor: Colors.orange,
-        ),
+      await CustomAlerts.showInfoAlert(
+        context,
+        title: 'Selecciona una dirección',
+        message: 'Debes seleccionar una dirección antes de continuar',
       );
       return;
     }
 
-    // Combinar fecha y hora
-    final visitDateTime = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-      _selectedTime.hour,
-      _selectedTime.minute,
-    );
+    // Bloquear botón para prevenir doble clic
+    lockButton();
 
-    print('🔄 _updateJob: Iniciando actualización...');
-    
-    // Obtener ubicación GPS con timeout
-    Map<String, dynamic>? location;
     try {
-      print('📍 _updateJob: Obteniendo ubicación GPS...');
-      location = await _getCurrentLocation().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          print('⏱️ _updateJob: Timeout obteniendo ubicación');
-          return null;
-        },
+      // Combinar fecha y hora
+      final visitDateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
       );
-      print('📍 _updateJob: Ubicación obtenida: $location');
-    } catch (e) {
-      print('❌ _updateJob: Error obteniendo ubicación: $e');
-      location = null;
-    }
 
-    print('🚀 _updateJob: Llamando a jobProvider.updateJob...');
-    final jobProvider = context.read<JobProvider>();
-    final success = await jobProvider.updateJob(
-      jobId: widget.job.id!,
-      addressId: _selectedAddress!.id,
-      visitDateTime: visitDateTime,
-      description: _descriptionController.text.trim(),
-      latitude: location?['latitude'],
-      longitude: location?['longitude'],
-      jsonGeolocation: location?['jsongeolocation'],
-    );
-    print('📊 _updateJob: Resultado: $success');
-
-    if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Tarea actualizada exitosamente'),
-            backgroundColor: Colors.green,
-          ),
+      print('🔄 _updateJob: Iniciando actualización...');
+      
+      // Obtener ubicación GPS con timeout
+      Map<String, dynamic>? location;
+      try {
+        print('📍 _updateJob: Obteniendo ubicación GPS...');
+        location = await _getCurrentLocation().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            print('⏱️ _updateJob: Timeout obteniendo ubicación');
+            return null;
+          },
         );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ ${jobProvider.errorMessage ?? "Error al actualizar tarea"}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('📍 _updateJob: Ubicación obtenida: $location');
+      } catch (e) {
+        print('❌ _updateJob: Error obteniendo ubicación: $e');
+        location = null;
       }
+
+      print('🚀 _updateJob: Llamando a jobProvider.updateJob...');
+      final jobProvider = context.read<JobProvider>();
+      
+      // Ejecutar operación con alertas automáticas
+      final success = await CustomAlerts.executeWithLoading(
+        context,
+        operation: () async {
+          final result = await jobProvider.updateJob(
+            jobId: widget.job.id!,
+            addressId: _selectedAddress!.id,
+            visitDateTime: visitDateTime,
+            description: _descriptionController.text.trim(),
+            latitude: location?['latitude'],
+            longitude: location?['longitude'],
+            jsonGeolocation: location?['jsongeolocation'],
+          );
+          return result;
+        },
+        loadingMessage: 'Actualizando tarea...',
+        successTitle: 'Tarea actualizada',
+        successMessage: 'La tarea se actualizó exitosamente',
+        errorTitle: 'Error al actualizar',
+        getErrorMessage: () => jobProvider.errorMessage ?? 'Error inesperado al actualizar la tarea',
+      );
+      
+      print('📊 _updateJob: Resultado: $success');
+
+      if (mounted && success) {
+        // Esperar a que se cierre el alert de éxito antes de cerrar la pantalla
+        await Future.delayed(const Duration(milliseconds: 2500));
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      }
+    } finally {
+      // Desbloquear botón
+      unlockButton();
     }
   }
 
@@ -658,27 +672,42 @@ class _EditJobScreenState extends State<EditJobScreen> {
               width: double.infinity,
               height: 56,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [Color(0xFF00274E), Color(0xFF004B87)],
+                  colors: isButtonLocked 
+                    ? [Colors.grey.shade400, Colors.grey.shade500]
+                    : [const Color(0xFF00274E), const Color(0xFF004B87)],
                 ),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00274E).withOpacity(0.4),
+                    color: isButtonLocked 
+                      ? Colors.grey.withOpacity(0.3)
+                      : const Color(0xFF00274E).withOpacity(0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: ElevatedButton.icon(
-                onPressed: _updateJob,
-                icon: const Icon(Icons.save, color: Colors.white),
-                label: const Text('Actualizar Tarea', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                onPressed: isButtonLocked ? null : _updateJob,
+                icon: Icon(
+                  isButtonLocked ? Icons.lock : Icons.save, 
+                  color: Colors.white,
+                ),
+                label: Text(
+                  isButtonLocked ? 'Guardando...' : 'Actualizar Tarea',
+                  style: const TextStyle(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.bold, 
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
+                  disabledBackgroundColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
