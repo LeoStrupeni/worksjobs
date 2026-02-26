@@ -551,7 +551,8 @@ class ApiDataTablesController extends Controller
                     
                     return response()->json([
                         'success' => true,
-                        'message' => 'Sincronización de clientes Colppy iniciada en background'
+                        'message' => 'Sincronización de clientes Colppy iniciada en background',
+                        'nota' => 'Recuerda: Debes tener el queue worker corriendo (php artisan queue:work)'
                     ]);
                 } else {
                     return response()->json([
@@ -571,6 +572,104 @@ class ApiDataTablesController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al iniciar sincronización: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Ejecutar sincronización de forma SINCRÓNICA (para debugging)
+     * NO usar en producción con muchos clientes - puede tardar varios minutos
+     * Usado por: Debug/Testing
+     */
+    public function syncColppyClientsNow()
+    {
+        try {
+            Log::info('=== SINCRONIZACIÓN SINCRÓNICA INICIADA MANUALMENTE ===');
+            
+            $syncService = new \App\Services\SyncColppyClientsService();
+            $resultado = $syncService->syncClients();
+            
+            if ($resultado['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sincronización completada',
+                    'datos' => [
+                        'nuevos' => $resultado['nuevos'],
+                        'actualizados' => $resultado['actualizados'],
+                        'errores' => $resultado['errores'],
+                        'total' => $resultado['total']
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $resultado['mensaje'] ?? 'Error desconocido'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en sincronización sincrónica', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener estadísticas de sincronización
+     * Compara clientes locales vs Colppy
+     */
+    public function getSyncStats()
+    {
+        try {
+            // Contar clientes locales (propios, no de Colppy)
+            $clientesLocales = Client::where(function($query) {
+                $query->where('is_from_colppy', false)
+                      ->orWhereNull('is_from_colppy');
+            })->count();
+            
+            // Contar clientes de Colppy
+            $clientesColppyLocal = Client::where('is_from_colppy', true)->count();
+            
+            // Total local
+            $totalLocal = Client::count();
+            
+            // Intentar obtener total desde Colppy API
+            $totalColppy = 0;
+            try {
+                $colppyService = new ColppyService();
+                $resultado = $colppyService->listarClientes(0, 1, [], []);
+                $totalColppy = $resultado['total'] ?? 0;
+            } catch (\Exception $colppyError) {
+                // Continuar sin Colppy
+            }
+            
+            $diferencia = $totalColppy - $clientesColppyLocal;
+            
+            return response()->json([
+                'success' => true,
+                'stats' => [
+                    'local_total' => $totalLocal,
+                    'local_propios' => $clientesLocales,
+                    'local_de_colppy' => $clientesColppyLocal,
+                    'colppy_total' => $totalColppy,
+                    'diferencia' => $diferencia,
+                    'necesita_sincronizar' => $diferencia != 0
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('ERROR FATAL en getSyncStats', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener estadísticas: ' . $e->getMessage()
             ], 500);
         }
     }

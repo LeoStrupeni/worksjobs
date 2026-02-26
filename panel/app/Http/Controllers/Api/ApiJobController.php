@@ -462,4 +462,39 @@ class ApiJobController extends Controller
             'message' => 'Dirección creada exitosamente'
         ], 201);
     }
+
+    /**
+     * Actualizar solo los técnicos asignados a una tarea
+     * PATCH /api/jobs/{id}/technicians
+     * Usado por: App Móvil
+     */
+    public function updateTechnicians(Request $request, $id)
+    {
+        try {
+            $job = \App\Models\Job::findOrFail($id);
+            
+            // Validar que se envíen técnicos
+            $validated = $request->validate([
+                'technician_ids' => 'nullable|array',
+                'technician_ids.*' => 'integer|exists:users,id'
+            ]);
+            
+            // Sincronizar técnicos
+            if (isset($validated['technician_ids'])) {
+                $job->technicians()->sync($validated['technician_ids']);
+            } else {
+                $job->technicians()->sync([]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Técnicos actualizados exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar técnicos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

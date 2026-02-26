@@ -771,5 +771,53 @@ class JobService {
       return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
   }
+
+  // Actualizar solo técnicos de una tarea
+  Future<Map<String, dynamic>> updateJobTechnicians(
+    int jobId,
+    List<int>? technicianIds,
+  ) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('❌ updateJobTechnicians: No autenticado');
+        return {'success': false, 'message': 'No autenticado'};
+      }
+
+      print('📡 updateJobTechnicians: Actualizando técnicos del job $jobId');
+      
+      final Map<String, dynamic> bodyData = {
+        'technician_ids': technicianIds ?? [],
+      };
+      
+      print('📦 updateJobTechnicians: Body: $bodyData');
+      
+      final response = await http.patch(
+        Uri.parse('${ApiConfig.baseUrl}/jobs/$jobId/technicians'),
+        headers: ApiConfig.getHeaders(token: token),
+        body: jsonEncode(bodyData),
+      );
+
+      print('📥 updateJobTechnicians: Status ${response.statusCode}');
+      print('📄 updateJobTechnicians: Response: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 302) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          print('✅ updateJobTechnicians: Técnicos actualizados exitosamente');
+          return {'success': true};
+        } else {
+          print('⚠️ updateJobTechnicians: ${data['message']}');
+          return {'success': false, 'message': data['message']};
+        }
+      }
+
+      return {'success': false, 'message': 'Error al actualizar los técnicos'};
+    } catch (e) {
+      print('❌ updateJobTechnicians: Exception: $e');
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
 }
 

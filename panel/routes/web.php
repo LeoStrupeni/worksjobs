@@ -64,6 +64,62 @@ Route::post('/password/email', [ForgotPasswordController::class,'sendResetLinkEm
 Route::get('/password/reset/{token}',[ForgotPasswordController::class,'showResetForm'])->name('password.reset');
 Route::post('/password/reset', [ForgotPasswordController::class,'reset'])->name('password.update');
 
+// RUTAS DE DEBUG - SIN MIDDLEWARE AUTH
+Route::get('/debug/test1', function() {
+    return response()->json(['test' => 'Ruta básica funciona', 'time' => date('Y-m-d H:i:s')]);
+});
+
+Route::get('/debug/test2', function() {
+    $count = \App\Models\Client::count();
+    return response()->json(['test' => 'Base de datos funciona', 'clientes' => $count]);
+});
+
+Route::get('/debug/sync-stats-public', function() {
+    try {
+        $clientesLocales = \App\Models\Client::where(function($query) {
+            $query->where('is_from_colppy', false)
+                  ->orWhereNull('is_from_colppy');
+        })->count();
+        
+        $clientesColppy = \App\Models\Client::where('is_from_colppy', true)->count();
+        $totalLocal = \App\Models\Client::count();
+        
+        // Intentar obtener total desde Colppy API
+        $totalColppyValue = 0;
+        try {
+            $colppyService = new \App\Services\ColppyService();
+            $resultado = $colppyService->listarClientes(0, 1, [], []);
+            $totalColppyValue = $resultado['total'] ?? 0;
+        } catch (\Exception $colppyError) {
+            // Continuar sin Colppy si falla
+            \Log::warning('No se pudo consultar Colppy desde debug', ['error' => $colppyError->getMessage()]);
+        }
+        
+        $diferencia = $totalColppyValue - $clientesColppy;
+        
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'local_total' => $totalLocal,
+                'local_propios' => $clientesLocales,
+                'local_de_colppy' => $clientesColppy,
+                'colppy_total' => $totalColppyValue,
+                'diferencia' => $diferencia,
+                'necesita_sincronizar' => $diferencia != 0
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ], 500);
+    }
+});
+
+// Ruta de estadísticas Colppy (fuera de auth para evitar conflictos con AJAX)
+Route::get('/client/sync-stats', [ApiDataTablesController::class,'getSyncStats']);
 
 Route::view('/home','home')->middleware('auth');
 
@@ -86,6 +142,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/client/{id}/edit', [ApiDataTablesController::class,'getClientEdit']);
     Route::post('/client/table', [ApiDataTablesController::class,'getClientsDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     Route::post('/client/sync-colppy', [ApiDataTablesController::class,'syncColppyClients'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::post('/client/sync-colppy-now', [ApiDataTablesController::class,'syncColppyClientsNow'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+
     Route::post('/client/excel', [ExcelController::class,'importaClientsExcel'])->name('importaExcelClient');
 
     Route::get('/client/address/{id}', [ApiDataTablesController::class,'getClientAddresses']);

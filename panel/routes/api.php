@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Escritura (POST/PUT/DELETE) - JobController (lógica original de la web)
         Route::post('/', [JobController::class, 'store']);
         Route::put('/{id}', [JobController::class, 'update']);
+        Route::patch('/{id}/technicians', [ApiJobController::class, 'updateTechnicians']);
         Route::delete('/{id}', [JobController::class, 'destroy']);
         Route::post('/{id}/arrival', [JobController::class, 'markarrival']);
         Route::post('/{id}/back-to-pending', [JobController::class, 'backarrival']);

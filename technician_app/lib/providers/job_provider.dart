@@ -11,6 +11,9 @@ import 'package:geolocator/geolocator.dart';
 class JobProvider with ChangeNotifier {
   final JobService _jobService = JobService();
   
+  // Getter público para acceder al servicio
+  JobService get jobService => _jobService;
+  
   List<Job> _todayJobs = [];
   List<Job> _upcomingJobs = [];
   List<Job> _calendarJobs = [];

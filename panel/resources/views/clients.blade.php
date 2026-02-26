@@ -31,7 +31,7 @@
                 <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
                     <div class="card-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                         <div class="row align-items-center justify-content-between">
-                            <div class="col">
+                            <div class="col-12 col-md-6">
                                 <h5 class="mb-0 fw-bold d-flex align-items-center">
                                     <span class="rounded-circle bg-white bg-opacity-25 p-2 me-2">
                                         <i class="fa-solid fa-users"></i>
@@ -39,19 +39,25 @@
                                     Listado de Clientes
                                 </h5>
                             </div>
-                            <div class="col text-end">
+                            <div class="col-12 col-md-6 text-end">
+                                @if(isset($colppyModo) && ($colppyModo === 'api' || $colppyModo === 'hibrido'))
+                                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3 mx-1" id="btn-sync-now" title="Sincronizar ahora (puede tardar varios segundos)">
+                                        <i class="fa-solid fa-sync me-1"></i>Sincronizar
+                                    </button>
+                                @endif
+
                                 <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1" onclick="callregister('/client/table',1,$('#table_limit').val(),$('#table_order').val(),'si')" title="Actualizar">
                                     <i class="fa-solid fa-arrows-rotate me-1"></i>Actualizar
                                 </button>
                                 @if (in_array('create',Session::get('user')['permissions']['clients']))
                                     @if(isset($colppyModo) && ($colppyModo === 'api' || $colppyModo === 'hibrido'))
                                         {{-- Botones deshabilitados en modo API/Híbrido --}}
-                                        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 mx-1" disabled title="No disponible: clientes desde Colppy API">
+                                        {{-- <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 mx-1" disabled title="No disponible: clientes desde Colppy API">
                                             <i class="fa-solid fa-plus me-1"></i>Nuevo
-                                        </button>
-                                        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 mx-1" disabled title="No disponible: clientes desde Colppy API">
+                                        </button> --}}
+                                        {{-- <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3 mx-1" disabled title="No disponible: clientes desde Colppy API">
                                             <i class="fa-solid fa-file-excel me-1"></i>Excel
-                                        </button>
+                                        </button> --}}
                                         {{-- <small class="text-muted d-block mt-1">
                                             <i class="fa-solid fa-info-circle me-1"></i>Modo: <strong>{{ ucfirst($colppyModo) }}</strong> - Alta de clientes desde Colppy
                                         </small> --}}
@@ -71,6 +77,29 @@
                     <div class="card-body">
 
                         @include('Layout.errors')
+
+                        {{-- Sección de Debug para Colppy --}}
+                        {{-- @if(isset($colppyModo) && ($colppyModo === 'api' || $colppyModo === 'hibrido'))
+                            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <strong><i class="fa-solid fa-cloud-arrow-down me-2"></i>Sincronización Colppy</strong>
+                                        <div id="sync-stats-display" class="mt-2 small">
+                                            <span class="text-muted">Cargando estadísticas...</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <button type="button" class="btn btn-sm btn-primary me-2" id="btn-sync-stats" title="Ver estadísticas de sincronización">
+                                            <i class="fa-solid fa-chart-simple me-1"></i>Estadísticas
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-success" id="btn-sync-now" title="Sincronizar ahora (puede tardar varios segundos)">
+                                            <i class="fa-solid fa-sync me-1"></i>Sincronizar Ahora
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        @endif --}}
 
                         <div class="row my-3 align-items-center justify-content-between">
                             <div class="col-3 col-xl-2">

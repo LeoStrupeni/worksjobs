@@ -15,7 +15,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Sincronizar clientes de Colppy cada hora
+        $schedule->call(function () {
+            \App\Jobs\SyncColppyClientsJob::dispatch();
+        })->hourly()
+          ->name('sync-colppy-clients')
+          ->withoutOverlapping()
+          ->onOneServer();
     }
 
     /**

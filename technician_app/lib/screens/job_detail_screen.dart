@@ -286,6 +286,142 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     );
   }
 
+  Future<void> _showEditTechniciansDialog() async {
+    final job = context.read<JobProvider>().selectedJob;
+    if (job == null) return;
+    
+    List<int> selectedIds = [];
+    
+    // Pre-seleccionar técnicos ya asignados
+    if (job.technicians != null) {
+      selectedIds = job.technicians!
+        .map((t) => t['id'] as int)
+        .toList();
+    }
+    
+    return showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.engineering, color: Color(0xFF00274E)),
+              SizedBox(width: 8),
+              Text('Gestionar Técnicos'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Seleccione los técnicos asignados a esta tarea:',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                if (_technicians.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: Text(
+                        'No hay técnicos disponibles',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _technicians.map((tech) {
+                        final isSelected = selectedIds.contains(tech.id);
+                        return FilterChip(
+                          label: Text(tech.name),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              if (selected) {
+                                selectedIds.add(tech.id);
+                              } else {
+                                selectedIds.remove(tech.id);
+                              }
+                            });
+                          },
+                          selectedColor: const Color(0xFF00274E).withOpacity(0.2),
+                          checkmarkColor: const Color(0xFF00274E),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                // Necesitamos crear un endpoint simple para solo actualizar técnicos
+                // Por ahora usaremos updateJob con los datos actuales
+                final jobProvider = context.read<JobProvider>();
+                
+                // Guardar técnicos mediante API
+                try {
+                  final success = await CustomAlerts.executeWithLoading(
+                    context,
+                    operation: () async {
+                      // Llamar directamente al JobService para actualizar solo técnicos
+                      final result = await jobProvider.jobService.updateJobTechnicians(
+                        job.id!,
+                        selectedIds.isNotEmpty ? selectedIds : null,
+                      );
+                      return result['success'] == true;
+                    },
+                    loadingMessage: 'Actualizando técnicos...',
+                    successTitle: 'Técnicos actualizados',
+                    successMessage: 'Los técnicos se actualizaron correctamente',
+                    errorTitle: 'Error',
+                    getErrorMessage: () => 'No se pudo actualizar los técnicos',
+                  );
+                  
+                  if (success) {
+                    // Recargar el detalle de la tarea
+                    await jobProvider.fetchJobDetail(widget.jobId);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00274E),
+              ),
+              child: const Text('Guardar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showCloseJobDialog() async {
     _observationController.clear();
     _selectedTechnicianIdsForClose.clear();
@@ -689,30 +825,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   ),
                 
                 // Técnicos asignados
-                if (job.technicians != null && job.technicians!.isNotEmpty)
-                  _buildSection(
-                    'Técnicos Asignados',
-                    [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: job.technicians!.map((tech) {
-                          return Chip(
-                            avatar: const CircleAvatar(
-                              backgroundColor: Color(0xFF00274E),
-                              child: Icon(
-                                Icons.engineering,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                            label: Text(tech['name'] ?? ''),
-                            backgroundColor: const Color(0xFF00274E).withOpacity(0.1),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
+                _buildTechniciansSection(job),
                 
                 // Notas
                 _buildNotesSection(jobProvider.notes),
@@ -1012,6 +1125,89 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               ),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildTechniciansSection(Job job) {
+    final hasTechnicians = job.technicians != null && job.technicians!.isNotEmpty;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.engineering, color: Color(0xFF00274E)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Técnicos Asignados',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              // Botón para editar técnicos (solo si no está cerrada)
+              if (!job.isClosed)
+                IconButton(
+                  onPressed: _showEditTechniciansDialog,
+                  icon: const Icon(Icons.edit, size: 20),
+                  color: const Color(0xFF00274E),
+                  tooltip: 'Gestionar Técnicos',
+                ),
+            ],
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          color: Colors.grey[100],
+          child: hasTechnicians
+              ? Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: job.technicians!.map((tech) {
+                    return Chip(
+                      avatar: const CircleAvatar(
+                        backgroundColor: Color(0xFF00274E),
+                        child: Icon(
+                          Icons.engineering,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      label: Text(tech['name'] ?? ''),
+                      backgroundColor: const Color(0xFF00274E).withOpacity(0.1),
+                    );
+                  }).toList(),
+                )
+              : Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.engineering_outlined, size: 48, color: Colors.grey[400]),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No hay técnicos asignados',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      if (!job.isClosed) ...[
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _showEditTechniciansDialog,
+                          icon: const Icon(Icons.add),
+                          label: const Text('Asignar Técnicos'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+        ),
       ],
     );
   }

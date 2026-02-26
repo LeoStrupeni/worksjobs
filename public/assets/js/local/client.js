@@ -2,19 +2,75 @@
 window.clientesData = {};
 
 $(document).ready(function() {
-    callregister('/client/table',1,$('#table_limit').val(),$('#table_order').val(),'si')    
-    // Disparar sincronización de clientes Colppy en background (no bloqueante)
-    $.ajax({
-        url: $('meta[name="app_url"]').attr('content') + '/client/sync-colppy',
-        type: 'POST',
-        success: function(response) {
-            if (response.success) {
-                console.log('Sincronización Colppy:', response.message);
-            }
-        },
-        error: function(jqXHR, textStatus, errorThrown) {
-            console.log('Error sincronización Colppy:', textStatus);
+    // Configurar token CSRF global para todas las peticiones AJAX
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
+    });
+    
+    callregister('/client/table',1,$('#table_limit').val(),$('#table_order').val(),'si')    
+    
+    // Funciones de debug para Colppy
+    // Cargar estadísticas al inicio (solo si existe el botón)
+    if ($('#btn-sync-stats').length > 0) {
+        loadSyncStats();
+    }
+
+    // Botón: Ver estadísticas
+    $('body').on('click','#btn-sync-stats', function() {
+        loadSyncStats();
+    });
+
+    // Botón: Sincronizar ahora
+    $('body').on('click','#btn-sync-now', function() {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+        
+        $btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Sincronizando...');
+        $('#sync-stats-display').html('<span class="text-info"><i class="fa-solid fa-spinner fa-spin me-2"></i>Sincronizando con Colppy, por favor espere...</span>');
+
+        $.ajax({
+            url: $('meta[name="app_url"]').attr('content') + '/client/sync-colppy-now',
+            type: 'POST',
+            timeout: 120000, // 2 minutos de timeout
+            success: function(response) {
+                if (response.success) {
+                    const datos = response.datos;
+                    let mensaje = 'Sincronización exitosa: ';
+                    mensaje += 'Total: ' + datos.total + ' | ';
+                    mensaje += 'Nuevos: ' + datos.nuevos + ' | ';
+                    mensaje += 'Actualizados: ' + datos.actualizados;
+                    
+                    if (datos.errores > 0) {
+                        mensaje += ' | Errores: ' + datos.errores;
+                        toastr["warning"](mensaje);
+                    } else {
+                        toastr["success"](mensaje);
+                    }
+                    
+                    // Recargar la tabla de clientes
+                    callregister('/client/table',1,$('#table_limit').val(),$('#table_order').val(),'si');
+                    
+                    // Recargar estadísticas
+                    // setTimeout(loadSyncStats, 1000);
+                } else {
+                    toastr["error"]("Error al sincronizar: " + response.message);
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                let errorMsg = 'Error al sincronizar';
+                if (textStatus === 'timeout') {
+                    errorMsg = 'La sincronización está tardando más de lo esperado. Puede estar procesándose en segundo plano.';
+                } else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                    errorMsg = jqXHR.responseJSON.message;
+                }
+                toastr["error"](errorMsg);
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html(originalHtml);
+            }
+        });
     });
     $('body').on('click','.create',function(){ 
         $('#name').val('');
@@ -492,3 +548,58 @@ function tableregister(data, page, callpaginas, url_query){
     });
 }
 
+/**
+ * Cargar estadísticas de sincronización Colppy
+ */
+function loadSyncStats() {
+    $('#sync-stats-display').html('<span class="text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Cargando estadísticas...</span>');
+    
+    $.ajax({
+        url: $('meta[name="app_url"]').attr('content') + '/client/sync-stats',
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        success: function(response) {
+            if (response && response.success === true) {
+                const stats = response.stats;
+                let html = '<div class="row text-start">';
+                html += '<div class="col-6"><small><strong>Local Colppy:</strong> ' + stats.local_de_colppy + '</small></div>';
+                html += '<div class="col-6"><small><strong>Colppy Total:</strong> ' + stats.colppy_total + '</small></div>';
+                html += '</div>';
+                
+                if (stats.diferencia !== 0) {
+                    html += '<div class="row mt-2"><div class="col-12">';
+                    html += '<span class="badge bg-warning text-dark"><i class="fa-solid fa-exclamation-triangle me-1"></i>Diferencia detectada: ' + Math.abs(stats.diferencia) + ' cliente(s)</span>';
+                    html += '</div></div>';
+                } else {
+                    html += '<div class="row mt-1"><div class="col-12">';
+                    html += '<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Sincronizado correctamente</span>';
+                    html += '</div></div>';
+                }
+                
+                $('#sync-stats-display').html(html);
+            } else {
+                const errorMsg = response.message || 'Error desconocido';
+                $('#sync-stats-display').html('<span class="text-danger"><i class="fa-solid fa-exclamation-triangle me-2"></i>Error: ' + errorMsg + '</span>');
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            let errorMsg = 'Error de conexión';
+            if (jqXHR.status === 404) {
+                errorMsg = 'Endpoint no encontrado (404)';
+            } else if (jqXHR.status === 500) {
+                errorMsg = 'Error del servidor (500)';
+                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                    errorMsg += ': ' + jqXHR.responseJSON.message;
+                }
+            } else if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                errorMsg = jqXHR.responseJSON.message;
+            }
+            
+            $('#sync-stats-display').html('<span class="text-danger"><i class="fa-solid fa-exclamation-triangle me-2"></i>' + errorMsg + '</span>');
+        }
+    });
+}
