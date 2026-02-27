@@ -1,5 +1,12 @@
 # Integración Configurable con Colppy
 
+> ⚠️ **ADVERTENCIA - MODO HÍBRIDO NO RECOMENDADO**  
+> El modo "híbrido" con consultas en tiempo real a Colppy API **NO es la configuración recomendada** para uso en producción.  
+> Causa problemas de performance, timeouts y dependencia de conectividad.  
+> **RECOMENDACIÓN**: Usar modo **'local'** con sincronización periódica (ver `INTEGRACION_COLPPY.md` y `SISTEMA_CLIENTES_DOMICILIOS.md`).
+
+---
+
 ## 📋 Resumen
 
 El sistema ahora tiene un **modo configurable** para gestión de clientes, permitiendo elegir entre tres opciones:
