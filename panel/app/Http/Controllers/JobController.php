@@ -8,6 +8,8 @@ use App\Models\Clients_Addres;
 use App\Models\Job;
 use App\Models\Jobs_file;
 use App\Models\Jobs_Note;
+use App\Models\JobProduct;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -66,6 +68,27 @@ class JobController extends Controller
             $job->technicians()->sync($request->technician_ids ?? []);
         }
 
+        // Guardar productos relacionados
+        if ($request->has('products') && is_array($request->products)) {
+            foreach ($request->products as $productData) {
+                if (isset($productData['product_id'])) {
+                    // Buscar información del producto
+                    $product = Product::find($productData['product_id']);
+                    if ($product) {
+                        JobProduct::create([
+                            'job_id' => $job->id,
+                            'product_id' => $product->id,
+                            'idcolppy' => $product->idcolppy,
+                            'codigo' => $product->codigo,
+                            'descripcion' => $product->descripcion,
+                            'unit_type' => $productData['unit_type'] ?? 'Unidad',
+                            'quantity' => $productData['quantity'] ?? 1.00
+                        ]);
+                    }
+                }
+            }
+        }
+
         $this->addfiles($request, $job->id);
 
         if ($request->expectsJson()) {
@@ -116,6 +139,11 @@ class JobController extends Controller
         // Obtener técnicos asignados al job
         $jobModel = Job::find($id);
         $repuesta['technicians'] = $jobModel->technicians()->select('users.id', 'users.name')->get();
+        
+        // Obtener productos relacionados
+        $repuesta['products'] = JobProduct::where('job_id', $id)
+            ->whereNull('deleted_at')
+            ->get();
 
         $repuesta['job'] = $job;
         $repuesta['address'] = $address;
@@ -169,6 +197,33 @@ class JobController extends Controller
         // Sincronizar técnicos asignados (siempre, incluso si viene vacío para permitir deseleccionar todos)
         $jobModel = Job::find($id);
         $jobModel->technicians()->sync($request->technician_ids ?? []);
+
+        // Actualizar productos relacionados
+        if ($request->has('products')) {
+            // Eliminar productos anteriores (soft delete)
+            JobProduct::where('job_id', $id)->delete();
+            
+            // Agregar nuevos productos
+            if (is_array($request->products)) {
+                foreach ($request->products as $productData) {
+                    if (isset($productData['product_id'])) {
+                        // Buscar información del producto
+                        $product = Product::find($productData['product_id']);
+                        if ($product) {
+                            JobProduct::create([
+                                'job_id' => $id,
+                                'product_id' => $product->id,
+                                'idcolppy' => $product->idcolppy,
+                                'codigo' => $product->codigo,
+                                'descripcion' => $product->descripcion,
+                                'unit_type' => $productData['unit_type'] ?? 'Unidad',
+                                'quantity' => $productData['quantity'] ?? 1.00
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
 
         $this->addfiles($request, $id);
 
@@ -437,6 +492,47 @@ class JobController extends Controller
             'success' => true,
             'message' => $job->archived == 1 ? 'Tarea archivada correctamente' : 'Tarea desarchivada correctamente'
         ]);
+    }
+
+    /**
+     * Agregar productos directamente a una tarea existente
+     */
+    public function updateProducts(Request $request, $id)
+    {
+        try {
+            $job = Job::findOrFail($id);
+            
+            // Verificar que no esté cerrado Y archivado
+            if ($job->closed_datetime != null && $job->archived == 1) {
+                return redirect()->back()->with('error', 'No se pueden agregar productos a una tarea cerrada y archivada');
+            }
+            
+            // Eliminar productos existentes (soft delete)
+            JobProduct::where('job_id', $id)->delete();
+            
+            // Agregar nuevos productos
+            if ($request->has('products') && is_array($request->products)) {
+                foreach ($request->products as $p) {
+                    $product = Product::find($p['product_id']);
+                    if ($product) {
+                        JobProduct::create([
+                            'job_id' => $id,
+                            'product_id' => $product->id,
+                            'idcolppy' => $product->idcolppy,
+                            'codigo' => $product->codigo,
+                            'descripcion' => $product->descripcion,
+                            'unit_type' => $p['unit_type'],
+                            'quantity' => $p['quantity']
+                        ]);
+                    }
+                }
+            }
+            
+            return redirect()->back()->with('success', 'Productos actualizados correctamente');
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar productos: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al actualizar productos');
+        }
     }
 
     

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiColppyController;
+use App\Http\Controllers\Api\ApiDataTablesController;
 use App\Http\Controllers\Api\ApiJobController;
 use App\Http\Controllers\Api\ApiSearchVarController;
 use App\Http\Controllers\CmsController;
@@ -46,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/upcoming', [ApiJobController::class, 'getUpcomingJobs']);
         Route::get('/calendar', [ApiJobController::class, 'getJobsByDateRange']);
         Route::get('/clients', [ApiJobController::class, 'getClients']);
+        Route::get('/products', [ApiJobController::class, 'getProducts']);
         Route::get('/{id}', [ApiJobController::class, 'show']);
         Route::get('/{id}/notes', [ApiJobController::class, 'getNotes']);
         Route::get('/{id}/files', [ApiJobController::class, 'getFiles']);
@@ -74,7 +76,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('colppy')->group(function () {
         Route::get('/clientes', [ApiColppyController::class, 'listarClientes']);
         Route::get('/clientes/{idCliente}', [ApiColppyController::class, 'obtenerCliente']);
+        Route::get('/inventario', [ApiColppyController::class, 'listarInventario']);
+        Route::get('/inventario/{idItem}', [ApiColppyController::class, 'obtenerItemInventario']);
         Route::post('/call', [ApiColppyController::class, 'hacerLlamada']);
         Route::post('/invalidate-session', [ApiColppyController::class, 'invalidarSesion']);
+        
+        // Sincronización
+        Route::post('/sync/products', [ApiDataTablesController::class, 'syncColppyProducts']);
+        Route::post('/sync/products/now', [ApiDataTablesController::class, 'syncColppyProductsNow']);
+        Route::get('/sync/products/stats', [ApiDataTablesController::class, 'getProductSyncStats']);
+    });
+
+    // Productos endpoints
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ApiDataTablesController::class, 'getProducts']);
     });
 });

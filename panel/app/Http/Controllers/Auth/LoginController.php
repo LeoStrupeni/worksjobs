@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Rol;
 use App\Models\User;
 use App\Models\Config;
+use App\Models\Product;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -94,6 +95,10 @@ class LoginController extends Controller
                 $users[] = ['id' => $u->id, 'name' => $u->name];
             }
             Session::put('users', $users );
+
+            $products = Product::query()->whereNull('deleted_at')->limit(10)->get(['id', 'codigo', 'descripcion']);
+            Session::put('products', $products );
+
             return redirect()->intended('home')->with('status','estas logueado!');
         }
 

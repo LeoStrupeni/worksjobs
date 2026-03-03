@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\Clients_Addres;
+use App\Models\Config;
 use App\Models\Job;
 use App\Models\Jobs_file;
 use App\Models\Jobs_Note;
+use App\Models\JobProduct;
+use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -234,7 +238,7 @@ class ApiJobController extends Controller
         $search = $request->input('search', '');
         
         // Obtener modo configurado
-        $modo = \App\Models\Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
+        $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
         
         $query = Client::query()->whereNull('deleted_at');
         
@@ -324,9 +328,15 @@ class ApiJobController extends Controller
         $jobModel = Job::find($id);
         $technicians = $jobModel->technicians()->select('users.id', 'users.name')->get();
         
+        // Obtener productos relacionados
+        $products = JobProduct::where('job_id', $id)
+            ->whereNull('deleted_at')
+            ->get();
+        
         // Convertir job a array y agregar técnicos
         $jobData = json_decode(json_encode($job), true);
         $jobData['technicians'] = $technicians->toArray();
+        $jobData['products'] = $products->toArray();
         
         $permissions = $this->getUserPermissions($request->user());
         
@@ -408,7 +418,7 @@ class ApiJobController extends Controller
     public function getClientAddresses(Request $request, $clientId)
     {
         // Obtener direcciones de la tabla clients_address
-        $addresses = \App\Models\Clients_Addres::where('client_id', $clientId)
+        $addresses = Clients_Addres::where('client_id', $clientId)
             ->whereNull('deleted_at')
             ->get();
         
@@ -437,7 +447,7 @@ class ApiJobController extends Controller
         $clientId = $validated['client_id'];
         
         // Validar que el cliente existe
-        if (!\App\Models\Client::find($clientId)) {
+        if (!Client::find($clientId)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cliente no encontrado'
@@ -455,7 +465,7 @@ class ApiJobController extends Controller
         ];
         
         // Guardar en tabla clients_address
-        $address = \App\Models\Clients_Addres::create(array_merge($addressData, [
+        $address = Clients_Addres::create(array_merge($addressData, [
             'client_id' => $clientId
         ]));
         
@@ -474,7 +484,7 @@ class ApiJobController extends Controller
     public function updateTechnicians(Request $request, $id)
     {
         try {
-            $job = \App\Models\Job::findOrFail($id);
+            $job = Job::findOrFail($id);
             
             // Validar que se envíen técnicos
             $validated = $request->validate([
@@ -500,4 +510,26 @@ class ApiJobController extends Controller
             ], 500);
         }
     }
+    
+    public function getProducts(Request $request)
+    {
+        $search = $request->input('search', '');
+        $query = Product::query()->whereNull('deleted_at');
+
+        // Aplicar búsqueda si existe
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('codigo', 'LIKE', "%$search%")
+                  ->orWhere('descripcion', 'LIKE', "%$search%");
+            });
+        }
+        
+        $products = $query->limit(10)->get(['id', 'codigo', 'descripcion']);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $products
+        ]);
+    }
+
 }

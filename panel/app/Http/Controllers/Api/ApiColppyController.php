@@ -93,6 +93,60 @@ class ApiColppyController extends Controller
     }
 
     /**
+     * Listar productos de inventario de Colppy (solo tipo "P")
+     */
+    public function listarInventario(Request $request)
+    {
+        $start = (int) $request->query('start', 0);
+        $limit = (int) $request->query('limit', 100);
+        
+        $filtros = [];
+        if ($request->has('filters')) {
+            $filtros = json_decode($request->query('filters'), true) ?? [];
+        }
+
+        $orden = [];
+        if ($request->has('order')) {
+            $orden = json_decode($request->query('order'), true) ?? [];
+        }
+
+        $resultado = $this->colppyService->listarInventario($start, $limit, $filtros, $orden);
+
+        if ($resultado['success']) {
+            return response()->json([
+                'success' => true,
+                'data' => $resultado['datos'],
+                'total' => $resultado['total'] ?? count($resultado['datos'])
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $resultado['mensaje'] ?? 'Error'
+        ], 400);
+    }
+
+    /**
+     * Obtener producto/item de inventario específico
+     */
+    public function obtenerItemInventario(string $idItem)
+    {
+        $resultado = $this->colppyService->obtenerItemInventario($idItem);
+
+        if ($resultado['success']) {
+            return response()->json([
+                'success' => true,
+                'data' => $resultado['datos'][0] ?? $resultado['datos']
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $resultado['mensaje'] ?? 'Error'
+        ], 400);
+    }
+
+    /**
      * Hacer una llamada genérica a Colppy
      */
     public function hacerLlamada(Request $request)

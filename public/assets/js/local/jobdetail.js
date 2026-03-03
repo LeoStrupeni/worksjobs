@@ -2,7 +2,13 @@ var controladorTiempo = 3000;
 var valorbuscado = '';
 // Array global para mantener los archivos seleccionados
 var selectedFiles = [];
-
+// Variables para controlar peticiones AJAX en curso
+var currentClientRequest = null;
+var currentProductRequest = null;
+var currentAddressRequest = null;
+// Timestamp de la última búsqueda para garantizar que solo se ejecute la más reciente
+var lastClientSearchTime = 0;
+var lastProductSearchTime = 0;
 $(document).ready(function() {
     getGeolocation();
     
@@ -124,7 +130,12 @@ $(document).ready(function() {
         form = document.getElementById("formeditjob");
         var countimg = 0;
         $( form.elements ).each(function( index ) {
-            if($(this).attr('name') != '_method' && $(this).attr('name') != '_token'){
+            var fieldName = $(this).attr('name');
+            var fieldId = $(this).attr('id');
+            
+            // No limpiar: _method, _token, ni campos de productos
+            if(fieldName != '_method' && fieldName != '_token' && 
+               fieldId != 'quantity_edit' && fieldId != 'unit_type_edit' && fieldId != 'product_id_edit'){
                 $(this).val('');
             } 
 
@@ -160,6 +171,9 @@ $(document).ready(function() {
 
                 // Poblar técnicos asignados en el select de edición
                 setTechnicianSelect('#technician_ids_edit', data.technicians);
+
+                // Cargar productos relacionados
+                loadProductsToEdit(data.products);
 
                 $('#modal-body-edit-job').removeClass('d-none');
                 $('#modal-foot-edit-job').removeClass('d-none');
@@ -197,6 +211,9 @@ $(document).ready(function() {
 
                 // Mostrar técnicos asignados en el panel de show
                 renderTechniciansShow(data.technicians);
+
+                // Mostrar productos relacionados
+                renderProductsShow(data.products);
 
                 $('#modal-body-show-job').removeClass('d-none');
             }
@@ -679,43 +696,121 @@ $(document).ready(function() {
             document.getElementById("formclosedjob").submit();
         }
     });
+    
     $('.bs-searchbox').children().keyup(function (e) {
         valor = this.value;
         if ($($($(e.target)).parent().parent().parent()[0]).hasClass('searchvar')) {            
-            // console.log(valor.length);
+            // Obtener el ID del select original desde el botón de bootstrap-select
+            let bootstrapSelectDiv = $(e.target).closest('.bootstrap-select');
+            let selectId = bootstrapSelectDiv.find('button').attr('data-id') || '';
+            
+            let isProductSearch = selectId.indexOf('product_id') !== -1;
+            let searchType = isProductSearch ? 'products' : 'clients';
+            
+            // console.log('Búsqueda detectada:', { selectId, isProductSearch, searchType, valor });
+            
             if(valorbuscado != valor && valor.length > 0){
                 valorbuscado = valor;
 
                 clearInterval(controladorTiempo);
                 controladorTiempo = setInterval(function(){
-                    let selectClients = $('select#client_id');
-                        selectClients.find('option').remove(); 
-                    $('#client_id').empty();
-                    $('#client_id').selectpicker('render');
-                    $('#spinner1').removeClass('d-none');
-
-                    $.ajax({
-                        // contenttype: 'application/json; charset=utf-8',
-                        url: "/api/searchvar",
-                        type: 'POST',
-                        data: {
-                            search: valor,
-                            tipo: 'clients'
-                        },
-                        success : function(data) {
-                            datos = data;
-
-                            $.each(datos, function() {
-                                var option = `<option value="${this.id}">${this.first_name} ${this.last_name ?? ''}</option>`;
-                                selectClients.append(option);
-                            });
-                            selectClients.selectpicker('refresh');
-                            
+                    if (searchType === 'clients') {
+                        // Cancelar petición anterior si existe
+                        if (currentClientRequest) {
+                            currentClientRequest.abort();
                         }
-                    }).always(function() {
-                        $('#spinner1').addClass('d-none');
-                    });
-                    clearInterval(controladorTiempo); //Limpio el intervalo
+                        
+                        // Marcar timestamp de esta búsqueda
+                        var searchTimestamp = Date.now();
+                        lastClientSearchTime = searchTimestamp;
+                        
+                        // Búsqueda de clientes
+                        let selectClients = $('select#client_id');
+                        selectClients.find('option').remove(); 
+                        $('#client_id').empty();
+                        $('#client_id').selectpicker('render');
+                        $('#spinner1').removeClass('d-none');
+
+                        currentClientRequest = $.ajax({
+                            url: "/api/searchvar",
+                            type: 'POST',
+                            data: {
+                                search: valor,
+                                tipo: 'clients'
+                            },
+                            success : function(data) {
+                                // Solo procesar si esta es la búsqueda más reciente
+                                if (searchTimestamp !== lastClientSearchTime) {
+                                    return;
+                                }
+                                
+                                datos = data;
+                                $.each(datos, function() {
+                                    var option = `<option value="${this.id}">${this.first_name} ${this.last_name ?? ''}</option>`;
+                                    selectClients.append(option);
+                                });
+                                selectClients.selectpicker('refresh');
+                                
+                                // Si hay resultados, cargar automáticamente los domicilios del primer cliente
+                                if (datos.length > 0) {
+                                    getAddress(datos[0].id);
+                                }
+                            }
+                        }).always(function() {
+                            $('#spinner1').addClass('d-none');
+                            currentClientRequest = null;
+                        });
+                    } else {
+                        // Cancelar petición anterior si existe
+                        if (currentProductRequest) {
+                            currentProductRequest.abort();
+                        }
+                        
+                        // Marcar timestamp de esta búsqueda
+                        var searchTimestamp = Date.now();
+                        lastProductSearchTime = searchTimestamp;
+                        
+                        // Búsqueda de productos
+                        let spinnerId = selectId.replace('product_id', 'spinner_product');
+                        
+                        let selectProducts = $('#' + selectId);
+                        selectProducts.find('option').remove();
+                        selectProducts.empty();
+                        selectProducts.selectpicker('render');
+                        $('#' + spinnerId).removeClass('d-none').addClass('d-inline-block');
+
+                        currentProductRequest = $.ajax({
+                            url: "/api/searchvar",
+                            type: 'POST',
+                            data: {
+                                search: valor,
+                                tipo: 'products'
+                            },
+                            success : function(data) {
+                                // Solo procesar si esta es la búsqueda más reciente
+                                if (searchTimestamp !== lastProductSearchTime) {
+                                    return;
+                                }
+                                
+                                datos = data;
+                                $.each(datos, function() {
+                                    var option = `<option value="${this.id}">${this.codigo} - ${this.descripcion}</option>`;
+                                    selectProducts.append(option);
+                                });
+                                selectProducts.selectpicker('refresh');
+                            },
+                            error: function(xhr, status, error) {
+                                if (error !== 'abort') {
+                                    console.error('Error en búsqueda de productos:', error);
+                                }
+                            }
+                        }).always(function() {
+                            $('#' + spinnerId).removeClass('d-inline-block').addClass('d-none');
+                            currentProductRequest = null;
+                        });
+                    }
+                    
+                    clearInterval(controladorTiempo);
                 }, 400);
             }
         }
@@ -724,6 +819,11 @@ $(document).ready(function() {
     // Refrescar selectpicker de clientes después de seleccionar para corregir visualización
     $('body').on('change', '#client_id', function() {
         $(this).selectpicker('refresh');
+        // Cargar domicilios del cliente seleccionado
+        var clientId = $(this).val();
+        if (clientId) {
+            getAddress(clientId);
+        }
     });
 
     function viewjob(data,form,origen){
@@ -827,11 +927,16 @@ function renderTechniciansShow(technicians) {
 }
 
 function getAddress(client_id) {
+    // Cancelar petición anterior si existe
+    if (currentAddressRequest) {
+        currentAddressRequest.abort();
+    }
+    
     $('#address_id').empty();
     $('#address_id').selectpicker('render');
     $('#spinner2').removeClass('d-none');
 
-    $.ajax({
+    currentAddressRequest = $.ajax({
         // contenttype: 'application/json; charset=utf-8',
         url: "/api/searchvar",
         type: 'POST',
@@ -840,17 +945,29 @@ function getAddress(client_id) {
             tipo: 'address'
         },
         success : function(data) {
-            $('#address_id').append('<option></option>');
             datos = data;
+            
+            // Si hay más de 1 domicilio, agregar opción vacía
+            if (datos.length > 1) {
+                $('#address_id').append('<option></option>');
+            }
+            
             $.each(datos, function() {
                 var option = `<option value="${this.id}">${this.address_street} ${this.address_nro ?? ''} ${this.city ?? ''} ${this.address_detail ?? ''}</option>`;
                 $('#address_id').append(option);
             });
+            
+            // Si hay solo 1 domicilio, seleccionarlo automáticamente
+            if (datos.length === 1) {
+                $('#address_id').val(datos[0].id);
+            }
+            
             $('#address_id').selectpicker('refresh');
             
         }
     }).always(function() {
         $('#spinner2').addClass('d-none');
+        currentAddressRequest = null;
     });
 
 }
@@ -1079,3 +1196,351 @@ function deleteimg(e,idjob,id_elemento){
         closeSwal();
     });
 }
+
+/**
+ * Sincronizar productos desde Colppy manualmente
+ * Se ejecuta al hacer clic en el botón "Sincronizar Productos" en los modales
+ */
+function syncProductsManual() {
+    // Mostrar notificación de inicio
+    Swal.fire({
+        title: 'Sincronizando...',
+        html: 'Por favor espere mientras se sincronizan los productos desde Colppy.<br><small class="text-muted">Esto puede tardar varios segundos...</small>',
+        type: 'info',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        willOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Llamar al endpoint de sincronización (ruta web, no API)
+    $.ajax({
+        url: app_url + '/products/sync-colppy-now',
+        type: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        timeout: 120000, // 2 minutos de timeout
+        success: function(response) {
+            if (response.success) {
+                const datos = response.datos;
+                Swal.fire({
+                    title: '¡Sincronización Completa!',
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-2"><strong>Resultado:</strong></p>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-plus-circle text-success me-2"></i>Productos nuevos: ${datos.nuevos}</li>
+                                <li><i class="fas fa-sync-alt text-primary me-2"></i>Productos actualizados: ${datos.actualizados}</li>
+                                <li><i class="fas fa-check-circle text-info me-2"></i>Total procesados: ${datos.total}</li>
+                                ${datos.errores > 0 ? `<li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Errores: ${datos.errores} (ver logs)</li>` : ''}
+                            </ul>
+                        </div>
+                    `,
+                    type: 'success',
+                    confirmButtonText: 'Cerrar'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: response.message || 'No se pudo sincronizar los productos',
+                    type: 'error',
+                    confirmButtonText: 'Cerrar'
+                });
+            }
+        },
+        error: function(xhr) {
+            let errorMessage = 'Error al sincronizar productos. Por favor intente nuevamente.';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.status === 401) {
+                errorMessage = 'No tiene permisos para realizar esta acción';
+            } else if (xhr.status === 500) {
+                errorMessage = 'Error del servidor. Por favor revise los logs o contacte al administrador';
+            } else if (xhr.status === 0) {
+                errorMessage = 'Error de conexión. Verifique su conexión a internet';
+            }
+            
+            Swal.fire({
+                title: 'Error',
+                html: errorMessage,
+                type: 'error',
+                confirmButtonText: 'Cerrar'
+            });
+        }
+    });
+}
+
+// ==================== FUNCIONES DE PRODUCTOS ====================
+// Array global para mantener los productos seleccionados
+var selectedProducts = [];
+var productUniqueIdCounter = 0;
+
+/**
+ * Agregar producto a la tarea
+ * @param {string} mode - 'create' o 'edit'
+ */
+function addProductToJob(mode) {
+    // console.log('addProductToJob llamado con mode:', mode);
+    
+    const productSelect = $(`#product_id_${mode}`);
+    const productId = productSelect.val();
+    const productText = productSelect.find('option:selected').text();
+    const unitType = $(`#unit_type_${mode}`).val();
+    const quantity = parseFloat($(`#quantity_${mode}`).val());
+
+    // console.log('Datos:', { productId, productText, unitType, quantity });
+
+    if (!productId) {
+        toastr["warning"]("Debe seleccionar un producto");
+        return;
+    }
+
+    if (quantity <= 0 || isNaN(quantity)) {
+        toastr["warning"]("La cantidad debe ser mayor a 0");
+        return;
+    }
+
+    // Verificar si el producto ya está agregado
+    const exists = selectedProducts.some(p => String(p.product_id) === String(productId) && p.mode === mode);
+    if (exists) {
+        toastr["warning"]("Este producto ya está agregado a la tarea");
+        return;
+    }
+
+    // Agregar producto al array
+    const product = {
+        unique_id: ++productUniqueIdCounter,
+        product_id: String(productId),
+        codigo: productText.split(' - ')[0],
+        descripcion: productText.split(' - ')[1] || productText,
+        unit_type: unitType,
+        quantity: quantity,
+        mode: mode
+    };
+    selectedProducts.push(product);
+    // console.log('Producto agregado. Array actual:', selectedProducts);
+
+    // Renderizar la lista de productos
+    renderProductsList(mode);
+
+    // Limpiar campos
+    productSelect.val('').selectpicker('refresh');
+    $(`#unit_type_${mode}`).val('Unidad');
+    $(`#quantity_${mode}`).val('1.00');
+
+    toastr["success"]("Producto agregado correctamente");
+}
+
+/**
+ * Eliminar producto de la lista
+ * @param {number} uniqueId - ID único del producto en el array
+ * @param {string} mode - 'create' o 'edit'
+ */
+function removeProductFromJob(uniqueId, mode) {
+    selectedProducts = selectedProducts.filter(p => p.unique_id !== uniqueId);
+    renderProductsList(mode);
+    toastr["info"]("Producto eliminado");
+}
+
+/**
+ * Renderizar la lista de productos
+ * @param {string} mode - 'create' o 'edit'
+ */
+function renderProductsList(mode) {
+    // console.log('renderProductsList llamado con mode:', mode);
+    
+    const productsForMode = selectedProducts.filter(p => p.mode === mode);
+    const listContainer = $(`#products_list_${mode}`);
+    const hiddenContainer = $(`#products_hidden_${mode}`);
+
+    // console.log('Productos para este modo:', productsForMode);
+    // console.log('Lista container existe:', listContainer.length > 0);
+    // console.log('Hidden container existe:', hiddenContainer.length > 0);
+
+    if (productsForMode.length === 0) {
+        listContainer.empty().removeClass('mt-3');
+        hiddenContainer.empty();
+        return;
+    }
+
+    // Renderizar lista visual
+    let html = '<div class="table-responsive"><table class="table table-sm table-hover"><thead class="table-light"><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th class="text-end">Cantidad</th><th class="text-center">Acción</th></tr></thead><tbody>';
+    
+    productsForMode.forEach(product => {
+        html += `
+            <tr>
+                <td class="align-middle"><strong>${product.codigo}</strong></td>
+                <td class="align-middle">${product.descripcion}</td>
+                <td class="align-middle"><span class="badge bg-secondary">${product.unit_type}</span></td>
+                <td class="text-end align-middle">${parseFloat(product.quantity).toFixed(2)}</td>
+                <td class="text-center align-middle">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeProductFromJob(${product.unique_id}, '${mode}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    listContainer.html(html).addClass('mt-3');
+
+    // Agregar campos ocultos para envío del formulario
+    hiddenContainer.empty();
+    productsForMode.forEach((product, index) => {
+        hiddenContainer.append(`
+            <input type="hidden" name="products[${index}][product_id]" value="${product.product_id}">
+            <input type="hidden" name="products[${index}][unit_type]" value="${product.unit_type}">
+            <input type="hidden" name="products[${index}][quantity]" value="${product.quantity}">
+        `);
+    });
+    
+    // console.log('Lista renderizada correctamente');
+}
+
+/**
+ * Cargar productos al editar una tarea
+ * @param {array} products - Array de productos
+ */
+function loadProductsToEdit(products) {
+    // Limpiar productos anteriores del modo edit
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'edit');
+
+    if (!products || products.length === 0) {
+        renderProductsList('edit');
+        return;
+    }
+
+    products.forEach(product => {
+        selectedProducts.push({
+            unique_id: ++productUniqueIdCounter,
+            product_id: String(product.product_id),
+            codigo: product.codigo,
+            descripcion: product.descripcion,
+            unit_type: product.unit_type,
+            quantity: parseFloat(product.quantity),
+            mode: 'edit'
+        });
+    });
+
+    renderProductsList('edit');
+}
+
+/**
+ * Renderizar productos en el modal de ver tarea
+ * @param {array} products - Array de productos
+ */
+function renderProductsShow(products) {
+    const container = $('#products_show_container');
+    const tbody = $('#products_show_tbody');
+
+    if (!products || products.length === 0) {
+        container.hide();
+        return;
+    }
+
+    container.show();
+    tbody.empty();
+
+    products.forEach(product => {
+        tbody.append(`
+            <tr>
+                <td><strong>${product.codigo}</strong></td>
+                <td>${product.descripcion}</td>
+                <td><span class="badge bg-secondary">${product.unit_type}</span></td>
+                <td class="text-end">${parseFloat(product.quantity).toFixed(2)}</td>
+            </tr>
+        `);
+    });
+}
+
+// Limpiar productos al crear nueva tarea
+$(document).on('click', '.create-job', function() {
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'create');
+    renderProductsList('create');
+});
+
+// Limpiar productos al cerrar modales
+$('#createjob').on('hidden.bs.modal', function () {
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'create');
+});
+
+$('#editjob').on('hidden.bs.modal', function () {
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'edit');
+});
+
+// Evento para abrir modal de agregar productos directamente a una tarea
+$('body').on('click', '.addproducts-job', function () {
+    const jobId = $(this).data('id');
+    const jobName = $(this).data('name');
+    
+    // Limpiar productos del modo 'add'
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'add');
+    renderProductsList('add');
+    
+    // Configurar modal
+    $('#formaddproducts').attr('action', app_url + "/jobs/" + jobId + "/products");
+    $('#addproducts_task_name').text(jobName);
+    
+    // Abrir modal inmediatamente con spinner
+    $('#modal-body-addproducts-roller').removeClass('d-none');
+    $('#modal-body-addproducts').addClass('d-none');
+    $('#modal-foot-addproducts').addClass('d-none');
+    $('#addproducts').modal('show');
+    
+    // Cargar productos actuales de la tarea
+    $.ajax({
+        url: app_url + '/jobs/' + jobId + '/edit',
+        type: 'GET',
+        success: function(data) {
+            // Cargar productos existentes
+            if (data.products && data.products.length > 0) {
+                data.products.forEach(product => {
+                    selectedProducts.push({
+                        unique_id: ++productUniqueIdCounter,
+                        product_id: String(product.product_id),
+                        codigo: product.codigo,
+                        descripcion: product.descripcion,
+                        unit_type: product.unit_type,
+                        quantity: parseFloat(product.quantity),
+                        mode: 'add'
+                    });
+                });
+                renderProductsList('add');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error al cargar productos:', error);
+            toastr["error"]("Error al cargar los productos de la tarea");
+        },
+        complete: function() {
+            // Ocultar spinner y mostrar contenido
+            $('#modal-body-addproducts-roller').addClass('d-none');
+            $('#modal-body-addproducts').removeClass('d-none');
+            $('#modal-foot-addproducts').removeClass('d-none');
+        }
+    });
+});
+
+// Limpiar productos al cerrar modal
+$('#addproducts').on('hidden.bs.modal', function () {
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'add');
+});
+
+// Submit del formulario de agregar productos
+$('#formaddproducts').on('submit', function(e) {
+    e.preventDefault();
+    
+    const productsForAdd = selectedProducts.filter(p => p.mode === 'add');
+    
+    if (productsForAdd.length === 0) {
+        toastr["warning"]("Debe agregar al menos un producto");
+        return false;
+    }
+    
+    // Enviar formulario
+    this.submit();
+});

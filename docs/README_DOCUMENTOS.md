@@ -102,6 +102,35 @@
 
 **Nota**: ✅ Reemplaza el antiguo `SISTEMA_DOMICILIOS_DUAL.md` (desactualizado)
 
+
+#### [`SISTEMA_PRODUCTOS_TAREAS.md`](SISTEMA_PRODUCTOS_TAREAS.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Sistema de productos en tareas (nuevo)
+
+**Contenido**:
+- Arquitectura completa del sistema de productos
+- Tabla `job_products` y modelo JobProduct
+- Datos históricos (snapshot de productos)
+- Tres modos de gestión: Create, Edit, Add Products
+- Funciones JavaScript (addProductToJob, removeProductFromJob, renderProductsList)
+- Sistema de unique_id para duplicados
+- Validaciones y reglas de negocio
+- Troubleshooting completo con soluciones
+
+**Usar cuando**: 
+- Agregar/modificar productos en tareas
+- Debugging de productos en jobs
+- Extender funcionalidad de productos
+- Implementar en app móvil (pendiente)
+- Entender flujo de trabajo con productos
+
+**Características**:
+- ✅ Datos históricos preservados
+- ✅ Soporte para productos duplicados
+- ✅ Búsqueda en vivo con AJAX
+- ✅ Tres tipos de unidad (Unidad/Rollo/Metros)
+- ✅ Soft deletes para auditoría
+- ✅ Modal directo sin editar toda la tarea
+
 ---
 
 ### 📡 API y Endpoints
@@ -124,7 +153,29 @@
 
 ---
 
-### 🔧 Troubleshooting
+### � Desarrollo y Convenciones
+
+#### [`CONVENCIONES_JAVASCRIPT.md`](CONVENCIONES_JAVASCRIPT.md) ⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Guía de desarrollo frontend (nuevo)
+
+**Contenido**:
+- Convenciones de SweetAlert (`type` vs `icon`)
+- Estructura de archivos JavaScript
+- Manejo de AJAX
+- Buenas prácticas de código
+- Dónde ubicar funciones JavaScript
+
+**Usar cuando**: 
+- Desarrollar nuevas funcionalidades frontend
+- Debugging de alertas/notificaciones
+- Organizar código JavaScript
+- Onboarding de nuevos desarrolladores
+
+**IMPORTANTE**: ⚠️ En este proyecto, SweetAlert usa `type:` NO `icon:`
+
+---
+
+### �🔧 Troubleshooting
 
 #### [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) ⭐⭐⭐⭐⭐
 **Estado**: **ESENCIAL** - Solución de problemas (nuevo)
@@ -295,8 +346,10 @@
 4. ✅ `FLUJO_SINCRONIZACION.md` - **CREADO** (proceso de sincronización detallado)
 5. ✅ `API_ENDPOINTS.md` - **CREADO** (85+ endpoints documentados)
 6. ✅ `TROUBLESHOOTING.md` - **CREADO** (guía de problemas y soluciones)
-7. 📝 `SCHEDULER_RESUMEN.md` - Pendiente: Considerar eliminar (redundante)
-8. 📝 `MIGRACION_CMS_SECCIONES.md` - Pendiente: Archivar (histórico)
+7. ✅ `CONVENCIONES_JAVASCRIPT.md` - **CREADO** (guía de desarrollo frontend y SweetAlert)
+8. ✅ `SINCRONIZACION_PRODUCTOS_UPDATE.md` - **CREADO** (actualización de sincronización de productos)
+9. 📝 `SCHEDULER_RESUMEN.md` - Pendiente: Considerar eliminar (redundante)
+10. 📝 `MIGRACION_CMS_SECCIONES.md` - Pendiente: Archivar (histórico)
 
 ---
 
@@ -309,7 +362,9 @@
 4. ✅ **Creado** `FLUJO_SINCRONIZACION.md` (600+ líneas - proceso completo de sync)
 5. ✅ **Creado** `API_ENDPOINTS.md` (1000+ líneas - 85+ endpoints documentados)
 6. ✅ **Creado** `TROUBLESHOOTING.md` (700+ líneas - 9 categorías de problemas)
-7. ✅ **Actualizado** Agente personalizado (`.github/agents/strupeni-dev.md`) con información correcta
+7. ✅ **Creado** `CONVENCIONES_JAVASCRIPT.md` (guía completa de desarrollo frontend)
+8. ✅ **Actualizado** Agente personalizado (`.github/agents/strupeni-dev.md`) con información correcta
+9. ✅ **Creado** `SINCRONIZACION_PRODUCTOS_UPDATE.md` (documentación de sincronización de productos)
 
 ### 📝 Mantenimiento Pendiente (Opcional)
 1. **Consolidar**: Fusionar `SCHEDULER_RESUMEN.md` en `CONFIGURAR_SCHEDULER.md`
@@ -318,6 +373,7 @@
 ### 💡 Documentación Futura Sugerida
 1. **`GUIA_FLUTTER_APP.md`**: Documentar la app móvil de técnicos (modelos, providers, pantallas)
 2. **`ARQUITECTURA_BACKEND.md`**: Diagrama y explicación de services, jobs, commands
+3. **`GUIA_TESTING.md`**: Convenciones de testing, cómo ejecutar tests, coverage
 
 ---
 

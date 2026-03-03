@@ -151,6 +151,16 @@ function tableregister(data, page, callpaginas, url_query){
                             </li>`;
                         }
 
+                        // Agregar productos (solo si NO está cerrado Y archivado)
+                        const isClosedAndArchived = val.closed != null && val.archived == 1;
+                        if( data.permissions.includes('update') && !isClosedAndArchived ) {
+                            body += `<li>
+                                <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item addproducts-job" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">
+                                    <i class="fas fa-box me-2"></i>Agregar Productos
+                                </a>
+                            </li>`;
+                        }
+
                         if ( data.permissions.includes('delete') && val.arrival == null && val.closed == null){
                             body += `<li><hr class="dropdown-divider"></li>
                             <li><a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item text-danger delete-job" data-name="${val.client_first_name ?? ''} ${val.client_last_name ?? ''} del ${val.visit_day ?? ''} ${val.visit ?? ''}">

@@ -5,7 +5,12 @@
                 <h5 class="modal-title text-white fw-bold">
                     <i class="fas fa-edit me-2"></i>Editar Tarea
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3" onclick="syncProductsManual()" title="Sincronizar productos desde Colppy">
+                        <i class="fa-solid fa-sync me-1"></i>Sincronizar Productos
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="modal-body d-none" id="modal-body-edit-job-error">
                 <div class="text-center py-5">
@@ -105,6 +110,67 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Card Productos -->
+                        <div class="card border-0 shadow-sm mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title d-flex align-items-center mb-3">
+                                    <span class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                        <i class="fas fa-box text-primary me-2"></i>
+                                    </span>
+                                    Productos Relacionados
+                                </h6>
+                                
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <label for="product_id_edit" class="form-label fw-semibold">
+                                            Producto
+                                            <span id="spinner_product_edit" class="d-none">
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                            </span>
+                                        </label>
+                                        <select class="form-control selectpicker searchvar" 
+                                            id="product_id_edit" 
+                                            data-live-search="true" 
+                                            data-size="4" 
+                                            data-dropup-auto="false"
+                                            data-none-selected-text="Seleccione un producto" 
+                                            data-none-results-text="No hay resultados coincidentes">
+                                            <option></option>
+                                            @foreach (Session::get('products') as $p)
+                                                <option value="{{$p->id}}">{{$p->codigo}} - {{$p->descripcion}}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="unit_type_edit" class="form-label fw-semibold">Tipo de Unidad</label>
+                                        <select class="form-control" id="unit_type_edit">
+                                            <option value="Unidad">Unidad</option>
+                                            <option value="Rollo">Rollo</option>
+                                            <option value="Metros">Metros</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label for="quantity_edit" class="form-label fw-semibold">Cantidad</label>
+                                        <input type="number" class="form-control" id="quantity_edit" min="0.01" step="0.01" value="1.00">
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end">
+                                        <button type="button" class="btn btn-primary w-100" onclick="addProductToJob('edit')">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Lista de productos agregados -->
+                                <div id="products_list_edit">
+                                    <!-- Los productos se agregarán aquí dinámicamente -->
+                                </div>
+                                
+                                <!-- Productos ocultos para enviar en el formulario -->
+                                <div id="products_hidden_edit"></div>
+                            </div>
+                        </div>
+                        
                         <div class="col-12">
                             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                                 <div class="card-header bg-white border-0 pt-3">

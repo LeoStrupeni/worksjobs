@@ -1,11 +1,16 @@
 <div class="modal fade" id="createjob" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" >
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="border: none; border-radius: 20px;">
             <div class="modal-header text-white border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px 20px 0 0;">
                 <h5 class="modal-title text-white fw-bold">
                     <i class="fas fa-plus-circle me-2"></i>Nueva Tarea
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex align-items-center gap-2 ms-auto">
+                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3" onclick="syncProductsManual()" title="Sincronizar productos desde Colppy">
+                        <i class="fa-solid fa-sync me-1"></i>Sincronizar Productos
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="modal-body bg-light">
                 <form action="{{route('jobs.store')}}" method="POST" id="formnewjob" enctype="multipart/form-data">
@@ -105,6 +110,66 @@
                                 Descripción del Trabajo
                             </h6>
                             <textarea class="form-control validate" name="job_description" rows="5" placeholder="Describe el trabajo a realizar...">{{ old('job_description') }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Card Productos -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title d-flex align-items-center mb-3">
+                                <span class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                    <i class="fas fa-box text-primary me-2"></i>
+                                </span>
+                                Productos Relacionados
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <label for="product_id_create" class="form-label fw-semibold">
+                                        Producto
+                                        <span id="spinner_product_create" class="d-none">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        </span>
+                                    </label>
+                                    <select class="form-control selectpicker searchvar" 
+                                        id="product_id_create" 
+                                        data-live-search="true" 
+                                        data-size="4" 
+                                        data-dropup-auto="false"
+                                        data-none-selected-text="Seleccione un producto" 
+                                        data-none-results-text="No hay resultados coincidentes">
+                                        <option></option>
+                                        @foreach (Session::get('products') as $p)
+                                            <option value="{{$p->id}}">{{$p->codigo}} - {{$p->descripcion}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="unit_type_create" class="form-label fw-semibold">Tipo de Unidad</label>
+                                    <select class="form-control" id="unit_type_create">
+                                        <option value="Unidad">Unidad</option>
+                                        <option value="Rollo">Rollo</option>
+                                        <option value="Metros">Metros</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="quantity_create" class="form-label fw-semibold">Cantidad</label>
+                                    <input type="number" class="form-control" id="quantity_create" min="0.01" step="0.01" value="1.00">
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="button" class="btn btn-primary w-100" onclick="addProductToJob('create')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Lista de productos agregados -->
+                            <div id="products_list_create">
+                                <!-- Los productos se agregarán aquí dinámicamente -->
+                            </div>
+                            
+                            <!-- Productos ocultos para enviar en el formulario -->
+                            <div id="products_hidden_create"></div>
                         </div>
                     </div>
 

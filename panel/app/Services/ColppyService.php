@@ -337,6 +337,137 @@ class ColppyService
     }
 
     /**
+     * Listar items de inventario de Colppy (solo productos tipo "P")
+     * 
+     * @param int $start Inicio de paginación
+     * @param int $limit Límite de registros
+     * @param array $filtros Filtros adicionales
+     * @param array $orden Ordenamiento
+     * @return array
+     */
+    public function listarInventario(
+        int $start = 0,
+        int $limit = 50,
+        array $filtros = [],
+        array $orden = []
+    ): array {
+        $resultadoSesion = $this->obtenerClaveSesion();
+        if (!$resultadoSesion['success']) {
+            return $resultadoSesion;
+        }
+
+        $claveSesion = Session::get(self::SESSION_KEY);
+        if (empty($claveSesion)) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo obtener claveSesion'
+            ];
+        }
+
+        // Validar limit y start según documentación Colppy
+        if (empty($limit)) {
+            $limit = 50;
+        }
+        
+        if (empty($start) || $start > $limit) {
+            $start = 0;
+        }
+
+        $parameters = [
+            'sesion' => [
+                'usuario' => $this->paramUsuario,
+                'claveSesion' => $claveSesion
+            ],
+            'idEmpresa' => $this->idEmpresa,
+            'start' => $start,
+            'limit' => $limit
+        ];
+
+        // Agregar filtro para solo productos tipo "P" (no servicios ni kits)
+        // Según documentación: tipoItem = "P" (Producto), "S" (Servicio), "K" (Kit)
+        $filtrosBase = [
+            [
+                'field' => 'tipoItem',
+                'comparison' => 'eq',
+                'value' => 'P'
+            ]
+        ];
+
+        // Combinar filtros base con filtros adicionales
+        $parameters['filter'] = array_merge($filtrosBase, $filtros);
+
+        // Order es OBLIGATORIO según documentación Colppy
+        // Si está vacío, usar ordenamiento por defecto
+        if (empty($orden)) {
+            $parameters['order'] = [
+                [
+                    'field' => 'descripcion',
+                    'dir' => 'ASC'
+                ]
+            ];
+        } else {
+            $parameters['order'] = $orden;
+        }
+
+        $payload = [
+            'auth' => [
+                'usuario' => $this->authUsuario,
+                'password' => md5($this->authPassword)
+            ],
+            'service' => [
+                'provision' => 'Inventario',
+                'operacion' => 'listar_itemsinventario'
+            ],
+            'parameters' => $parameters
+        ];
+
+        return $this->hacerLlamada($payload);
+    }
+
+    /**
+     * Obtener item de inventario específico
+     * 
+     * @param string $idItem ID del item en Colppy
+     * @return array
+     */
+    public function obtenerItemInventario(string $idItem): array
+    {
+        $resultadoSesion = $this->obtenerClaveSesion();
+        if (!$resultadoSesion['success']) {
+            return $resultadoSesion;
+        }
+
+        $claveSesion = Session::get(self::SESSION_KEY);
+        if (empty($claveSesion)) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo obtener claveSesion'
+            ];
+        }
+
+        $payload = [
+            'auth' => [
+                'usuario' => $this->authUsuario,
+                'password' => md5($this->authPassword)
+            ],
+            'service' => [
+                'provision' => 'Inventario',
+                'operacion' => 'obtener_itemsinventario'
+            ],
+            'parameters' => [
+                'sesion' => [
+                    'usuario' => $this->paramUsuario,
+                    'claveSesion' => $claveSesion
+                ],
+                'idEmpresa' => $this->idEmpresa,
+                'idItem' => $idItem
+            ]
+        ];
+
+        return $this->hacerLlamada($payload);
+    }
+
+    /**
      * Invalidar sesión actual (limpiar de SESSION)
      */
     public function invalidarSesion(): void

@@ -181,6 +181,7 @@
     @include('job.notes')
     @include('job.closed')
     @include('job.files')
+    @include('job.products')
 @endsection
 
 @section('script_by_page')

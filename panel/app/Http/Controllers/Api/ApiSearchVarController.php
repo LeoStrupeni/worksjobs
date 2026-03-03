@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Clients_Addres;
 use App\Models\Config;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 
@@ -56,8 +57,17 @@ class ApiSearchVarController extends Controller
             $respuesta = Clients_Addres::where('client_id', $search)
                 ->whereNull('deleted_at')
                 ->get();
+        } else if($tipo == 'products') {
+            $respuesta = Product::whereNull('deleted_at')
+                ->where(function($query) use ($search) {
+                    $query->where('codigo', 'LIKE', "%$search%")
+                          ->orWhere('descripcion', 'LIKE', "%$search%");
+                })
+                ->limit(10)
+                ->get();
         }
 
         return $respuesta;
     }
+
 }

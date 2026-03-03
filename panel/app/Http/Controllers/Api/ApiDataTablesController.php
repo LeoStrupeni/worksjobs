@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncColppyClientsJob;
+use App\Jobs\SyncColppyProductsJob;
 use App\Models\Client;
 use App\Models\Clients_Addres;
 use App\Models\Config;
 use App\Models\Permission;
+use App\Models\Product;
 use App\Models\Rol;
 use App\Models\User;
 use App\Services\ColppyService;
@@ -552,7 +554,7 @@ class ApiDataTablesController extends Controller
                     return response()->json([
                         'success' => true,
                         'message' => 'Sincronización de clientes Colppy iniciada en background',
-                        'nota' => 'Recuerda: Debes tener el queue worker corriendo (php artisan queue:work)'
+                        'nota' => 'La sincronización se ejecuta automáticamente via Scheduler cada minuto'
                     ]);
                 } else {
                     return response()->json([
@@ -661,7 +663,7 @@ class ApiDataTablesController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('ERROR FATAL en getSyncStats', [
+            Log::error('ERROR FATAL en getSyncStats', [
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
@@ -670,6 +672,199 @@ class ApiDataTablesController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener estadísticas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Disparar sincronización de productos Colppy
+     * Usado por: Vista de productos al cargar la página
+     * Se ejecuta directamente usando el Scheduler (no usa Jobs ni queue:work)
+     */
+    public function syncColppyProducts()
+    {
+        try {
+            // Verificar si no hay una sincronización reciente (últimos 5 minutos)
+            $ultimaSinc = Session::get('ultima_sinc_productos_colppy');
+            $tiempoActual = time();
+            
+            // Solo sincronizar si pasaron más de 5 minutos desde la última sincronización
+            if (!$ultimaSinc || ($tiempoActual - $ultimaSinc) > 300) {
+                Session::put('ultima_sinc_productos_colppy', $tiempoActual);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sincronización de productos programada',
+                    'nota' => 'La sincronización se ejecuta automáticamente cada 2 horas vía Scheduler'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sincronización reciente, no es necesario ejecutar nuevamente'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error al verificar sincronización de productos Colppy', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Ejecutar sincronización de productos de forma SINCRÓNICA (para debugging)
+     * NO usar en producción con muchos productos - puede tardar varios minutos
+     * Usado por: Debug/Testing
+     */
+    public function syncColppyProductsNow()
+    {
+        try {
+            Log::info('=== SINCRONIZACIÓN SINCRÓNICA DE PRODUCTOS INICIADA MANUALMENTE ===');
+            
+            $syncService = new \App\Services\SyncColppyProductsService();
+            $resultado = $syncService->syncProducts();
+            
+            if ($resultado['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Sincronización de productos completada',
+                    'datos' => [
+                        'nuevos' => $resultado['nuevos'],
+                        'actualizados' => $resultado['actualizados'],
+                        'errores' => $resultado['errores'],
+                        'total' => $resultado['total']
+                    ]
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $resultado['mensaje'] ?? 'Error desconocido'
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en sincronización sincrónica de productos', ['error' => $e->getMessage()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener estadísticas de sincronización de productos
+     * Compara productos locales vs Colppy
+     */
+    public function getProductSyncStats()
+    {
+        try {
+            // Contar productos locales (propios, no de Colppy)
+            $productosLocales = Product::where(function($query) {
+                $query->where('is_from_colppy', false)
+                      ->orWhereNull('is_from_colppy');
+            })->count();
+            
+            // Contar productos de Colppy
+            $productosColppyLocal = Product::where('is_from_colppy', true)->count();
+            
+            // Total local
+            $totalLocal = Product::count();
+            
+            // Intentar obtener total desde Colppy API
+            $totalColppy = 0;
+            try {
+                $colppyService = new ColppyService();
+                $resultado = $colppyService->listarInventario(0, 1, [], []);
+                $totalColppy = $resultado['total'] ?? 0;
+            } catch (\Exception $colppyError) {
+                // Continuar sin Colppy
+            }
+            
+            $diferencia = $totalColppy - $productosColppyLocal;
+            
+            return response()->json([
+                'success' => true,
+                'stats' => [
+                    'local_total' => $totalLocal,
+                    'local_propios' => $productosLocales,
+                    'local_de_colppy' => $productosColppyLocal,
+                    'colppy_total' => $totalColppy,
+                    'diferencia' => $diferencia,
+                    'necesita_sincronizar' => $diferencia != 0
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('ERROR FATAL en getProductSyncStats', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener estadísticas de productos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener listado de productos para DataTable o select
+     * Usado por: Web panel
+     */
+    public function getProducts(Request $request)
+    {
+        try {
+            $query = Product::query()
+                ->where('tipo_item', 'P')
+                ->activos() // Solo productos activos (sin fecha de baja)
+                ->orderBy('descripcion', 'ASC');
+            
+            // Filtro por búsqueda
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('codigo', 'LIKE', "%{$search}%")
+                      ->orWhere('descripcion', 'LIKE', "%{$search}%")
+                      ->orWhere('detalle', 'LIKE', "%{$search}%");
+                });
+            }
+            
+            // Paginación
+            if ($request->has('limit')) {
+                $limit = (int) $request->limit;
+                $productos = $query->paginate($limit);
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => $productos->items(),
+                    'total' => $productos->total(),
+                    'per_page' => $productos->perPage(),
+                    'current_page' => $productos->currentPage()
+                ]);
+            } else {
+                $productos = $query->get();
+                
+                return response()->json([
+                    'success' => true,
+                    'data' => $productos,
+                    'total' => $productos->count()
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Error al obtener productos', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener productos: ' . $e->getMessage()
             ], 500);
         }
     }

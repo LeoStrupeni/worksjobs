@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +63,12 @@ class ApiAuthController extends Controller
             return ['id' => $u->id, 'name' => $u->name];
         })->values()->toArray();
 
+        // Obtener lista de productos (misma lógica que en web)
+        $_products = Product::query()->whereNull('deleted_at')->limit(10)->get(['id', 'codigo', 'descripcion']);
+        $products = $_products->map(function($u) {
+            return ['id' => $u->id, 'codigo' => $u->codigo, 'descripcion' => $u->descripcion];
+        })->values()->toArray();
+
         return response()->json([
             'success' => true,
             'message' => 'Login exitoso',
@@ -75,7 +82,8 @@ class ApiAuthController extends Controller
                     'permissions' => $permissions
                 ],
                 'token' => $token,
-                'technicians' => $technicians
+                'technicians' => $technicians,
+                'products' => $products
             ]
         ], 200);
     }

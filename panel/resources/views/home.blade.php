@@ -22,35 +22,6 @@
             color: var(--bs-white)!important;
         }
 
-        /* Estilos para selectpicker en modal de editar */
-        #modal-body-edit-job .bootstrap-select > .dropdown-toggle {
-            border: 2px solid #0d6efd !important;
-            border-radius: 8px !important;
-            padding: 10px 40px 10px 12px !important;
-            background-color: white !important;
-            box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important;
-            font-weight: 500;
-            height: auto !important;
-            min-height: 44px;
-        }
-
-        #modal-body-edit-job .bootstrap-select > .dropdown-toggle:hover,
-        #modal-body-edit-job .bootstrap-select > .dropdown-toggle:focus {
-            background-color: #f8f9fa !important;
-            border-color: #0a58ca !important;
-        }
-
-        #modal-body-edit-job .bootstrap-select > .dropdown-toggle::after {
-            border-top: 0.4em solid #0d6efd !important;
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        #modal-body-edit-job .bootstrap-select .filter-option-inner-inner {
-            color: #212529;
-        }
 
     </style>
   @endsection
@@ -65,6 +36,7 @@
     @include('job.notes')
     @include('job.closed')
     @include('job.files')
+    @include('job.products')
   @endsection
 
   @section('script_by_page')

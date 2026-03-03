@@ -150,12 +150,17 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/client/address', [ClientController::class,'postAddress']);
     Route::delete('/client/address/{id}', [ClientController::class,'detroyAddress']);
 
+    // Rutas de sincronización de productos Colppy
+    Route::post('/products/sync-colppy', [ApiDataTablesController::class,'syncColppyProducts'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::post('/products/sync-colppy-now', [ApiDataTablesController::class,'syncColppyProductsNow'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+
     Route::resource('/jobs',JobController::class);
     Route::post('/jobs/table', [ApiJobController::class,'getDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     Route::post('/jobs/markarrival', [JobController::class,'markarrival']);
     Route::post('/jobs/backarrival', [JobController::class,'backarrival']);
     Route::post('/jobs/closed', [JobController::class,'closed'])->name('job.closed');
     Route::post('/jobs/archive/{id}', [JobController::class,'archive'])->name('job.archive');
+    Route::put('/jobs/{id}/products', [JobController::class,'updateProducts'])->name('job.products');
     Route::post('/jobs/addnote', [JobController::class,'addnote']);
     Route::get('/jobs/notes/{id}', [JobController::class,'getnotes']);
     Route::get('/jobs/destroynote/{id}', [JobController::class,'destroynote']);

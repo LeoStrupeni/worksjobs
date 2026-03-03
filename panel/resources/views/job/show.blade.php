@@ -95,6 +95,37 @@
                                     </div>
                                 </div>
 
+                                {{-- Tarjeta: Productos Relacionados --}}
+                                <div class="col-12" id="products_show_container" style="display: none;">
+                                    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                                        <div class="card-header bg-white border-0 pt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                                    <i class="fas fa-box fa-lg text-primary me-2"></i>
+                                                </div>
+                                                <h6 class="mb-0 fw-bold">Productos Relacionados</h6>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="products_show_body" class="table-responsive">
+                                                <table class="table table-sm table-hover">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Código</th>
+                                                            <th>Descripción</th>
+                                                            <th>Tipo de Unidad</th>
+                                                            <th class="text-end">Cantidad</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="products_show_tbody">
+                                                        {{-- llenado vía JS --}}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {{-- Tarjeta: Observaciones de Cierre --}}
                                 <div class="col-md-6">
                                     <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">

@@ -41,6 +41,12 @@ class Job extends Model
         return $this->belongsToMany(\App\Models\User::class, 'job_technicians', 'job_id', 'user_id')->withTimestamps();
     }
 
+    // Relación con productos
+    public function products()
+    {
+        return $this->hasMany(JobProduct::class, 'job_id');
+    }
+
     /**
      * Query centralizado para obtener jobs con toda la lógica de negocio
      * Usado tanto en web (JobController) como en API (ApiJobController)
