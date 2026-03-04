@@ -23,6 +23,7 @@ class Job {
   final String? createdAt;
   final String? updatedAt;
   final List<Map<String, dynamic>>? technicians;
+  final List<Map<String, dynamic>>? products;
   
   // Dirección completa del backend
   final String? clientAddresName;
@@ -62,6 +63,7 @@ class Job {
     this.createdAt,
     this.updatedAt,
     this.technicians,
+    this.products,
     this.clientAddresName,
     this.addressStreet,
     this.addressNumber,
@@ -78,7 +80,8 @@ class Job {
       return Job(
         id: json['id'],
         clientId: json['client_id'],
-        addressId: json['address_id'],
+        // El backend usa 'client_addres_id' (mal escrito) en el endpoint show
+        addressId: json['address_id'] ?? json['client_addres_id'],
         clientName: json['client_name'],
         clientFirstName: json['client_first_name'],
         clientLastName: json['client_last_name'],
@@ -113,6 +116,9 @@ class Job {
         updatedAt: json['updated_at'],
         technicians: json['technicians'] != null 
           ? (json['technicians'] as List).cast<Map<String, dynamic>>() 
+          : null,
+        products: json['products'] != null 
+          ? (json['products'] as List).cast<Map<String, dynamic>>() 
           : null,
         clientAddresName: json['client_addres_name'],
         addressStreet: json['address_street'],

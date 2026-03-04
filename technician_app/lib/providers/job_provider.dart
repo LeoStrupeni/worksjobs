@@ -5,6 +5,7 @@ import '../models/job_file.dart';
 import '../models/job_permissions.dart';
 import '../models/client.dart';
 import '../models/address.dart';
+import '../models/product.dart';
 import '../services/job_service.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -276,6 +277,64 @@ class JobProvider with ChangeNotifier {
     }
   }
 
+  // Eliminar nota
+  Future<bool> deleteNote(int jobId, int noteId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.deleteNote(noteId);
+      
+      if (result['success'] == true) {
+        // Refrescar notas
+        await fetchJobDetail(jobId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Eliminar archivo/imagen
+  Future<bool> deleteFile(int jobId, int fileId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.deleteFile(fileId);
+      
+      if (result['success'] == true) {
+        // Refrescar archivos
+        await fetchJobDetail(jobId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Obtener ubicación actual
   Future<Position?> _getCurrentLocation() async {
     try {
@@ -437,6 +496,7 @@ class JobProvider with ChangeNotifier {
     double? longitude,
     String? jsonGeolocation,
     List<int>? technicianIds,
+    List<SelectedProduct>? products,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -452,6 +512,7 @@ class JobProvider with ChangeNotifier {
         longitude: longitude,
         jsonGeolocation: jsonGeolocation,
         technicianIds: technicianIds,
+        products: products,
       );
       
       if (result['success'] == true) {
@@ -484,6 +545,7 @@ class JobProvider with ChangeNotifier {
     double? longitude,
     String? jsonGeolocation,
     List<int>? technicianIds,
+    List<SelectedProduct>? products,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -499,6 +561,7 @@ class JobProvider with ChangeNotifier {
         longitude: longitude,
         jsonGeolocation: jsonGeolocation,
         technicianIds: technicianIds,
+        products: products,
       );
       
       if (result['success'] == true) {
@@ -550,6 +613,16 @@ class JobProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Buscar productos
+  Future<List<Product>> searchProducts(String query) async {
+    try {
+      return await _jobService.searchProducts(query);
+    } catch (e) {
+      print('❌ searchProducts (Provider): $e');
+      return [];
     }
   }
 }

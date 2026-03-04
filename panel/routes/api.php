@@ -62,8 +62,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/close', [JobController::class, 'closed']);
         Route::post('/{id}/notes', [JobController::class, 'addnote']);
         Route::delete('/notes/{id}', [JobController::class, 'destroynote']);
+        Route::delete('/notes/{noteId}/delete', [ApiJobController::class, 'deleteNote']);
         Route::post('/{id}/files', [JobController::class, 'onlyaddfiles']);
         Route::delete('/files/{id}', [JobController::class, 'destroyfile']);
+        Route::delete('/files/{fileId}/delete', [ApiJobController::class, 'deleteFile']);
     });
     
     // Clientes endpoints

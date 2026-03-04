@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/job_provider.dart';
 import '../models/job.dart';
+import '../models/product.dart';
 import '../models/technician.dart';
 import '../services/auth_service.dart';
 import '../utils/custom_alerts.dart';
+import 'edit_job_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
   final int jobId;
@@ -105,17 +107,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Color(0xFF00274E)),
-              title: const Text('Seleccionar de Galería'),
+              title: const Text('Seleccionar de Galería (Múltiple)'),
               onTap: () async {
                 Navigator.pop(context);
-                final XFile? photo = await picker.pickImage(
-                  source: ImageSource.gallery,
+                final List<XFile> images = await picker.pickMultiImage(
                   maxWidth: 1920,
                   maxHeight: 1080,
                   imageQuality: 85,
                 );
-                if (photo != null) {
-                  await _uploadPhoto(photo.path);
+                if (images.isNotEmpty) {
+                  await _uploadPhotos(images.map((e) => e.path).toList());
                 }
               },
             ),
@@ -234,6 +235,74 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _uploadPhotos(List<String> filePaths) async {
+    final jobProvider = context.read<JobProvider>();
+    final count = filePaths.length;
+    
+    // Mostrar indicador de carga
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text('Subiendo $count foto${count != 1 ? 's' : ''}...'),
+            ],
+          ),
+          duration: const Duration(seconds: 30),
+        ),
+      );
+    }
+
+    final success = await jobProvider.uploadFiles(widget.jobId, filePaths);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success 
+              ? '✅ $count foto${count != 1 ? 's' : ''} subida${count != 1 ? 's' : ''} exitosamente' 
+              : '❌ Error al subir fotos',
+          ),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteImage(dynamic file) async {
+    final confirmed = await CustomAlerts.showConfirmAlert(
+      context,
+      title: 'Eliminar Imagen',
+      message: '¿Estás seguro que deseas eliminar esta imagen?',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+    );
+
+    if (!confirmed || !mounted) return;
+
+    final success = await CustomAlerts.executeWithLoading(
+      context,
+      operation: () async {
+        return await context.read<JobProvider>().deleteFile(widget.jobId, file.id);
+      },
+      loadingMessage: 'Eliminando imagen...',
+      successTitle: 'Imagen eliminada',
+      successMessage: 'La imagen se eliminó correctamente',
+      errorTitle: 'Error al eliminar imagen',
+      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo eliminar la imagen',
+    );
   }
 
   Future<void> _showAddNoteDialog() async {
@@ -413,6 +482,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _navigateToEditProducts() async {
+    final job = context.read<JobProvider>().selectedJob;
+    if (job == null) return;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => _ProductsDialog(job: job),
+    );
+    
+    // Si se guardaron cambios, recargar el detalle
+    if (result == true && mounted) {
+      context.read<JobProvider>().fetchJobDetail(widget.jobId);
+    }
   }
 
   Future<void> _showCloseJobDialog() async {
@@ -820,6 +904,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 // Técnicos asignados
                 _buildTechniciansSection(job),
                 
+                // Productos
+                _buildProductsSection(job),
+                
                 // Notas
                 _buildNotesSection(jobProvider.notes),
                 
@@ -1076,41 +1163,69 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey[300]!),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.image, size: 40, color: Colors.grey[400]),
-                                const SizedBox(height: 4),
-                                Padding(
-                                  padding: const EdgeInsets.all(4),
-                                  child: Text(
-                                    file.originalName ?? 'Imagen',
-                                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.image, size: 40, color: Colors.grey[400]),
+                                    const SizedBox(height: 4),
+                                    Padding(
+                                      padding: const EdgeInsets.all(4),
+                                      child: Text(
+                                        file.originalName ?? 'Imagen',
+                                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
                                   ),
+                                );
+                              },
+                            ),
+                          ),
+                          // Botón de eliminar - solo si tiene permiso
+                          if (context.read<JobProvider>().permissions?.delete ?? false)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.9),
+                                  shape: BoxShape.circle,
                                 ),
-                              ],
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                    : null,
+                                child: IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 16),
+                                  color: Colors.white,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
+                                  onPressed: () => _deleteImage(file),
+                                ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                        ],
                       ),
                     ),
                   );
@@ -1205,6 +1320,102 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     );
   }
 
+  Widget _buildProductsSection(Job job) {
+    final hasProducts = job.products != null && job.products!.isNotEmpty;
+    
+    return Card(
+      margin: const EdgeInsets.all(12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.inventory_2, color: Color(0xFF00274E)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Productos',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                // Botón para editar productos (solo si no está cerrada)
+                if (!job.isClosed)
+                  IconButton(
+                    onPressed: () => _navigateToEditProducts(),
+                    icon: const Icon(Icons.edit, size: 20),
+                    color: const Color(0xFF00274E),
+                    tooltip: 'Gestionar Productos',
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey[100],
+            child: hasProducts
+                ? Column(
+                    children: job.products!.map((product) {
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: Color(0xFF00274E),
+                            child: Icon(
+                              Icons.inventory_2,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                          title: Text(
+                            '${product['codigo'] ?? 'N/A'} - ${product['descripcion'] ?? 'N/A'}',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            'Cantidad: ${product['quantity'] ?? 'N/A'} ${product['unit_type'] ?? 'Unidad'}',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  )
+                : Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No hay productos asociados',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        if (!job.isClosed) ...[
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _navigateToEditProducts,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Agregar Productos'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButtons(Job job) {
     if (job.isClosed) {
       return const SizedBox.shrink();
@@ -1290,5 +1501,647 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     } catch (e) {
       return datetime;
     }
+  }
+}
+
+// Modal de gestión de productos
+class _ProductsDialog extends StatefulWidget {
+  final Job job;
+
+  const _ProductsDialog({required this.job});
+
+  @override
+  State<_ProductsDialog> createState() => _ProductsDialogState();
+}
+
+class _ProductsDialogState extends State<_ProductsDialog> {
+  final _searchController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
+  
+  List<Product> _searchResults = [];
+  List<Product> _initialProducts = [];
+  List<SelectedProduct> _selectedProducts = [];
+  
+  Product? _selectedProduct;
+  String _selectedUnitType = 'Unidad';
+  bool _isSearching = false;
+  bool _isLoading = true;
+  
+  // Guardar el job completo con address_id
+  Job? _fullJob;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _quantityController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      print('🟢 MODAL DETALLE: Iniciando carga de productos...');
+      print('🟢 MODAL DETALLE: widget.job.products = ${widget.job.products}');
+      
+      // Cargar productos iniciales desde AuthService
+      final authService = AuthService();
+      final productsData = await authService.getProducts();
+      
+      // Convertir Map a Product
+      final products = productsData.map((p) => Product.fromJson(p)).toList();
+      
+      // Si no hay productos en el job, cargar el detalle completo (por si acaso)
+      List<dynamic> currentProductsData;
+      if (widget.job.products == null) {
+        print('🟢 MODAL DETALLE: Productos null, cargando detalle completo...');
+        final jobProvider = context.read<JobProvider>();
+        await jobProvider.fetchJobDetail(widget.job.id!);
+        final jobDetail = jobProvider.selectedJob;
+        _fullJob = jobDetail; // Guardar el job completo con address_id
+        currentProductsData = jobDetail?.products ?? [];
+        print('🟢 MODAL DETALLE: Productos cargados desde detalle: ${currentProductsData.length}');
+        print('🟢 MODAL DETALLE: addressId desde detalle: ${jobDetail?.addressId}');
+      } else {
+        currentProductsData = widget.job.products!;
+        _fullJob = widget.job; // Usar el job original si ya tiene productos
+      }
+      
+      print('🟢 MODAL DETALLE: currentProductsData length = ${currentProductsData.length}');
+      print('🟢 MODAL DETALLE: currentProductsData = $currentProductsData');
+      
+      setState(() {
+        _initialProducts = products;
+        _searchResults = products;
+        
+        // Convertir los Map de productos del backend a SelectedProduct
+        _selectedProducts = currentProductsData.map((pData) {
+          // Convertir quantity de manera segura (puede venir como String o num)
+          double parsedQuantity = 1.0;
+          final quantityValue = pData['quantity'];
+          if (quantityValue is num) {
+            parsedQuantity = quantityValue.toDouble();
+          } else if (quantityValue is String) {
+            parsedQuantity = double.tryParse(quantityValue) ?? 1.0;
+          }
+          
+          // Convertir product_id de manera segura
+          int productId;
+          final productIdValue = pData['product_id'];
+          if (productIdValue is int) {
+            productId = productIdValue;
+          } else if (productIdValue is String) {
+            productId = int.tryParse(productIdValue) ?? 0;
+          } else {
+            productId = 0;
+          }
+          
+          return SelectedProduct(
+            product: Product(
+              id: productId,
+              codigo: pData['codigo'] as String,
+              descripcion: pData['descripcion'] as String,
+              isFromColppy: pData['is_from_colppy'] == 1 || pData['is_from_colppy'] == '1' || pData['is_from_colppy'] == true,
+            ),
+            unitType: pData['unit_type'] as String? ?? 'Unidad',
+            quantity: parsedQuantity,
+            uniqueId: pData['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          );
+        }).toList();
+        
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar productos: $e')),
+        );
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim();
+    
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = _initialProducts;
+        _isSearching = false;
+      });
+      return;
+    }
+    
+    if (query.length < 2) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+    
+    _performSearch(query);
+  }
+
+  Future<void> _performSearch(String query) async {
+    setState(() => _isSearching = true);
+    
+    try {
+      final jobProvider = context.read<JobProvider>();
+      final results = await jobProvider.searchProducts(query);
+      
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSearching = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error en búsqueda: $e')),
+        );
+      }
+    }
+  }
+
+  void _addProduct() {
+    if (_selectedProduct == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona un producto')),
+      );
+      return;
+    }
+    
+    final quantity = double.tryParse(_quantityController.text) ?? 1.0;
+    if (quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La cantidad debe ser mayor a 0')),
+      );
+      return;
+    }
+    
+    final newProduct = SelectedProduct(
+      product: _selectedProduct!,
+      unitType: _selectedUnitType,
+      quantity: quantity,
+      uniqueId: DateTime.now().millisecondsSinceEpoch.toString(),
+    );
+    
+    setState(() {
+      _selectedProducts.add(newProduct);
+      _selectedProduct = null;
+      _searchController.clear();
+      _quantityController.text = '1';
+      _selectedUnitType = 'Unidad';
+      _searchResults = _initialProducts;
+    });
+  }
+
+  void _removeProduct(int index) {
+    setState(() {
+      _selectedProducts.removeAt(index);
+    });
+  }
+
+  Future<void> _saveProducts() async {
+    // Usar el job completo que tiene todos los datos necesarios
+    final jobToUse = _fullJob ?? widget.job;
+    
+    if (jobToUse.addressId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: La tarea no tiene dirección asignada')),
+        );
+      }
+      return;
+    }
+    
+    // Parsear visitDatetime que viene como String
+    DateTime visitDateTime;
+    try {
+      visitDateTime = DateTime.parse(jobToUse.visitDatetime!);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al procesar la fecha de visita')),
+        );
+      }
+      return;
+    }
+    
+    // Extraer IDs de técnicos
+    final technicianIds = jobToUse.technicians?.map((t) => t['id'] as int).toList();
+    
+    final success = await CustomAlerts.executeWithLoading(
+      context,
+      operation: () async {
+        return await context.read<JobProvider>().updateJob(
+          jobId: jobToUse.id!,
+          addressId: jobToUse.addressId!,
+          visitDateTime: visitDateTime,
+          description: jobToUse.jobDescription ?? '',
+          latitude: jobToUse.visitLatitud,
+          longitude: jobToUse.visitLongitud,
+          technicianIds: technicianIds,
+          products: _selectedProducts,
+        );
+      },
+      loadingMessage: 'Guardando productos...',
+      successTitle: 'Productos actualizados',
+      successMessage: 'Los productos se actualizaron correctamente',
+      errorTitle: 'Error al actualizar productos',
+      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudieron actualizar los productos',
+    );
+    
+    if (success && mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 700, maxWidth: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00274E),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory_2, color: Colors.white),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Gestionar Productos',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            
+            if (_isLoading)
+              const Expanded(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Búsqueda de productos
+                      const Text(
+                        'Buscar Producto',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar por código o descripción...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _isSearching
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      
+                      // Resultados de búsqueda
+                      if (_searchResults.isNotEmpty && !_isSearching)
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 220),
+                          margin: const EdgeInsets.only(top: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFF00274E).withOpacity(0.3), width: 2),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                spreadRadius: 1,
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF00274E).withOpacity(0.1),
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(10),
+                                    topRight: Radius.circular(10),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.inventory_2, size: 16, color: Color(0xFF00274E)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${_searchResults.length} producto${_searchResults.length != 1 ? 's' : ''} encontrado${_searchResults.length != 1 ? 's' : ''}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF00274E),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  itemCount: _searchResults.length,
+                                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade300),
+                                  itemBuilder: (context, index) {
+                                    final product = _searchResults[index];
+                                    final isSelected = _selectedProduct?.id == product.id;
+                                    return InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedProduct = product;
+                                          _searchController.text = product.displayName;
+                                          _searchResults = [];
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        color: isSelected ? const Color(0xFF00274E).withOpacity(0.1) : null,
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 16,
+                                              backgroundColor: isSelected 
+                                                ? const Color(0xFF00274E) 
+                                                : Colors.grey.shade300,
+                                              child: Icon(
+                                                Icons.inventory_2,
+                                                size: 16,
+                                                color: isSelected ? Colors.white : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    product.codigo,
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 13,
+                                                      color: isSelected ? const Color(0xFF00274E) : Colors.black87,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    product.descripcion,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey.shade700,
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (isSelected)
+                                              const Icon(
+                                                Icons.check_circle,
+                                                color: Color(0xFF00274E),
+                                                size: 24,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      
+                      if (_selectedProduct != null) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Cantidad y Tipo de Unidad',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: _quantityController,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: const InputDecoration(
+                                  labelText: 'Cantidad',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 3,
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedUnitType,
+                                decoration: const InputDecoration(
+                                  labelText: 'Tipo',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'Unidad', child: Text('Unidad')),
+                                  DropdownMenuItem(value: 'Rollo', child: Text('Rollo')),
+                                  DropdownMenuItem(value: 'Metros', child: Text('Metros')),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => _selectedUnitType = value);
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _addProduct,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Agregar Producto'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF00274E),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Lista de productos agregados
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Productos Agregados',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${_selectedProducts.length} producto(s)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      if (_selectedProducts.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'No hay productos agregados',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _selectedProducts.length,
+                          itemBuilder: (context, index) {
+                            final selectedProduct = _selectedProducts[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: const CircleAvatar(
+                                  backgroundColor: Color(0xFF00274E),
+                                  child: Icon(Icons.inventory_2, color: Colors.white, size: 20),
+                                ),
+                                title: Text(
+                                  selectedProduct.product.codigo,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(
+                                  '${selectedProduct.product.descripcion}\n${selectedProduct.quantity} ${selectedProduct.unitType}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                isThreeLine: true,
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _removeProduct(index),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            
+            // Footer con botones
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                border: Border(top: BorderSide(color: Colors.grey.shade300)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: _saveProducts,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00274E),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Guardar Cambios'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

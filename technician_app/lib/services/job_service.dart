@@ -6,6 +6,7 @@ import '../models/note.dart';
 import '../models/job_file.dart';
 import '../models/client.dart';
 import '../models/address.dart';
+import '../models/product.dart';
 import 'auth_service.dart';
 
 class JobService {
@@ -374,6 +375,48 @@ class JobService {
     }
   }
 
+  // Eliminar nota
+  Future<Map<String, dynamic>> deleteNote(int noteId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        return {'success': false, 'message': 'No autenticado'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/notes/$noteId/delete'),
+        headers: ApiConfig.getHeaders(token: token),
+      );
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
+
+  // Eliminar archivo/imagen
+  Future<Map<String, dynamic>> deleteFile(int fileId) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        return {'success': false, 'message': 'No autenticado'};
+      }
+
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/files/$fileId/delete'),
+        headers: ApiConfig.getHeaders(token: token),
+      );
+
+      final data = jsonDecode(response.body);
+      return data;
+    } catch (e) {
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
+
   // Volver a pendiente (desmarcar llegada)
   Future<bool> backToPending(int jobId) async {
     try {
@@ -544,6 +587,7 @@ class JobService {
     double? longitude,
     String? jsonGeolocation,
     List<int>? technicianIds,
+    List<SelectedProduct>? products,
   }) async {
     try {
       final token = await _authService.getToken();
@@ -568,6 +612,9 @@ class JobService {
       if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
       if (technicianIds != null && technicianIds.isNotEmpty) {
         bodyData['technician_ids'] = technicianIds;
+      }
+      if (products != null && products.isNotEmpty) {
+        bodyData['products'] = products.map((p) => p.toJson()).toList();
       }
       
       print('📦 createJob: Body: $bodyData');
@@ -718,6 +765,7 @@ class JobService {
     double? longitude,
     String? jsonGeolocation,
     List<int>? technicianIds,
+    List<SelectedProduct>? products,
   }) async {
     try {
       final token = await _authService.getToken();
@@ -741,6 +789,9 @@ class JobService {
       if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
       if (technicianIds != null) {
         bodyData['technician_ids'] = technicianIds;
+      }
+      if (products != null && products.isNotEmpty) {
+        bodyData['products'] = products.map((p) => p.toJson()).toList();
       }
       
       print('📦 updateJob: Body: $bodyData');
@@ -817,6 +868,48 @@ class JobService {
     } catch (e) {
       print('❌ updateJobTechnicians: Exception: $e');
       return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
+
+  // Buscar productos por query
+  Future<List<Product>> searchProducts(String query) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('❌ searchProducts: No autenticado');
+        return [];
+      }
+
+      if (query.length < 2) {
+        return [];
+      }
+
+      print('🔍 searchProducts: Buscando productos con query: "$query"');
+      
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/jobs/products?search=$query'),
+        headers: ApiConfig.getHeaders(token: token),
+      );
+
+      print('📥 searchProducts: Status ${response.statusCode}');
+      print('📄 searchProducts: Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final products = (data['data'] as List)
+              .map((product) => Product.fromJson(product))
+              .toList();
+          print('✅ searchProducts: ${products.length} productos encontrados');
+          return products;
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print('❌ searchProducts: Exception: $e');
+      return [];
     }
   }
 }

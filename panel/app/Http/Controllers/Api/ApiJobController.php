@@ -328,9 +328,11 @@ class ApiJobController extends Controller
         $jobModel = Job::find($id);
         $technicians = $jobModel->technicians()->select('users.id', 'users.name')->get();
         
-        // Obtener productos relacionados
+        // Obtener productos relacionados con el campo is_from_colppy del producto
         $products = JobProduct::where('job_id', $id)
-            ->whereNull('deleted_at')
+            ->whereNull('job_products.deleted_at')
+            ->leftJoin('products', 'job_products.product_id', '=', 'products.id')
+            ->select('job_products.*', 'products.is_from_colppy')
             ->get();
         
         // Convertir job a array y agregar técnicos
@@ -410,6 +412,72 @@ class ApiJobController extends Controller
         ];
     }
     
+    /**
+     * Eliminar una nota
+     * Usado por: App Móvil
+     */
+    public function deleteNote(Request $request, $noteId)
+    {
+        try {
+            $note = Jobs_Note::find($noteId);
+            
+            if (!$note) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nota no encontrada'
+                ], 404);
+            }
+            
+            $note->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Nota eliminada correctamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar nota: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Eliminar una imagen/archivo
+     * Usado por: App Móvil
+     */
+    public function deleteFile(Request $request, $fileId)
+    {
+        try {
+            $file = Jobs_file::find($fileId);
+            
+            if (!$file) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Archivo no encontrado'
+                ], 404);
+            }
+            
+            // Eliminar archivo físico si existe
+            $filePath = public_path('storage/' . $file->file);
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+            
+            $file->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Archivo eliminado correctamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar archivo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Obtener direcciones de un cliente
      * Usado por: App Móvil
@@ -524,7 +592,7 @@ class ApiJobController extends Controller
             });
         }
         
-        $products = $query->limit(10)->get(['id', 'codigo', 'descripcion']);
+        $products = $query->limit(10)->get(['id', 'codigo', 'descripcion', 'is_from_colppy']);
         
         return response()->json([
             'success' => true,

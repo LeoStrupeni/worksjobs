@@ -64,9 +64,14 @@ class ApiAuthController extends Controller
         })->values()->toArray();
 
         // Obtener lista de productos (misma lógica que en web)
-        $_products = Product::query()->whereNull('deleted_at')->limit(10)->get(['id', 'codigo', 'descripcion']);
+        $_products = Product::query()->whereNull('deleted_at')->limit(10)->get(['id', 'codigo', 'descripcion', 'is_from_colppy']);
         $products = $_products->map(function($u) {
-            return ['id' => $u->id, 'codigo' => $u->codigo, 'descripcion' => $u->descripcion];
+            return [
+                'id' => $u->id, 
+                'codigo' => $u->codigo, 
+                'descripcion' => $u->descripcion,
+                'is_from_colppy' => $u->is_from_colppy ?? false
+            ];
         })->values()->toArray();
 
         return response()->json([

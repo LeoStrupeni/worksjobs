@@ -7,6 +7,7 @@ import '../providers/job_provider.dart';
 import '../models/job.dart';
 import '../models/address.dart';
 import '../models/technician.dart';
+import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../utils/custom_alerts.dart';
 
@@ -22,6 +23,8 @@ class EditJobScreen extends StatefulWidget {
 class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
+  final _productSearchController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1.00');
   
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
@@ -30,6 +33,14 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
   bool _isLoadingAddresses = false;
   List<Technician> _technicians = [];
   List<int> _selectedTechnicianIds = [];
+  
+  // Productos
+  List<Product> _productSearchResults = [];
+  List<Product> _initialProducts = [];
+  Product? _selectedProduct;
+  String _selectedUnitType = 'Unidad';
+  List<SelectedProduct> _selectedProducts = [];
+  bool _isSearchingProducts = false;
 
   @override
   void initState() {
@@ -49,11 +60,15 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
     // Cargar técnicos y direcciones del cliente
     _loadTechnicians();
     _loadClientAddresses();
+    _loadInitialProducts();
+    _loadProducts();
   }
 
   @override
   void dispose() {
     _descriptionController.dispose();
+    _productSearchController.dispose();
+    _quantityController.dispose();
     super.dispose();
   }
 
@@ -99,6 +114,23 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
     });
   }
 
+  Future<void> _loadInitialProducts() async {
+    print('🔵 EDIT: _loadInitialProducts: Iniciando carga...');
+    final authService = AuthService();
+    final productsData = await authService.getProducts();
+    print('🔵 EDIT: productsData recibidos: ${productsData.length}');
+    final products = productsData.map((json) => Product.fromJson(json)).toList();
+    print('🔵 EDIT: ${products.length} productos parseados');
+    if (products.isNotEmpty) {
+      print('🔵 EDIT: Primer producto: ${products[0].displayName}');
+    }
+    setState(() {
+      _initialProducts = products;
+      _productSearchResults = products; // Mostrar inicialmente los 10 productos del login
+    });
+    print('🔵 EDIT: Estado actualizado con ${_productSearchResults.length} productos');
+  }
+
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -127,7 +159,168 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
       });
     }
   }
+  // Cargar productos existentes del job
+  void _loadProducts() {
+    print('🟠 EDIT: _loadProducts iniciando...');
+    print('🟠 EDIT: widget.job.products = ${widget.job.products}');
+    if (widget.job.products != null && widget.job.products!.isNotEmpty) {
+      print('🟠 EDIT: Hay ${widget.job.products!.length} productos');
+      print('🟠 EDIT: Tipo de widget.job.products[0]: ${widget.job.products![0].runtimeType}');
+      try {
+        setState(() {
+          _selectedProducts = widget.job.products!.map((pData) {
+            print('🟠 EDIT: Procesando producto: $pData');
+            
+            // Convertir quantity de manera segura (puede venir como String o num)
+            double parsedQuantity = 1.0;
+            final quantityValue = pData['quantity'];
+            if (quantityValue is num) {
+              parsedQuantity = quantityValue.toDouble();
+            } else if (quantityValue is String) {
+              parsedQuantity = double.tryParse(quantityValue) ?? 1.0;
+            }
+            
+            // Convertir product_id de manera segura
+            int productId;
+            final productIdValue = pData['product_id'];
+            if (productIdValue is int) {
+              productId = productIdValue;
+            } else if (productIdValue is String) {
+              productId = int.tryParse(productIdValue) ?? 0;
+            } else {
+              productId = 0;
+            }
+            
+            return SelectedProduct(
+              product: Product(
+                id: productId,
+                codigo: pData['codigo'] as String,
+                descripcion: pData['descripcion'] as String,
+                isFromColppy: pData['is_from_colppy'] == 1 || pData['is_from_colppy'] == '1' || pData['is_from_colppy'] == true,
+              ),
+              unitType: pData['unit_type'] as String? ?? 'Unidad',
+              quantity: parsedQuantity,
+              uniqueId: pData['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            );
+          }).toList();
+        });
+        print('✅ EDIT: Productos cargados: ${_selectedProducts.length}');
+      } catch (e, stack) {
+        print('❌ EDIT: Error al cargar productos: $e');
+        print('❌ EDIT: Stack: $stack');
+      }
+    } else {
+      print('🟠 EDIT: No hay productos para cargar');
+    }
+  }
 
+  // Buscar productos
+  Future<void> _searchProducts(String query) async {
+    if (query.length < 2) {
+      setState(() {
+        _productSearchResults = _initialProducts; // Mostrar productos iniciales
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingProducts = true;
+    });
+
+    print('🔍 Buscando productos: "$query"');
+    final jobProvider = context.read<JobProvider>();
+    final results = await jobProvider.searchProducts(query);
+    print('📦 Productos encontrados: ${results.length}');
+
+    setState(() {
+      _productSearchResults = results;
+      _isSearchingProducts = false;
+    });
+
+    if (results.isEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se encontraron productos con "$query"'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // Agregar producto seleccionado a la lista
+  void _addProduct() {
+    if (_selectedProduct == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes seleccionar un producto'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final quantity = double.tryParse(_quantityController.text);
+    if (quantity == null || quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La cantidad debe ser mayor a 0'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Verificar si ya existe (permitimos duplicados pero avisamos)
+    final exists = _selectedProducts.any((p) => p.product.id == _selectedProduct!.id);
+    if (exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Este producto ya está agregado (se permite duplicados)'),
+          backgroundColor: Colors.blue,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    setState(() {
+      _selectedProducts.add(SelectedProduct(
+        product: _selectedProduct!,
+        unitType: _selectedUnitType,
+        quantity: quantity,
+      ));
+      
+      // Limpiar selección
+      _selectedProduct = null;
+      _productSearchController.clear();
+      _productSearchResults = [];
+      _quantityController.text = '1.00';
+      _selectedUnitType = 'Unidad';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Producto agregado'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  // Eliminar producto de la lista
+  void _removeProduct(String uniqueId) {
+    setState(() {
+      _selectedProducts.removeWhere((p) => p.uniqueId == uniqueId);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Producto eliminado'),
+        backgroundColor: Colors.grey,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
   Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -390,6 +583,7 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
             longitude: location?['longitude'],
             jsonGeolocation: location?['jsongeolocation'],
             technicianIds: _selectedTechnicianIds.isNotEmpty ? _selectedTechnicianIds : null,
+            products: _selectedProducts.isNotEmpty ? _selectedProducts : null,
           );
           return result;
         },
@@ -749,6 +943,282 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
                           );
                         }).toList(),
                       ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Productos (Opcional)
+            Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              shadowColor: const Color(0xFF00274E).withOpacity(0.3),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.inventory_2, color: Color(0xFF00274E)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Productos',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          '(Opcional)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Buscar producto
+                    TextField(
+                      controller: _productSearchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar producto',
+                        hintText: 'Escribe el código o nombre...',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: _searchProducts,
+                    ),
+                    
+                    // Resultados de búsqueda
+                    if (_isSearchingProducts)
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    
+                    if (_productSearchResults.isNotEmpty && !_isSearchingProducts)
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 220),
+                        margin: const EdgeInsets.only(top: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: const Color(0xFF00274E).withOpacity(0.3), width: 2),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.2),
+                              spreadRadius: 1,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00274E).withOpacity(0.1),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(10),
+                                  topRight: Radius.circular(10),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.inventory_2, size: 16, color: Color(0xFF00274E)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${_productSearchResults.length} producto${_productSearchResults.length != 1 ? 's' : ''} encontrado${_productSearchResults.length != 1 ? 's' : ''}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF00274E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                itemCount: _productSearchResults.length,
+                                separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade300),
+                                itemBuilder: (context, index) {
+                                  final product = _productSearchResults[index];
+                                  final isSelected = _selectedProduct?.id == product.id;
+                                  return InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedProduct = product;
+                                        _productSearchController.text = product.displayName;
+                                        _productSearchResults = [];
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      color: isSelected ? const Color(0xFF00274E).withOpacity(0.1) : null,
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 16,
+                                            backgroundColor: isSelected 
+                                              ? const Color(0xFF00274E) 
+                                              : Colors.grey.shade300,
+                                            child: Icon(
+                                              Icons.inventory_2,
+                                              size: 16,
+                                              color: isSelected ? Colors.white : Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  product.codigo,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
+                                                    color: isSelected ? const Color(0xFF00274E) : Colors.black87,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  product.descripcion,
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey.shade700,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (isSelected)
+                                            const Icon(
+                                              Icons.check_circle,
+                                              color: Color(0xFF00274E),
+                                              size: 24,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Tipo de unidad y cantidad
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedUnitType,
+                            decoration: const InputDecoration(
+                              labelText: 'Tipo',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 'Unidad', child: Text('Unidad')),
+                              DropdownMenuItem(value: 'Rollo', child: Text('Rollo')),
+                              DropdownMenuItem(value: 'Metros', child: Text('Metros')),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedUnitType = value;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: _quantityController,
+                            decoration: const InputDecoration(
+                              labelText: 'Cantidad',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          height: 56,
+                          width: 56,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00274E), Color(0xFF004B87)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: _addProduct,
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            tooltip: 'Agregar producto',
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Lista de productos agregados
+                    if (_selectedProducts.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Productos agregados:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _selectedProducts.length,
+                        itemBuilder: (context, index) {
+                          final selectedProduct = _selectedProducts[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              title: Text(
+                                selectedProduct.product.displayName,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                '${selectedProduct.unitType} - Cantidad: ${selectedProduct.quantity.toStringAsFixed(2)}',
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _removeProduct(selectedProduct.uniqueId),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
