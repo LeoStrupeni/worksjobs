@@ -15,10 +15,12 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\UserController;
+use App\Models\Permission;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
+use Spatie\Permission\Guard;
 
 // Route::get('test', function () {
 // 	dd( base_path(). '/../public/storage/',env('APP_URL'),storage_path('app'), storage_path('app/public'));
@@ -40,12 +42,7 @@ Route::get('/clear-cache', function() {
 })->name('cache.clear');
 
 Route::get('/test', function() {
-    dd(Session::get('users'));
-    echo md5("Alma2024");
-    echo "<br>";
-    echo md5("strU1184!!");
-    echo "<br>";
-    return 'listo';
+    dd(Session::all());
 });
 
 Route::get('/', [HomeController::class,'index'])->name('home.index');
@@ -166,6 +163,14 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/jobs/destroynote/{id}', [JobController::class,'destroynote']);
     Route::post('/jobs/files', [JobController::class,'onlyaddfiles'])->name('job.files');
     Route::get('/jobs/destroyfile/{id}', [JobController::class,'destroyfile']);
+    Route::post('/jobs/{id}/generate-pdf', [JobController::class,'generatePDF'])->name('job.generate-pdf');
+    
+    // Ruta de PRUEBA para generar presupuesto Colppy (desarrollo)
+    Route::get('/jobs/{id}/test-generate-budget', function($id) {
+        $controller = new JobController();
+        $controller->generarPresupuestoColppy($id);
+        return response()->json(['success' => true, 'message' => 'Presupuesto generado. Revisar logs en storage/logs/laravel.log']);
+    })->name('job.test.budget');
     
     // ============= RUTAS CMS =============
     // Panel principal CMS

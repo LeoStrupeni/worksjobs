@@ -76,8 +76,11 @@
                                     </div>
                                 </div>
                                 <div class="card-body">
-                                    <label class="form-label text-muted small mb-1">Fecha y hora de visita</label>
-                                    <input type="datetime-local" class="form-control validate" name="visit_datetime" value="{{ old('visit_datetime') }}" required>
+                                    <label for="visit_datetime_edit" class="form-label text-muted small mb-1">Fecha y hora de visita</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        <input type="text" class="form-control validate" name="visit_datetime" id="visit_datetime_edit" value="{{ old('visit_datetime') }}" placeholder="dd/mm/yyyy HH:mm" required autocomplete="off">
+                                    </div>
 
                                     <div class="mt-3">
                                         <label class="form-label fw-semibold">

@@ -16,4 +16,6 @@ return [
     'jobs' => 'Tareas',
     'users' => 'Usuarios',
     'roles' => 'Roles',
+    'share' => 'Compartir',
+    'pdf' => 'PDF',
 ];

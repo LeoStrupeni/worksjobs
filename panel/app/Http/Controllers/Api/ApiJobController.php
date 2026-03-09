@@ -69,7 +69,7 @@ class ApiJobController extends Controller
             $query->orderByRaw($order);
         } else {
             $query->orderBy('estatusorder', 'ASC')
-                  ->orderBy('ordervisit', 'ASC');
+                  ->orderBy('ordervisit', 'DESC');
         }
 
         // Aplicar paginación
@@ -582,7 +582,9 @@ class ApiJobController extends Controller
     public function getProducts(Request $request)
     {
         $search = $request->input('search', '');
-        $query = Product::query()->whereNull('deleted_at');
+        $query = Product::query()
+            ->whereNull('deleted_at')
+            ->where('tipo_item', 'P');  // Solo mostrar productos, no servicios ni kits
 
         // Aplicar búsqueda si existe
         if ($search) {

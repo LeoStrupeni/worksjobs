@@ -233,4 +233,3 @@ function tableregister(data, page, callpaginas, url_query){
     })
 
 }
-

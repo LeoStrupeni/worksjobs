@@ -59,25 +59,24 @@ class SyncColppyProductsService
                     }
                 }
 
-                // Procesar cada producto
+                // Procesar cada item (productos, servicios y kits)
                 foreach ($productos as $index => $productoColppy) {
                     try {
-                        // Solo productos tipo "P"
-                        if (isset($productoColppy['tipoItem']) && $productoColppy['tipoItem'] === 'P') {
-                            $resultado = $this->syncProduct($productoColppy);
-                            
-                            if ($resultado['creado']) {
-                                $productosSincronizados++;
-                            } elseif ($resultado['actualizado']) {
-                                $productosActualizados++;
-                            }
-                            
-                            $totalProcesados++;
+                        // Sincronizar todos los tipos: P (Producto), S (Servicio), K (Kit)
+                        $resultado = $this->syncProduct($productoColppy);
+                        
+                        if ($resultado['creado']) {
+                            $productosSincronizados++;
+                        } elseif ($resultado['actualizado']) {
+                            $productosActualizados++;
                         }
+                        
+                        $totalProcesados++;
                     } catch (\Exception $e) {
                         $errores++;
-                        Log::error('Error al sincronizar producto', [
+                        Log::error('Error al sincronizar item de inventario', [
                             'idItem' => $productoColppy['idItem'] ?? 'desconocido',
+                            'tipoItem' => $productoColppy['tipoItem'] ?? 'desconocido',
                             'error' => $e->getMessage()
                         ]);
                     }
@@ -228,14 +227,7 @@ class SyncColppyProductsService
                 ];
             }
 
-            // Solo sincronizar si es tipo "P"
-            if (($productoColppy['tipoItem'] ?? '') !== 'P') {
-                return [
-                    'success' => false,
-                    'mensaje' => 'El item no es un producto (tipo P)'
-                ];
-            }
-
+            // Sincronizar cualquier tipo de item (P, S, K)
             $resultado = $this->syncProduct($productoColppy);
             
             return [

@@ -250,7 +250,7 @@ class JobService {
   }
 
   // Cerrar cita
-  Future<Map<String, dynamic>> closeJob(int jobId, String observation, {double? lat, double? lng, List<int>? technicianIds}) async {
+  Future<Map<String, dynamic>> closeJob(int jobId, {double? lat, double? lng}) async {
     try {
       final token = await _authService.getToken();
       
@@ -258,15 +258,10 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      final Map<String, dynamic> bodyData = {
-        'observation': observation,
-      };
+      final Map<String, dynamic> bodyData = {};
       
       if (lat != null) bodyData['latitud'] = lat;
       if (lng != null) bodyData['longitud'] = lng;
-      if (technicianIds != null && technicianIds.isNotEmpty) {
-        bodyData['technician_ids'] = technicianIds;
-      }
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/close'),
@@ -912,5 +907,63 @@ class JobService {
       return [];
     }
   }
-}
 
+  // Generar PDF de trabajo realizado
+  Future<Map<String, dynamic>> generateJobPDF(
+    int jobId,
+    Map<String, dynamic> config,
+  ) async {
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        print('❌ generateJobPDF: No autenticado');
+        return {'success': false, 'message': 'No autenticado'};
+      }
+
+      print('📡 generateJobPDF: Generando PDF para job $jobId');
+      print('📄 generateJobPDF: Config: $config');
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/generate-pdf'),
+        headers: ApiConfig.getHeaders(token: token),
+        body: jsonEncode(config),
+      );
+
+      print('📥 generateJobPDF: Status ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['success'] == true) {
+          print('✅ generateJobPDF: PDF generado exitosamente');
+          return {
+            'success': true,
+            'filename': data['filename'],
+            'pdf': data['pdf'], // Base64 encoded PDF
+            'mime_type': data['mime_type'],
+          };
+        } else {
+          print('⚠️ generateJobPDF: ${data['message']}');
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Error al generar PDF'
+          };
+        }
+      }
+
+      print('❌ generateJobPDF: Error HTTP ${response.statusCode}');
+      return {
+        'success': false,
+        'message': 'Error al generar PDF: código ${response.statusCode}'
+      };
+    } catch (e, stackTrace) {
+      print('❌ generateJobPDF: Exception: $e');
+      print('📄 generateJobPDF: StackTrace: $stackTrace');
+      return {
+        'success': false,
+        'message': 'Error: ${e.toString()}'
+      };
+    }
+  }
+}

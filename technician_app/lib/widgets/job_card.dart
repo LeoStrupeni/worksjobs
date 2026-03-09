@@ -500,47 +500,27 @@ class JobCard extends StatelessWidget {
   }
 
   Future<void> _handleCloseJob(BuildContext context) async {
-    final observationController = TextEditingController();
-    
-    final result = await showDialog<String>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cerrar Cita'),
-        content: TextField(
-          controller: observationController,
-          decoration: const InputDecoration(
-            hintText: 'Observaciones finales (requerido)...',
-            border: OutlineInputBorder(),
-          ),
-          maxLines: 4,
-        ),
+        content: const Text('¿Está seguro que desea cerrar esta tarea?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              if (observationController.text.trim().isNotEmpty) {
-                Navigator.pop(context, observationController.text.trim());
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Las observaciones son requeridas'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-              }
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Cerrar Cita'),
+            child: const Text('Sí, cerrar'),
           ),
         ],
       ),
     );
 
-    if (result != null && context.mounted) {
-      final success = await context.read<JobProvider>().closeJob(job.id!, result);
+    if (confirmed == true && context.mounted) {
+      final success = await context.read<JobProvider>().closeJob(job.id!);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

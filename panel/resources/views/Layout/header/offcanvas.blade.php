@@ -13,6 +13,9 @@
       </div>
       <ul class="list-unstyled ps-0">
         <li class="mb-2">
+          <button type="button" class="btn btn-toggle d-inline-flex align-items-center rounded border-0 ms-2 text-white text-uppercase hover-success" onclick="window.location.href='{{ route('home.index') }}'">Home</button>
+        </li> 
+        <li class="mb-2">
           <button class="btn btn-toggle d-inline-flex align-items-center rounded border-0 collapsed ms-2 text-white text-uppercase hover-success" data-bs-toggle="collapse" data-bs-target="#coc-administracion" aria-expanded="false">
             Administracion
           </button>

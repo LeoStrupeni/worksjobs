@@ -25,8 +25,63 @@
     <link href="{{env('APP_URL')}}/assets/plugins/sweetalert2/dist/sweetalert2.css" rel="stylesheet" type="text/css" />
 
     <link href="{{env('APP_URL')}}/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker3.css" rel="stylesheet" type="text/css" />
-    <link href="{{env('APP_URL')}}/assets/plugins/bootstrap-datetime-picker/css/bootstrap-datetimepicker.css" rel="stylesheet" type="text/css" />
     <link href="{{env('APP_URL')}}/assets/plugins/bootstrap-daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />
+    
+    <!-- Flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    
+    <style>
+        /* Flatpickr dentro del modal - no position fixed */
+        .flatpickr-calendar.static {
+            position: absolute !important;
+            top: auto !important;
+        }
+        
+        /* .modal-body {
+            overflow: visible !important;
+            position: relative;
+        } */
+        
+        /* Input group de fecha/hora */
+        .input-group:has(#visit_datetime_create),
+        .input-group:has(#visit_datetime_edit) {
+            display: flex !important;
+            width: 100% !important;
+        }
+        
+        /* Icono del calendario - 10% */
+        .input-group:has(#visit_datetime_create) .input-group-text,
+        .input-group:has(#visit_datetime_edit) .input-group-text {
+            flex: 0 0 10% !important;
+            max-width: 10% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        /* Input de fecha/hora - 90% */
+        .input-group #visit_datetime_create,
+        .input-group #visit_datetime_edit {
+            flex: 0 0 90% !important;
+            max-width: 90% !important;
+            width: 90% !important;
+        }
+        
+        /* Wrapper de Flatpickr */
+        .input-group .flatpickr-wrapper {
+            flex: 0 0 90% !important;
+            max-width: 90% !important;
+            width: 90% !important;
+        }
+        
+        /* Estilos para horas laborales (8-17) */
+        .flatpickr-time .flatpickr-hour[data-non-work],
+        .flatpickr-am-pm[data-non-work] {
+            opacity: 0.35 !important;
+            color: #bbb !important;
+            background-color: #f8f8f8 !important;
+        }
+    </style>
     
     <link href="{{env('APP_URL')}}/assets/plugins/select2/dist/css/select2.css" rel="stylesheet" type="text/css" />
     <link href="{{env('APP_URL')}}/assets/plugins/bootstrap-select-1.14.0-beta3/docs/docs/dist/css/bootstrap-select.min.css" rel="stylesheet" type="text/css"/>

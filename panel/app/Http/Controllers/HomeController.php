@@ -48,7 +48,7 @@ class HomeController extends Controller
                     OR CAST(C.visit_datetime as DATE) < DATE(NOW())
                     OR (C.arrival_datetime IS NOT NULL AND C.closed_datetime IS NULL)   
                 ) 
-                ORDER BY estatusorder ASC, ordervisit ASC";
+                ORDER BY estatusorder ASC, ordervisit DESC";
             } else {
                 $query .= " AND C.archived = 0 AND (
                     CAST(C.visit_datetime as DATE) BETWEEN DATE(NOW()) and DATE_ADD(DATE(NOW()),INTERVAL 3 DAY)
@@ -56,7 +56,7 @@ class HomeController extends Controller
                     OR (C.arrival_datetime IS NOT NULL AND C.closed_datetime IS NULL)   
                     OR  CAST(C.closed_datetime as DATE) BETWEEN DATE_ADD(DATE(NOW()),INTERVAL -1 DAY) and DATE_ADD(DATE(NOW()),INTERVAL 1 DAY)
                 ) 
-                ORDER BY estatusorder ASC, ordervisit ASC";
+                ORDER BY estatusorder ASC, ordervisit DESC";
             }
 
 

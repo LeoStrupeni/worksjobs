@@ -149,7 +149,7 @@ $(document).ready(function() {
 
         $('#modal-body-edit-job-roller').removeClass('d-none');
         $('#modal-body-edit-job-error').addClass('d-none');
-        $('#modal-body-edit-job').addClass('d-none');
+        $('#formeditjob').addClass('d-none');
         $('#modal-foot-edit-job').addClass('d-none');
 
         $.ajax({contenttype : 'application/json; charset=utf-8',
@@ -175,7 +175,7 @@ $(document).ready(function() {
                 // Cargar productos relacionados
                 loadProductsToEdit(data.products);
 
-                $('#modal-body-edit-job').removeClass('d-none');
+                $('#formeditjob').removeClass('d-none');
                 $('#modal-foot-edit-job').removeClass('d-none');
             }
         }).always(function() {
@@ -193,6 +193,10 @@ $(document).ready(function() {
         // Resetear tabs a la primera pestaña (Información General)
         $('#info-tab').tab('show');
         
+        // Guardar el ID del trabajo en el modal
+        const jobId = $(this).data('id');
+        $('#showjob').data('job-id', jobId);
+        
         $('#showjob').modal('show');
 
         $('#modal-body-show-job-roller').removeClass('d-none');
@@ -200,7 +204,7 @@ $(document).ready(function() {
         $('#modal-body-show-job').addClass('d-none');
 
         $.ajax({contenttype : 'application/json; charset=utf-8',
-            url : $('meta[name="app_url"]').attr('content')+'/jobs/'+$(this).data('id')+'/edit',
+            url : $('meta[name="app_url"]').attr('content')+'/jobs/'+jobId+'/edit',
             type : 'GET',
             done : function(response) { $('#modal-body-edit-job-error').removeClass('d-none'); },
             error : function(jqXHR,textStatus,errorThrown) { $('#modal-body-edit-job-error').removeClass('d-none'); },
@@ -214,6 +218,22 @@ $(document).ready(function() {
 
                 // Mostrar productos relacionados
                 renderProductsShow(data.products);
+                
+                // Guardar datos del trabajo para el PDF
+                currentJobDataForPdf = data;
+                
+                // Controlar visibilidad del botón de PDF según permisos
+                if (data.permissions && data.permissions.pdf && data.permissions.pdf.includes('create')) {
+                    $('#btn-generate-pdf').show();
+                } else {
+                    $('#btn-generate-pdf').hide();
+                }
+                
+                // Controlar visibilidad del botón de compartir según permisos
+                const hasSharePermission = data.permissions && data.permissions.share && data.permissions.share.includes('create');
+                if (!hasSharePermission) {
+                    $('#btn-share-selected-lightgalleryShow').hide();
+                }
 
                 $('#modal-body-show-job').removeClass('d-none');
             }
@@ -626,43 +646,52 @@ $(document).ready(function() {
     $('body').on('click','.closetask',function(){ 
         var idtarea = $(this).data('id');
         var nombre = $(this).data('name');
-        $("#lightgalleryClosedNone").empty();
-        $("#lightgalleryClosed").empty();
-        form = document.getElementById("formclosedjob");
-        $( form.elements ).each(function( index ) {
-            if($(this).attr('name') != '_method' && $(this).attr('name') != '_token'){
-                $(this).val('');
-            } 
-        });
-
-        $('#titleclosedjob').text("Cerrar tarea: "+nombre);
-        $('#closedjob').modal('show');
-
-        $('#modal-body-closed-job-roller').removeClass('d-none');
-        $('#modal-body-closed-job-error').addClass('d-none');
-        $('#modal-body-closed-job').addClass('d-none');
-        $('#modal-foot-closed-job').addClass('d-none');
-
-        $.ajax({contenttype : 'application/json; charset=utf-8',
-          url : $('meta[name="app_url"]').attr('content')+'/jobs/'+idtarea+'/edit',
-          type : 'GET',
-          done : function(response) { },
-          error : function(jqXHR,textStatus,errorThrown) {  },
-          success : function(data) {
-
-            viewjob(data,form,'closedjob');
-            viewfiles(data,'lightgalleryClosed');
-
-            // Poblar técnicos asignados en el select de cierre
-            setTechnicianSelect('#technician_ids_closed', data.technicians);
-            $('#technician_ids_closed_error').addClass('d-none');
-
-            $('#modal-body-closed-job').removeClass('d-none');
-            $('#modal-foot-closed-job').removeClass('d-none');
-          }
-        }).always(function() {
-            $('#modal-body-closed-job-roller').addClass('d-none');
-            getGeolocation();
+        
+        // Obtener geolocalización primero
+        getGeolocation();
+        
+        // Mostrar confirmación simple
+        Swal.fire({
+            title: '¿Cerrar tarea?',
+            text: "¿Está seguro que desea cerrar esta tarea: " + nombre + "?",
+            type: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, cerrar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.value === true) {
+                showSavingAlert();
+                
+                // Leer los valores de geolocalización de los inputs
+                var latitude = $('input[name="latitude"]').val();
+                var longitude = $('input[name="longitude"]').val();
+                var jsongeolocation = $('input[name="jsongeolocation"]').val();
+                
+                $.ajax({
+                    url: app_url + '/jobs/closed',
+                    type: 'POST',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                        id: idtarea,
+                        latitude: latitude,
+                        longitude: longitude,
+                        jsongeolocation: jsongeolocation
+                    },
+                    success: function(response) {
+                        closeSwal();
+                        toastr["success"]("Tarea cerrada correctamente");
+                        if(window.location.href.includes('jobs')){
+                            callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        closeSwal();
+                        toastr["error"]("Error al cerrar la tarea");
+                    }
+                });
+            }
         });
     });
     $('body').on('click',"#btn-closed-job",function () {
@@ -855,19 +884,67 @@ $(document).ready(function() {
     }
 
     function viewfiles(data,id_elemento){
+        // Verificar permisos de compartir
+        const hasSharePermission = data.permissions && data.permissions.share && data.permissions.share.includes('create');
+        
+        // Agregar botones de acción global antes de las imágenes
+        let actionButtons = `
+            <div class="col-12 mb-3" id="images-action-bar-${id_elemento}">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAll-${id_elemento}" 
+                            onchange="toggleSelectAllImages('${id_elemento}')">
+                        <label class="form-check-label" for="selectAll-${id_elemento}">
+                            <strong>Seleccionar todas</strong>
+                        </label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="downloadSelectedImages(event, '${id_elemento}')" 
+                        id="btn-download-selected-${id_elemento}" disabled>
+                        <i class="fas fa-download me-1"></i>Descargar seleccionadas
+                    </button>`;
+        
+        // Solo agregar botón de compartir si tiene permisos
+        if (hasSharePermission) {
+            actionButtons += `
+                    <button type="button" class="btn btn-sm btn-success" onclick="shareSelectedImages(event, '${id_elemento}')" 
+                        id="btn-share-selected-${id_elemento}" disabled>
+                        <i class="fas fa-share-alt me-1"></i>Compartir seleccionadas
+                    </button>`;
+        }
+        
+        actionButtons += `
+                    <span class="badge bg-secondary" id="selected-count-${id_elemento}">0 seleccionadas</span>
+                </div>
+            </div>`;
+        
+        $("#"+id_elemento).append(actionButtons);
+
         $.each( data.files , function( index, value ) {
-            let imagen = `<div class="text-center" style="width: 120px;">
-                <a class="gallery" href="/storage/${this.name}">
-                    <img src="/storage/${this.name}" style='border-radius:.5rem; height: 100px; width: 100px;'>
-                </a>`
-                if(id_elemento == 'lightgalleryEdit' || id_elemento == 'lightgalleryFiles'){
-                    imagen += `<span class="btn-danger-pro" 
-                        style=" position: relative; top: -25px; right: -40px; cursor: pointer;"
-                        onclick="deleteimg(this,${this.id},'${id_elemento}')">
-                        <i class="fas fa-trash me-2"></i>
-                    </span>`;
-                }    
-            imagen += `<div>`;
+            let imagen = `<div class="text-center" style="width: 120px; position: relative;">
+                <div class="position-relative d-inline-block">
+                    <!-- Checkbox para selección -->
+                    <div class="position-absolute" style="top: 5px; left: 5px; z-index: 10;">
+                        <input class="form-check-input image-checkbox" type="checkbox" 
+                            data-image-url="/storage/${this.name}" 
+                            data-image-name="${this.original_name || this.name}"
+                            data-element="${id_elemento}"
+                            onchange="updateImageSelection('${id_elemento}')" 
+                            style="width: 20px; height: 20px; cursor: pointer;">
+                    </div>
+                    <a class="gallery" href="/storage/${this.name}">
+                        <img src="/storage/${this.name}" style='border-radius:.5rem; height: 100px; width: 100px;'>
+                    </a>`;
+                    
+                    // Botón de eliminar (solo en ciertos contextos) - en la esquina como antes
+                    if(id_elemento == 'lightgalleryEdit' || id_elemento == 'lightgalleryFiles'){
+                        imagen += `<span class="btn-danger-pro" 
+                            style="position: absolute; top: -10px; right: -10px; cursor: pointer; z-index: 10;"
+                            onclick="deleteimg(this,${this.id},'${id_elemento}')">
+                            <i class="fas fa-trash"></i>
+                        </span>`;
+                    }
+                    
+                imagen += `</div></div>`;
 
             $("#"+id_elemento).append(imagen);     
             if(id_elemento == 'lightgalleryEdit'){ $("#"+id_elemento+"None").append(imagen); }
@@ -1472,6 +1549,92 @@ $('#editjob').on('hidden.bs.modal', function () {
     selectedProducts = selectedProducts.filter(p => p.mode !== 'edit');
 });
 
+// ============================================
+// FLATPICKR - Fecha y hora con intervalos de 15 min
+// ============================================
+var pickerCreate = null;
+var pickerEdit = null;
+
+// Configuración común de Flatpickr
+var flatpickrConfig = {
+    enableTime: true,
+    dateFormat: "d/m/Y H:i",
+    time_24hr: true,
+    locale: "es",
+    minuteIncrement: 15,
+    allowInput: true,
+    clickOpens: true,
+    disableMobile: true,
+    onChange: function(selectedDates, dateStr, instance) {
+        setTimeout(function() {
+            highlightBusinessHoursFlatpickr(instance);
+        }, 50);
+    }
+};
+
+// Inicializar Flatpickr cuando se abra el modal de CREAR
+$('#createjob').on('shown.bs.modal', function () {
+    var inputCreate = document.getElementById('visit_datetime_create');
+    
+    if (inputCreate && typeof flatpickr !== 'undefined') {
+        if (pickerCreate) {
+            pickerCreate.destroy();
+            pickerCreate = null;
+        }
+        pickerCreate = flatpickr(inputCreate, flatpickrConfig);
+    }
+});
+
+// Inicializar Flatpickr cuando se abra el modal de EDITAR
+$('#editjob').on('shown.bs.modal', function () {
+    var inputEdit = document.getElementById('visit_datetime_edit');
+    
+    if (inputEdit && typeof flatpickr !== 'undefined') {
+        if (pickerEdit) {
+            pickerEdit.destroy();
+            pickerEdit = null;
+        }
+        pickerEdit = flatpickr(inputEdit, flatpickrConfig);
+    }
+});
+
+// Destruir al cerrar modales
+$('#createjob').on('hidden.bs.modal', function () {
+    if (pickerCreate) {
+        pickerCreate.destroy();
+        pickerCreate = null;
+    }
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'create');
+});
+
+$('#editjob').on('hidden.bs.modal', function () {
+    if (pickerEdit) {
+        pickerEdit.destroy();
+        pickerEdit = null;
+    }
+    selectedProducts = selectedProducts.filter(p => p.mode !== 'edit');
+});
+
+// Función para resaltar visualmente las horas laborales (8-17) en Flatpickr
+function highlightBusinessHoursFlatpickr(instance) {
+    if (!instance || !instance.calendarContainer) return;
+    
+    var hourInput = instance.calendarContainer.querySelector('.flatpickr-hour');
+    if (!hourInput) return;
+    
+    var currentHour = parseInt(hourInput.value);
+    
+    if (!isNaN(currentHour)) {
+        if (currentHour < 8 || currentHour > 17) {
+            hourInput.setAttribute('data-non-work', 'true');
+            hourInput.setAttribute('title', 'Fuera del horario laboral sugerido (8-17)');
+        } else {
+            hourInput.removeAttribute('data-non-work');
+            hourInput.setAttribute('title', 'Horario laboral (8-17)');
+        }
+    }
+}
+
 // Evento para abrir modal de agregar productos directamente a una tarea
 $('body').on('click', '.addproducts-job', function () {
     const jobId = $(this).data('id');
@@ -1525,6 +1688,193 @@ $('body').on('click', '.addproducts-job', function () {
     });
 });
 
+/**
+ * Seleccionar/deseleccionar todas las imágenes
+ */
+function toggleSelectAllImages(id_elemento) {
+    const selectAllCheckbox = document.getElementById('selectAll-' + id_elemento);
+    const checkboxes = document.querySelectorAll('#' + id_elemento + ' .image-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateImageSelection(id_elemento);
+}
+
+/**
+ * Actualizar el estado de los botones según la selección
+ */
+function updateImageSelection(id_elemento) {
+    const checkboxes = document.querySelectorAll('#' + id_elemento + ' .image-checkbox');
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    const totalCount = checkboxes.length;
+    
+    // Actualizar contador
+    document.getElementById('selected-count-' + id_elemento).textContent = selectedCount + ' seleccionadas';
+    
+    // Habilitar/deshabilitar botones
+    const downloadBtn = document.getElementById('btn-download-selected-' + id_elemento);
+    const shareBtn = document.getElementById('btn-share-selected-' + id_elemento);
+    
+    if (selectedCount > 0) {
+        downloadBtn.disabled = false;
+        shareBtn.disabled = false;
+    } else {
+        downloadBtn.disabled = true;
+        shareBtn.disabled = true;
+    }
+    
+    // Actualizar checkbox "Seleccionar todas"
+    const selectAllCheckbox = document.getElementById('selectAll-' + id_elemento);
+    if (selectedCount === totalCount) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else if (selectedCount > 0) {
+        selectAllCheckbox.indeterminate = true;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+}
+
+/**
+ * Descargar las imágenes seleccionadas
+ */
+function downloadSelectedImages(event, id_elemento) {
+    // Prevenir comportamiento por defecto y propagación
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const checkboxes = document.querySelectorAll('#' + id_elemento + ' .image-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        toastr["warning"]("Selecciona al menos una imagen");
+        return;
+    }
+    
+    toastr["info"]("Descargando " + checkboxes.length + " imagen(es)...");
+    
+    // Descargar cada imagen con un pequeño delay para evitar bloqueo del navegador
+    checkboxes.forEach((checkbox, index) => {
+        setTimeout(() => {
+            const imageUrl = checkbox.getAttribute('data-image-url');
+            const imageName = checkbox.getAttribute('data-image-name');
+            const fullUrl = window.location.origin + imageUrl;
+            
+            const a = document.createElement('a');
+            a.href = fullUrl;
+            a.download = imageName || 'imagen_' + (index + 1) + '.jpg';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }, index * 300); // 300ms entre cada descarga
+    });
+    
+    setTimeout(() => {
+        toastr["success"]("Descargas iniciadas");
+    }, checkboxes.length * 300);
+}
+
+/**
+ * Compartir las imágenes seleccionadas
+ */
+async function shareSelectedImages(event, id_elemento) {
+    // Prevenir comportamiento por defecto y propagación
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const checkboxes = document.querySelectorAll('#' + id_elemento + ' .image-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        toastr["warning"]("Selecciona al menos una imagen");
+        return;
+    }
+    
+    // Obtener URLs de las imágenes seleccionadas
+    const imageUrls = Array.from(checkboxes).map(cb => {
+        return {
+            url: window.location.origin + cb.getAttribute('data-image-url'),
+            name: cb.getAttribute('data-image-name')
+        };
+    });
+    
+    // Verificar si el navegador soporta Web Share API con archivos
+    if (navigator.canShare && navigator.share) {
+        try {
+            toastr["info"]("Preparando " + imageUrls.length + " imagen(es) para compartir...");
+            
+            // Descargar todas las imágenes como blobs
+            const filesPromises = imageUrls.map(async (img, index) => {
+                const response = await fetch(img.url);
+                const blob = await response.blob();
+                return new File([blob], img.name || `imagen_${index + 1}.jpg`, { type: blob.type });
+            });
+            
+            const files = await Promise.all(filesPromises);
+            
+            // Verificar si puede compartir archivos
+            if (navigator.canShare({ files })) {
+                await navigator.share({
+                    title: 'Imágenes de Tarea',
+                    text: 'Compartiendo ' + files.length + ' imagen(es) de la tarea',
+                    files: files
+                });
+                
+                toastr["success"]("Imágenes compartidas exitosamente");
+            } else {
+                throw new Error('No se pueden compartir archivos');
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Error al compartir:', error);
+                // Fallback: copiar URLs al portapapeles
+                fallbackShareMultiple(imageUrls);
+            }
+        }
+    } else {
+        // Fallback para navegadores sin Web Share API
+        fallbackShareMultiple(imageUrls);
+    }
+}
+
+/**
+ * Método alternativo para compartir múltiples imágenes (copiar URLs al portapapeles)
+ */
+function fallbackShareMultiple(imageUrls) {
+    const urls = imageUrls.map(img => img.url).join('\n');
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(urls).then(() => {
+            toastr["info"]("URLs de las imágenes copiadas al portapapeles");
+        }).catch(err => {
+            console.error('Error al copiar al portapapeles:', err);
+            toastr["error"]("No se pudo compartir las imágenes");
+        });
+    } else {
+        // Método antiguo para copiar al portapapeles
+        const textArea = document.createElement('textarea');
+        textArea.value = urls;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            toastr["info"]("URLs de las imágenes copiadas al portapapeles");
+        } catch (err) {
+            console.error('Error al copiar:', err);
+            toastr["error"]("No se pudo compartir las imágenes");
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
 // Limpiar productos al cerrar modal
 $('#addproducts').on('hidden.bs.modal', function () {
     selectedProducts = selectedProducts.filter(p => p.mode !== 'add');
@@ -1544,3 +1894,409 @@ $('#formaddproducts').on('submit', function(e) {
     // Enviar formulario
     this.submit();
 });
+
+// ============================================
+// FUNCIONES PARA GENERACIÓN DE PDF
+// ============================================
+
+let currentJobDataForPdf = null;
+
+/**
+ * Abre el modal de configuración de PDF
+ */
+function openPdfConfigModal() {
+    // Obtener el ID del trabajo actual desde el modal
+    const jobId = $('#showjob').data('job-id');
+    
+    if (!jobId) {
+        toastr["error"]("No se pudo obtener el ID del trabajo");
+        return;
+    }
+    
+    // Verificar que tengamos los datos del trabajo cargados
+    if (!currentJobDataForPdf) {
+        toastr["error"]("No hay datos del trabajo disponibles");
+        return;
+    }
+    
+    // Cargar notas del trabajo si no están en los datos actuales
+    if (!currentJobDataForPdf.notes) {
+        showSavingAlert();
+        
+        $.ajax({
+            url: '/jobs/notes/' + jobId,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                // El endpoint devuelve {data: [...notas]}
+                currentJobDataForPdf.notes = response.data || [];
+                populatePdfConfigModal(currentJobDataForPdf);
+                $('#pdfConfigModal').modal('show');
+            },
+            error: function(xhr) {
+                // Aunque falle, permitir abrir el modal sin notas
+                currentJobDataForPdf.notes = [];
+                populatePdfConfigModal(currentJobDataForPdf);
+                $('#pdfConfigModal').modal('show');
+            }
+        }).always(function() {
+            closeSwal();
+        });
+    } else {
+        // Llenar el modal de configuración con los datos
+        populatePdfConfigModal(currentJobDataForPdf);
+        
+        // Abrir el modal de configuración
+        $('#pdfConfigModal').modal('show');
+    }
+}
+
+/**
+ * Llena el modal de configuración con las notas e imágenes del trabajo
+ */
+function populatePdfConfigModal(jobData) {
+    // Limpiar selecciones previas
+    $('#notes-selection').empty();
+    $('#images-selection').empty();
+    
+    // Guardar job ID en el modal (puede estar en jobData.id o jobData.job.id)
+    const jobId = jobData.id || jobData.job.id;
+    $('#pdfConfigModal').data('job-id', jobId);
+    
+    // Llenar notas
+    if (jobData.notes && jobData.notes.length > 0) {
+        jobData.notes.forEach((note, index) => {
+            // El endpoint devuelve 'created' ya formateado
+            const formattedDate = note.created || '';
+            
+            const noteHtml = `
+                <div class="form-check mb-2">
+                    <input class="form-check-input note-checkbox" type="checkbox" value="${note.id}" id="note_${note.id}" checked>
+                    <label class="form-check-label" for="note_${note.id}">
+                        <small class="text-muted">${formattedDate}</small><br>
+                        <span class="text-truncate d-inline-block" style="max-width: 400px;">${note.note || ''}</span>
+                    </label>
+                </div>
+            `;
+            $('#notes-selection').append(noteHtml);
+        });
+    } else {
+        $('#notes-selection').html('<p class="text-muted mb-0"><small>No hay notas disponibles</small></p>');
+        $('#include_notes').prop('disabled', true).prop('checked', false);
+    }
+    
+    // Llenar imágenes
+    if (jobData.files && jobData.files.length > 0) {
+        jobData.files.forEach((file, index) => {
+            // Usar el campo correcto según lo que devuelve el backend (name o ruta)
+            const imagePath = file.name || file.ruta || '';
+            if (!imagePath) {
+                console.warn('Archivo sin ruta:', file);
+                return; // Saltar este archivo
+            }
+            
+            const imageUrl = '/storage/' + imagePath.replace(/\\/g, '/');
+            const imageHtml = `
+                <div class="col-4 col-md-3">
+                    <div class="position-relative image-selector" data-file-id="${file.id}">
+                        <img src="${imageUrl}" class="img-fluid rounded" style="cursor: pointer; border: 3px solid #198754; transition: all 0.3s;" onclick="toggleImageSelection(${file.id})">
+                        <input type="checkbox" class="image-checkbox position-absolute" value="${file.id}" id="image_${file.id}" checked style="display: none;">
+                        <div class="position-absolute top-0 end-0 m-2 bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" id="check_${file.id}">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('#images-selection').append(imageHtml);
+        });
+        
+        // NO es necesario marcar visualmente ya que se agregan con el estilo correcto
+    } else {
+        $('#images-selection').html('<p class="text-muted mb-0"><small>No hay imágenes disponibles</small></p>');
+        $('#include_images').prop('disabled', true).prop('checked', false);
+    }
+}
+
+/**
+ * Alterna la selección de una imagen en el modal de PDF
+ */
+function toggleImageSelection(fileId) {
+    const checkbox = $(`#image_${fileId}`);
+    const img = $(`.image-selector[data-file-id="${fileId}"] img`);
+    const checkIcon = $(`#check_${fileId}`);
+    const container = $(`.image-selector[data-file-id="${fileId}"]`);
+    
+    // Toggle checkbox
+    checkbox.prop('checked', !checkbox.prop('checked'));
+    
+    // Actualizar visualización
+    if (checkbox.prop('checked')) {
+        img.css({
+            'border-color': '#198754',
+            'opacity': '1'
+        });
+        checkIcon.show();
+        container.removeClass('image-deselected');
+    } else {
+        img.css({
+            'border-color': '#dc3545',
+            'opacity': '0.4'
+        });
+        checkIcon.hide();
+        container.addClass('image-deselected');
+    }
+}
+
+/**
+ * Habilita/deshabilita la sección de selección de notas
+ */
+function toggleNotesSection() {
+    const includeNotes = $('#include_notes').prop('checked');
+    
+    if (includeNotes) {
+        $('#notes-selection .form-check-input').prop('disabled', false);
+        $('#notes-selection').removeClass('opacity-50');
+    } else {
+        $('#notes-selection .form-check-input').prop('disabled', true);
+        $('#notes-selection').addClass('opacity-50');
+    }
+}
+
+/**
+ * Habilita/deshabilita la sección de selección de imágenes
+ */
+function toggleImagesSection() {
+    const includeImages = $('#include_images').prop('checked');
+    
+    if (includeImages) {
+        $('#images-selection .image-selector').css('pointer-events', 'auto');
+        $('#images-selection').removeClass('opacity-50');
+    } else {
+        $('#images-selection .image-selector').css('pointer-events', 'none');
+        $('#images-selection').addClass('opacity-50');
+    }
+}
+
+/**
+ * Selecciona/deselecciona todas las notas
+ */
+function toggleAllNotes() {
+    const allChecked = $('.note-checkbox:checked').length === $('.note-checkbox').length;
+    $('.note-checkbox').prop('checked', !allChecked);
+}
+
+/**
+ * Selecciona/deselecciona todas las imágenes
+ */
+function toggleAllImages() {
+    const allChecked = $('.image-checkbox:checked').length === $('.image-checkbox').length;
+    
+    $('.image-checkbox').each(function() {
+        const fileId = $(this).val();
+        const shouldCheck = !allChecked;
+        
+        $(this).prop('checked', shouldCheck);
+        
+        const img = $(`.image-selector[data-file-id="${fileId}"] img`);
+        const checkIcon = $(`#check_${fileId}`);
+        const container = $(`.image-selector[data-file-id="${fileId}"]`);
+        
+        if (shouldCheck) {
+            img.css({
+                'border-color': '#198754',
+                'opacity': '1'
+            });
+            checkIcon.show();
+            container.removeClass('image-deselected');
+        } else {
+            img.css({
+                'border-color': '#dc3545',
+                'opacity': '0.4'
+            });
+            checkIcon.hide();
+            container.addClass('image-deselected');
+        }
+    });
+}
+
+/**
+ * Genera el PDF con la configuración seleccionada
+ * @param {string} action - 'view' para abrir en nueva pestaña, 'download' para descargar
+ */
+function generatePDF(action) {
+    action = action || 'view'; // Por defecto abrir en pestaña
+    
+    const jobId = $('#pdfConfigModal').data('job-id');
+    
+    if (!jobId) {
+        toastr["error"]("No se pudo obtener el ID del trabajo");
+        return;
+    }
+    
+    // Recopilar configuración
+    const config = {
+        include_description: $('#include_description').prop('checked'),
+        include_products: $('#include_products').prop('checked'),
+        include_technicians: $('#include_technicians').prop('checked'),
+        include_arrival_time: $('#include_arrival_time').prop('checked'),
+        include_departure_time: $('#include_departure_time').prop('checked'),
+        include_notes: $('#include_notes').prop('checked'),
+        include_images: $('#include_images').prop('checked')
+    };
+    
+    // Obtener IDs de notas seleccionadas
+    if (config.include_notes) {
+        const selectedNoteIds = [];
+        $('.note-checkbox:checked').each(function() {
+            selectedNoteIds.push($(this).val());
+        });
+        config.note_ids = selectedNoteIds;
+    }
+    
+    // Obtener IDs de imágenes seleccionadas
+    if (config.include_images) {
+        const selectedImageIds = [];
+        $('.image-checkbox:checked').each(function() {
+            selectedImageIds.push($(this).val());
+        });
+        config.image_ids = selectedImageIds;
+    }
+    
+    // Validar que se haya seleccionado al menos algo
+    const hasContent = config.include_description || 
+                       config.include_products || 
+                       config.include_technicians || 
+                       config.include_arrival_time || 
+                       config.include_departure_time || 
+                       (config.include_notes && config.note_ids && config.note_ids.length > 0) ||
+                       (config.include_images && config.image_ids && config.image_ids.length > 0);
+    
+    if (!hasContent) {
+        toastr["warning"]("Debe seleccionar al menos un elemento para incluir en el PDF");
+        return;
+    }
+    
+    // Mostrar loading en el botón correspondiente
+    const $viewBtn = $('#pdfConfigModal .btn-primary');
+    const $downloadBtn = $('#pdfConfigModal .btn-success');
+    const $activeBtn = action === 'download' ? $downloadBtn : $viewBtn;
+    const originalBtnText = $activeBtn.html();
+    const loadingText = action === 'download' ? 'Descargando PDF...' : 'Generando PDF...';
+    
+    // Deshabilitar ambos botones
+    $viewBtn.prop('disabled', true);
+    $downloadBtn.prop('disabled', true);
+    $activeBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>' + loadingText);
+    
+    // Llamar al endpoint para generar el PDF
+    $.ajax({
+        url: '/jobs/' + jobId + '/generate-pdf',
+        method: 'POST',
+        data: config,
+        dataType: 'json',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            'Accept': 'application/json'
+        },
+        success: function(response) {
+            if (response.success && response.pdf) {
+                // Generar nombre de archivo
+                const fileName = `trabajo_${jobId}_${new Date().getTime()}.pdf`;
+                
+                // Ejecutar acción según el parámetro
+                if (action === 'download') {
+                    downloadPDF(response.pdf, fileName);
+                    toastr["success"]("PDF descargado exitosamente");
+                } else {
+                    openPDFInNewTab(response.pdf, fileName);
+                    toastr["success"]("PDF abierto en nueva pestaña");
+                }
+                
+                // Cerrar el modal
+                $('#pdfConfigModal').modal('hide');
+            } else {
+                toastr["error"]("Error al generar el PDF");
+            }
+        },
+        error: function(xhr) {
+            toastr["error"]("Error al generar el PDF");
+            console.error(xhr);
+        },
+        complete: function() {
+            // Restaurar botones
+            $activeBtn.prop('disabled', false).html(originalBtnText);
+            if (action === 'download') {
+                $viewBtn.prop('disabled', false);
+            } else {
+                $downloadBtn.prop('disabled', false);
+            }
+        }
+    });
+}
+
+/**
+ * Descarga un PDF desde datos base64
+ */
+function downloadPDF(base64Data, fileName) {
+    try {
+        // Convertir base64 a blob
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        
+        // Crear enlace de descarga
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        
+        // Simular clic para descargar
+        document.body.appendChild(link);
+        link.click();
+        
+        // Limpiar
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error al descargar PDF:', error);
+        toastr["error"]("Error al descargar el PDF");
+    }
+}
+
+/**
+ * Abre un PDF en una nueva pestaña desde datos base64
+ */
+function openPDFInNewTab(base64Data, fileName) {
+    try {
+        // Convertir base64 a blob
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        
+        // Crear URL del blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Abrir en nueva pestaña
+        window.open(url, '_blank');
+        
+        // Limpiar URL después de un tiempo (dar tiempo a que se abra)
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 1000);
+    } catch (error) {
+        console.error('Error al abrir PDF:', error);
+        toastr["error"]("Error al abrir el PDF");
+    }
+}

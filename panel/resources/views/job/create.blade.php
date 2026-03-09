@@ -79,8 +79,11 @@
                                         </span>
                                         Fecha, Hora y Técnicos
                                     </h6>
-                                    <label for="visit_datetime" class="form-label fw-semibold">Fecha y hora de visita</label>
-                                    <input type="datetime-local" class="form-control validate" name="visit_datetime" value="{{ old('visit_datetime') }}" required>
+                                    <label for="visit_datetime_create" class="form-label fw-semibold">Fecha y hora de visita</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        <input type="text" class="form-control validate" name="visit_datetime" id="visit_datetime_create" value="{{ old('visit_datetime') }}" placeholder="dd/mm/yyyy HH:mm" required autocomplete="off">
+                                    </div>
 
                                     <div class="mt-3">
                                         <label class="form-label fw-semibold">

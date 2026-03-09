@@ -58,4 +58,21 @@ class Product extends Model
     {
         return $query->whereNull('fecha_baja');
     }
+
+    /**
+     * Accessor para compatibilidad con nombre antiguo idcolppy
+     * Mapea idcolppy -> colppy_id (columna real en BD)
+     */
+    public function getIdcolppyAttribute()
+    {
+        return $this->colppy_id;
+    }
+
+    /**
+     * Mutator para compatibilidad con nombre antiguo idcolppy
+     */
+    public function setIdcolppyAttribute($value)
+    {
+        $this->attributes['colppy_id'] = $value;
+    }
 }

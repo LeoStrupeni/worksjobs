@@ -3,8 +3,11 @@
 <script src="{{env('APP_URL')}}/assets/plugins/moment/min/moment.min.js"></script>
 
 <script src="{{env('APP_URL')}}/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
-<script src="{{env('APP_URL')}}/assets/plugins/bootstrap-datetime-picker/js/bootstrap-datetimepicker.min.js"></script>
 <script src="{{env('APP_URL')}}/assets/plugins/bootstrap-daterangepicker/daterangepicker.js"></script>
+
+<!-- Flatpickr -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
 <script src="{{env('APP_URL')}}/assets/plugins/sweetalert2/dist/sweetalert2.min.js"></script>
 <script src="{{env('APP_URL')}}/assets/js/local/custom-alerts.js"></script>
@@ -87,5 +90,5 @@
 <script>var google_api_key = "{{Session::get('user.google_api_key')}}";</script>
 <script src="{{env('APP_URL')}}/assets/js/avatar.js"></script>
 <script src="{{env('APP_URL')}}/assets/js/local/useredit.js"></script>
-<script src="{{env('APP_URL')}}/assets/js/local/jobdetail.js"></script>
+<script src="{{env('APP_URL')}}/assets/js/local/jobdetail.js?v={{time()}}"></script>
 <script src="{{env('APP_URL')}}/assets/js/local/geolocalizacion.js"></script>

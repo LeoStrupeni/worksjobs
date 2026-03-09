@@ -211,7 +211,7 @@ class JobProvider with ChangeNotifier {
   }
 
   // Cerrar cita
-  Future<bool> closeJob(int jobId, String observation, [List<int>? technicianIds]) async {
+  Future<bool> closeJob(int jobId) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -222,10 +222,8 @@ class JobProvider with ChangeNotifier {
       
       final result = await _jobService.closeJob(
         jobId,
-        observation,
         lat: position?.latitude,
         lng: position?.longitude,
-        technicianIds: technicianIds,
       );
       
       if (result['success'] == true) {
@@ -623,6 +621,36 @@ class JobProvider with ChangeNotifier {
     } catch (e) {
       print('❌ searchProducts (Provider): $e');
       return [];
+    }
+  }
+
+  // Generar PDF de trabajo realizado
+  Future<Map<String, dynamic>> generateJobPDF(
+    int jobId,
+    Map<String, dynamic> config,
+  ) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.generateJobPDF(jobId, config);
+      
+      if (result['success'] == true) {
+        return result;
+      } else {
+        _errorMessage = result['message'] ?? 'Error al generar PDF';
+        return result;
+      }
+    } catch (e) {
+      _errorMessage = 'Error: ${e.toString()}';
+      return {
+        'success': false,
+        'message': _errorMessage,
+      };
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

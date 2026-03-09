@@ -40,4 +40,8 @@ class User {
       'permissions': permissions,
     };
   }
+
+  // Helper methods para verificar permisos específicos
+  bool get canShare => permissions.contains('create share');
+  bool get canGeneratePDF => permissions.contains('create pdf');
 }

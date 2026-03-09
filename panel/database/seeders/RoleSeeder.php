@@ -44,6 +44,10 @@ class RoleSeeder extends Seeder
         $permission_update_permission = Permission::create(['name'=>'update permissions']);
         $permission_delete_permission = Permission::create(['name'=>'delete permissions']);
 
+        // Permisos especiales - solo "create"
+        $permission_create_share = Permission::create(['name'=>'create share']);
+        $permission_create_pdf = Permission::create(['name'=>'create pdf']);
+
         $permissions_admin = [
             $permission_create_user,
             $permission_read_user,
@@ -64,7 +68,9 @@ class RoleSeeder extends Seeder
             $permission_create_permission,
             $permission_read_permission,
             $permission_update_permission,
-            $permission_delete_permission
+            $permission_delete_permission,
+            $permission_create_share,
+            $permission_create_pdf
         ];
 
         $permissions_technical = [
@@ -73,6 +79,8 @@ class RoleSeeder extends Seeder
             $permission_create_job,
             $permission_read_job,
             $permission_update_job,
+            $permission_create_share,
+            $permission_create_pdf
         ];
 
         $role_admin->syncPermissions($permissions_admin);

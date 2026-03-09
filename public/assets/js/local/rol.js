@@ -115,11 +115,19 @@ $(document).ready(function() {
                 if(data.datos.length == 0){$('#modal-body-show-rolpermissions-sindatos').removeClass('d-none');}
                 else { 
                     body='';
+                    // Permisos que solo tienen la opción "crear"
+                    const createOnlyPermissions = ['share', 'pdf'];
+                    
                     $.each(data.datos, function (key, val) {
                         var disabled = '';
                         if(!data.permissions.includes('update') ) {
                             disabled = 'disabled';
                         }
+                        
+                        // Verificar si es un permiso solo de "crear"
+                        const isCreateOnly = createOnlyPermissions.includes(val.general);
+                        const disabledOthers = isCreateOnly ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : '';
+                        
                         body += `<tr id="${val.general}">
                             <td class="align-middle text-start ps-3">${val.general_es ? val.general_es : val.general}</td>
                             <td class="align-middle text-center">
@@ -135,7 +143,7 @@ $(document).ready(function() {
                                     <input type="hidden" name="rolid" value="${rolid}">
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="read">
-                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="read" ${val.p_read == 1 ? 'checked' : ''} ${disabled}>
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="read" ${val.p_read == 1 ? 'checked' : ''} ${disabled} ${disabledOthers}>
                                 </form>
                             </td>
                             <td class="align-middle text-center">
@@ -143,7 +151,7 @@ $(document).ready(function() {
                                     <input type="hidden" name="rolid" value="${rolid}">
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="update">
-                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="update" ${val.p_update == 1 ? 'checked' : ''} ${disabled}>
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="update" ${val.p_update == 1 ? 'checked' : ''} ${disabled} ${disabledOthers}>
                                 </form>
                             </td>
                             <td class="align-middle text-center">
@@ -151,7 +159,7 @@ $(document).ready(function() {
                                     <input type="hidden" name="rolid" value="${rolid}">
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="delete">
-                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="delete" ${val.p_delete == 1 ? 'checked' : ''} ${disabled}>
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="delete" ${val.p_delete == 1 ? 'checked' : ''} ${disabled} ${disabledOthers}>
                                 </form>
                             </td>
                         </tr>`;

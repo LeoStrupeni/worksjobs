@@ -59,6 +59,7 @@ class ApiSearchVarController extends Controller
                 ->get();
         } else if($tipo == 'products') {
             $respuesta = Product::whereNull('deleted_at')
+                ->where('tipo_item', 'P')  // Solo mostrar productos, no servicios ni kits
                 ->where(function($query) use ($search) {
                     $query->where('codigo', 'LIKE', "%$search%")
                           ->orWhere('descripcion', 'LIKE', "%$search%");

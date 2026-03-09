@@ -2,13 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:gal/gal.dart';
+import 'package:http/http.dart' as http;
+import 'dart:typed_data';
+import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../providers/job_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/job.dart';
 import '../models/product.dart';
 import '../models/technician.dart';
 import '../services/auth_service.dart';
 import '../utils/custom_alerts.dart';
 import 'edit_job_screen.dart';
+import 'pdf_config_screen.dart';
 
 class JobDetailScreen extends StatefulWidget {
   final int jobId;
@@ -21,9 +30,7 @@ class JobDetailScreen extends StatefulWidget {
 
 class _JobDetailScreenState extends State<JobDetailScreen> {
   final _noteController = TextEditingController();
-  final _observationController = TextEditingController();
   List<Technician> _technicians = [];
-  List<int> _selectedTechnicianIdsForClose = [];
 
   @override
   void initState() {
@@ -37,7 +44,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   @override
   void dispose() {
     _noteController.dispose();
-    _observationController.dispose();
     super.dispose();
   }
 
@@ -133,64 +139,127 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   void _showImageViewer(int initialIndex, List files) {
+    final PageController pageController = PageController(initialPage: initialIndex);
+    int currentPage = initialIndex;
+    
+    // Obtener usuario para verificar permisos
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          children: [
-            PageView.builder(
-              itemCount: files.length,
-              controller: PageController(initialPage: initialIndex),
-              itemBuilder: (context, index) {
-                final file = files[index];
-                final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
-                return InteractiveViewer(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: EdgeInsets.zero,
+          child: Stack(
+            children: [
+              PageView.builder(
+                itemCount: files.length,
+                controller: pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final file = files[index];
+                  final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                  return InteractiveViewer(
+                    child: Center(
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.error, color: Colors.white, size: 64),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Error al cargar imagen',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+              // Botones superiores
+              Positioned(
+                top: 16,
+                left: 0,
+                right: 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Botones de acción (descarga y compartir)
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.download, color: Colors.white, size: 28),
+                            onPressed: () => _downloadImage(files[currentPage]),
+                            tooltip: 'Descargar',
+                          ),
+                          // Botón compartir solo si tiene permiso
+                          if (user?.canShare == true) ...[
+                            SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.share, color: Colors.white, size: 28),
+                              onPressed: () => _shareImage(files[currentPage]),
+                              tooltip: 'Compartir',
+                            ),
+                          ],
+                        ],
+                      ),
+                      // Botón de cerrar
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white, size: 32),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Indicador de página
+              if (files.length > 1)
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
                   child: Center(
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.error, color: Colors.white, size: 64),
-                              SizedBox(height: 16),
-                              Text(
-                                'Error al cargar imagen',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                : null,
-                            color: Colors.white,
-                          ),
-                        );
-                      },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${currentPage + 1} / ${files.length}',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: IconButton(
-                icon: Icon(Icons.close, color: Colors.white, size: 32),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ],
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -303,6 +372,147 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       errorTitle: 'Error al eliminar imagen',
       getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo eliminar la imagen',
     );
+  }
+
+  Future<void> _downloadImage(dynamic file) async {
+    try {
+      final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Descargando imagen...'),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Descargar la imagen
+      final response = await http.get(Uri.parse(imageUrl));
+      
+      if (response.statusCode == 200) {
+        // Guardar temporalmente
+        final dir = await getTemporaryDirectory();
+        final filePath = '${dir.path}/${file.originalName ?? file.name}';
+        final tempFile = File(filePath);
+        await tempFile.writeAsBytes(response.bodyBytes);
+        
+        // Guardar en la galería
+        await Gal.putImage(filePath, album: 'Strupeni');
+        
+        // Limpiar archivo temporal
+        await tempFile.delete();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Imagen guardada en la galería'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Error al descargar la imagen');
+      }
+    } catch (e) {
+      print('Error al descargar imagen: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al descargar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareImage(dynamic file) async {
+    try {
+      final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Preparando imagen...'),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Descargar la imagen
+      final response = await http.get(Uri.parse(imageUrl));
+      
+      if (response.statusCode == 200) {
+        // Guardar temporalmente
+        final tempDir = await getTemporaryDirectory();
+        final fileName = file.originalName ?? 'imagen_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final filePath = '${tempDir.path}/$fileName';
+        final tempFile = File(filePath);
+        await tempFile.writeAsBytes(response.bodyBytes);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        }
+
+        // Compartir
+        final result = await Share.shareXFiles(
+          [XFile(filePath)],
+          text: 'Imagen de tarea - Strupeni Electrónica',
+        );
+
+        if (result.status == ShareResultStatus.success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Imagen compartida exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Error al descargar la imagen');
+      }
+    } catch (e) {
+      print('Error al compartir imagen: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al compartir: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _showAddNoteDialog() async {
@@ -500,157 +710,41 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   Future<void> _showCloseJobDialog() async {
-    _observationController.clear();
-    _selectedTechnicianIdsForClose.clear();
-    
-    // Pre-seleccionar técnicos ya asignados a la tarea
-    final job = context.read<JobProvider>().selectedJob;
-    if (job?.technicians != null) {
-      _selectedTechnicianIdsForClose = job!.technicians!
-        .map((t) => t['id'] as int)
-        .toList();
-    }
-    
-    return showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Cerrar Cita'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _observationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Observaciones finales',
-                    hintText: 'Ingrese las observaciones...',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 4,
-                ),
-                const SizedBox(height: 16),
-                const Row(
-                  children: [
-                    Icon(Icons.engineering, color: Color(0xFF00274E), size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Técnicos *',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                if (_technicians.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      'No hay técnicos disponibles',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  )
-                else
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _technicians.map((tech) {
-                        final isSelected = _selectedTechnicianIdsForClose.contains(tech.id);
-                        return FilterChip(
-                          label: Text(tech.name),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setDialogState(() {
-                              if (selected) {
-                                _selectedTechnicianIdsForClose.add(tech.id);
-                              } else {
-                                _selectedTechnicianIdsForClose.remove(tech.id);
-                              }
-                            });
-                          },
-                          selectedColor: const Color(0xFF00274E).withOpacity(0.2),
-                          checkmarkColor: const Color(0xFF00274E),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                if (_selectedTechnicianIdsForClose.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      'Debe seleccionar al menos un técnico',
-                      style: TextStyle(color: Colors.red, fontSize: 12),
-                    ),
-                  ),
-              ],
-            ),
+      builder: (context) => AlertDialog(
+        title: const Text('Cerrar Cita'),
+        content: const Text('¿Está seguro que desea cerrar esta tarea?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
             ),
-            ElevatedButton(
-              onPressed: () async {
-                // Validar que haya observaciones
-                if (_observationController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Debe ingresar observaciones'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-                
-                // Validar que haya al menos un técnico seleccionado
-                if (_selectedTechnicianIdsForClose.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Debe seleccionar al menos un técnico'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                  return;
-                }
-                
-                Navigator.pop(context);
-                final success = await context.read<JobProvider>().closeJob(
-                  widget.jobId,
-                  _observationController.text.trim(),
-                  _selectedTechnicianIdsForClose,
-                );
-                
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success ? 'Cita cerrada exitosamente' : 'Error al cerrar cita',
-                      ),
-                      backgroundColor: success ? Colors.green : Colors.red,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              child: const Text('Cerrar Cita'),
-            ),
-          ],
-        ),
+            child: const Text('Sí, cerrar'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed == true && mounted) {
+      final success = await context.read<JobProvider>().closeJob(widget.jobId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? 'Cita cerrada exitosamente' : 'Error al cerrar cita',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleMarkArrival() async {
@@ -720,6 +814,144 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               success ? 'Tarea devuelta a pendiente' : 'Error al revertir arribo',
             ),
             backgroundColor: success ? Colors.orange : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleGeneratePDF() async {
+    final jobProvider = context.read<JobProvider>();
+    final job = jobProvider.selectedJob;
+    final notes = jobProvider.notes;
+    final files = jobProvider.files;
+
+    if (job == null) return;
+
+    // Navegar a la pantalla de configuración del PDF
+    final config = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfConfigScreen(
+          job: job,
+          notes: notes,
+          files: files,
+        ),
+      ),
+    );
+
+    // Si el usuario canceló o no configuró el PDF, salir
+    if (config == null || !mounted) return;
+
+    // Mostrar indicador de carga
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 16),
+            Text('Generando PDF...'),
+          ],
+        ),
+        duration: Duration(seconds: 30),
+      ),
+    );
+
+    try {
+      // Generar el PDF en el servidor
+      final result = await jobProvider.generateJobPDF(job.id!, config);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (result['success'] == true) {
+          // Decodificar el PDF de base64
+          final pdfBytes = base64Decode(result['pdf']);
+          
+          // Guardar el archivo temporalmente
+          final tempDir = await getTemporaryDirectory();
+          final fileName = result['filename'] ?? 'Trabajo_${job.id}.pdf';
+          final filePath = '${tempDir.path}/$fileName';
+          final pdfFile = File(filePath);
+          await pdfFile.writeAsBytes(pdfBytes);
+
+          // Mostrar diálogo para compartir o guardar
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('PDF Generado'),
+                content: const Text('¿Qué deseas hacer con el PDF?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      // Guardar en descargas (esto depende de la plataforma)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('PDF guardado en descargas'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                    child: const Text('Guardar'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      
+                      // Compartir el PDF
+                      final result = await Share.shareXFiles(
+                        [XFile(filePath)],
+                        text: 'Trabajo realizado - Tarea #${job.id}',
+                      );
+
+                      if (mounted && result.status == ShareResultStatus.success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('✅ PDF compartido exitosamente'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00274E),
+                    ),
+                    child: const Text('Compartir'),
+                  ),
+                ],
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Error: ${result['message'] ?? 'No se pudo generar el PDF'}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error al generar PDF: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -1417,10 +1649,6 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   Widget _buildActionButtons(Job job) {
-    if (job.isClosed) {
-      return const SizedBox.shrink();
-    }
-
     return Consumer<JobProvider>(
       builder: (context, jobProvider, child) {
         final permissions = jobProvider.permissions;
@@ -1428,6 +1656,44 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         // Si no hay permisos, no mostrar botones
         if (permissions == null) {
           return const SizedBox.shrink();
+        }
+
+        // Obtener usuario para verificar permisos de PDF
+        final user = Provider.of<AuthProvider>(context, listen: false).user;
+
+        // Si está cerrada, solo mostrar botón de generar PDF si tiene permiso
+        if (job.isClosed) {
+          // Solo mostrar botón de PDF si el usuario tiene permiso
+          if (user?.canGeneratePDF != true) {
+            return const SizedBox.shrink();
+          }
+
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _handleGeneratePDF,
+                icon: const Icon(Icons.picture_as_pdf),
+                label: const Text('Generar PDF'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00274E),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          );
         }
 
         return Container(

@@ -12,6 +12,11 @@
 
             <div class="collapse navbar-collapse justify-content-start ms-5" id="navbarText">
                 <ul class="navbar-nav" style="height: 65px;">
+ 
+                    <li class="nav-item dropdown btn-header-menu">
+                        <button type="button" class="btn btn-lg text-white rounded h-100" onclick="window.location.href='{{ route('home.index') }}'">Home</button>
+                    </li>  
+
                     <li class="nav-item dropdown rounded btn-header-menu">
                         <button class="btn btn-lg text-white rounded h-100" data-bs-toggle="dropdown" aria-expanded="false">
                             Administracion
@@ -56,7 +61,6 @@
                             <button type="button" class="btn btn-lg text-white rounded h-100 create-job">Crear Tarea</button>
                         </li>       
                     @endif
-
                 </ul>
             </div>
             <div class="d-none d-lg-block">

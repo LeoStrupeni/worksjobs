@@ -126,7 +126,7 @@
                                     </div>
                                 </div>
 
-                                {{-- Tarjeta: Observaciones de Cierre --}}
+                                {{-- Tarjeta: Técnicos asignados --}}
                                 <div class="col-md-6">
                                     <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
                                         <div class="card-header bg-white border-0 pt-3">
@@ -134,7 +134,7 @@
                                                 <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
                                                     <i class="fas fa-comment-alt fa-lg text-warning me-2"></i>
                                                 </div>
-                                                <h6 class="mb-0 fw-bold">Observaciones de Cierre</h6>
+                                                <h6 class="mb-0 fw-bold">Técnicos asignados</h6>
                                             </div>
                                         </div>
                                         <div class="card-body pt-1">
@@ -147,7 +147,6 @@
                                                     {{-- llenado vía JS --}}
                                                 </div>
                                             </div>
-                                            <textarea class="form-control border-0 bg-light" name="closed_job_observation" rows="9" readonly style="resize: none;"></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -255,6 +254,142 @@
                         </div>
                     </div>
                 </form>
+            </div>
+            
+            {{-- Footer con botón de generar PDF --}}
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btn-generate-pdf" onclick="openPdfConfigModal()" style="display: none;">
+                    <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal de Configuración de PDF --}}
+<div class="modal fade" id="pdfConfigModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border: none; border-radius: 20px;">
+            <div class="modal-header border-0" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title text-white fw-bold">
+                    <i class="fas fa-cog me-2"></i>Configurar PDF
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                <form id="pdfConfigForm">
+                    {{-- Información General --}}
+                    <div class="card border-0 shadow-sm mb-3" style="border-radius: 15px;">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <h6 class="mb-0 fw-bold text-primary">
+                                <i class="fas fa-info-circle me-2"></i>Información General
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="include_description" checked>
+                                <label class="form-check-label" for="include_description">
+                                    Incluir descripción del trabajo
+                                </label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="include_products" checked>
+                                <label class="form-check-label" for="include_products">
+                                    Incluir productos relacionados
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="include_technicians" checked>
+                                <label class="form-check-label" for="include_technicians">
+                                    Incluir técnicos asignados
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Registro de Tiempos --}}
+                    <div class="card border-0 shadow-sm mb-3" style="border-radius: 15px;">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <h6 class="mb-0 fw-bold text-success">
+                                <i class="fas fa-clock me-2"></i>Registro de Tiempos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="include_arrival_time" checked>
+                                <label class="form-check-label" for="include_arrival_time">
+                                    Fecha y hora de llegada
+                                </label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="include_departure_time" checked>
+                                <label class="form-check-label" for="include_departure_time">
+                                    Fecha y hora de salida
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Notas --}}
+                    <div class="card border-0 shadow-sm mb-3" style="border-radius: 15px;">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-info">
+                                    <i class="fas fa-sticky-note me-2"></i>Notas
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-link" onclick="toggleAllNotes()">
+                                    Seleccionar todas
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="include_notes" checked onchange="toggleNotesSection()">
+                                <label class="form-check-label" for="include_notes">
+                                    <strong>Incluir notas</strong>
+                                </label>
+                            </div>
+                            <div id="notes-selection" class="ps-3">
+                                <!-- Se llenará dinámicamente con JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Imágenes --}}
+                    <div class="card border-0 shadow-sm mb-3" style="border-radius: 15px;">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold text-danger">
+                                    <i class="fas fa-images me-2"></i>Imágenes
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-link" onclick="toggleAllImages()">
+                                    Seleccionar todas
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="include_images" checked onchange="toggleImagesSection()">
+                                <label class="form-check-label" for="include_images">
+                                    <strong>Incluir imágenes</strong>
+                                </label>
+                            </div>
+                            <div id="images-selection" class="row g-2">
+                                <!-- Se llenará dinámicamente con JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="generatePDF('view')">
+                    <i class="fas fa-eye me-2"></i>Ver PDF
+                </button>
+                <button type="button" class="btn btn-success" onclick="generatePDF('download')">
+                    <i class="fas fa-file-download me-2"></i>Descargar PDF
+                </button>
             </div>
         </div>
     </div>

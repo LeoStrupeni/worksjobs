@@ -66,6 +66,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/files', [JobController::class, 'onlyaddfiles']);
         Route::delete('/files/{id}', [JobController::class, 'destroyfile']);
         Route::delete('/files/{fileId}/delete', [ApiJobController::class, 'deleteFile']);
+        
+        // PDF Generation
+        Route::post('/{id}/generate-pdf', [JobController::class, 'generatePDF']);
     });
     
     // Clientes endpoints
