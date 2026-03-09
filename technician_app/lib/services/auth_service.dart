@@ -52,6 +52,16 @@ class AuthService {
           print('🟢 NO hay productos en la respuesta');
         }
         
+        // DEBUG: Verificar permisos recibidos
+        if (data['data']['user']['permissions'] != null) {
+          print('🔐 PERMISOS RECIBIDOS: ${data['data']['user']['permissions']}');
+          final permissions = List<String>.from(data['data']['user']['permissions']);
+          print('🔐 Tiene create share: ${permissions.contains('create share')}');
+          print('🔐 Tiene create pdf: ${permissions.contains('create pdf')}');
+        } else {
+          print('🔐 NO HAY PERMISOS EN LA RESPUESTA');
+        }
+        
         return {
           'success': true,
           'user': User.fromJson(data['data']['user']),

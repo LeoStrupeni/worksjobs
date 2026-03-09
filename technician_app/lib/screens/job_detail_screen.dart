@@ -31,6 +31,8 @@ class JobDetailScreen extends StatefulWidget {
 class _JobDetailScreenState extends State<JobDetailScreen> {
   final _noteController = TextEditingController();
   List<Technician> _technicians = [];
+  Set<int> _selectedImageIds = {}; // Para tracking de imágenes seleccionadas
+  bool _isSelectionMode = false; // Modo selección múltiple
 
   @override
   void initState() {
@@ -503,6 +505,103 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       }
     } catch (e) {
       print('Error al compartir imagen: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al compartir: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareSelectedImages() async {
+    final jobProvider = context.read<JobProvider>();
+    final files = jobProvider.files;
+    
+    // Filtrar solo las imágenes seleccionadas
+    final selectedFiles = files.where((file) => _selectedImageIds.contains(file.id)).toList();
+    
+    if (selectedFiles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay imágenes seleccionadas'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text('Preparando ${selectedFiles.length} imagen${selectedFiles.length > 1 ? 'es' : ''}...'),
+              ],
+            ),
+            duration: const Duration(seconds: 10),
+          ),
+        );
+      }
+
+      // Descargar todas las imágenes seleccionadas
+      final tempDir = await getTemporaryDirectory();
+      final List<XFile> xFiles = [];
+
+      for (var file in selectedFiles) {
+        final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+        final response = await http.get(Uri.parse(imageUrl));
+        
+        if (response.statusCode == 200) {
+          final fileName = file.originalName ?? 'imagen_${DateTime.now().millisecondsSinceEpoch}_${file.id}.jpg';
+          final filePath = '${tempDir.path}/$fileName';
+          final tempFile = File(filePath);
+          await tempFile.writeAsBytes(response.bodyBytes);
+          xFiles.add(XFile(filePath));
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+
+      // Compartir
+      if (xFiles.isNotEmpty) {
+        final result = await Share.shareXFiles(
+          xFiles,
+          text: 'Imágenes de tarea - Strupeni Electrónica',
+        );
+
+        if (result.status == ShareResultStatus.success && mounted) {
+          setState(() {
+            _isSelectionMode = false;
+            _selectedImageIds.clear();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ ${xFiles.length} imagen${xFiles.length > 1 ? 'es' : ''} compartida${xFiles.length > 1 ? 's' : ''} exitosamente'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        throw Exception('No se pudieron descargar las imágenes');
+      }
+    } catch (e) {
+      print('Error al compartir imágenes: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1163,6 +1262,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         builder: (context, jobProvider, child) {
           final job = jobProvider.selectedJob;
           final permissions = jobProvider.permissions;
+          final user = Provider.of<AuthProvider>(context, listen: false).user;
+          
+          // Si hay imágenes seleccionadas, mostrar botón de compartir
+          if (_isSelectionMode && _selectedImageIds.isNotEmpty && user?.canShare == true) {
+            return FloatingActionButton.extended(
+              onPressed: _shareSelectedImages,
+              icon: const Icon(Icons.share, color: Colors.white),
+              label: Text(
+                'Compartir (${_selectedImageIds.length})',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFF00274E),
+              foregroundColor: Colors.white,
+            );
+          }
           
           // No mostrar botón si la cita está cerrada o no hay permisos
           if (job == null || job.isClosed || permissions == null || !permissions.canAddNote) {
@@ -1325,6 +1439,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   Widget _buildImagesSection(List files) {
+    // Obtener usuario para verificar permiso de compartir
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    final canShare = user?.canShare == true;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1340,16 +1458,133 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Text(
-                '${files.length}',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${files.length}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  // Botón para activar/desactivar selección múltiple
+                  if (canShare && files.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    // Botón de compartir con menú
+                    PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.share,
+                        color: Color(0xFF00274E),
+                      ),
+                      tooltip: 'Compartir imágenes',
+                      onSelected: (value) {
+                        if (value == 'all') {
+                          setState(() {
+                            _isSelectionMode = true;
+                            _selectedImageIds.clear();
+                            for (var file in files) {
+                              _selectedImageIds.add(file.id);
+                            }
+                          });
+                          // Auto compartir
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            _shareSelectedImages();
+                          });
+                        } else if (value == 'select') {
+                          setState(() {
+                            _isSelectionMode = !_isSelectionMode;
+                            if (!_isSelectionMode) {
+                              _selectedImageIds.clear();
+                            }
+                          });
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'all',
+                          child: Row(
+                            children: [
+                              Icon(Icons.select_all, color: Color(0xFF00274E)),
+                              SizedBox(width: 8),
+                              Text('Compartir todas'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'select',
+                          child: Row(
+                            children: [
+                              Icon(Icons.done_all, color: Color(0xFF00274E)),
+                              SizedBox(width: 8),
+                              Text('Seleccionar manualmente'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
         ),
+        // Banner de modo selección
+        if (_isSelectionMode && files.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: const Color(0xFF00274E).withOpacity(0.1),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Color(0xFF00274E), size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Seleccionadas: ${_selectedImageIds.length}',
+                      style: const TextStyle(
+                        color: Color(0xFF00274E),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedImageIds.clear();
+                          for (var file in files) {
+                            _selectedImageIds.add(file.id);
+                          }
+                        });
+                      },
+                      child: const Text('Todas', style: TextStyle(color: Color(0xFF00274E))),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedImageIds.clear();
+                        });
+                      },
+                      child: const Text('Ninguna', style: TextStyle(color: Color(0xFF00274E))),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isSelectionMode = false;
+                          _selectedImageIds.clear();
+                        });
+                      },
+                      child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         if (files.isEmpty)
           Container(
             width: double.infinity,
@@ -1384,16 +1619,32 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 itemBuilder: (context, index) {
                   final file = files[index];
                   final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                  final isSelected = _selectedImageIds.contains(file.id);
                   
                   return GestureDetector(
-                    onTap: () => _showImageViewer(index, files),
+                    onTap: () {
+                      if (_isSelectionMode) {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedImageIds.remove(file.id);
+                          } else {
+                            _selectedImageIds.add(file.id);
+                          }
+                        });
+                      } else {
+                        _showImageViewer(index, files);
+                      }
+                    },
                     child: Container(
                       margin: const EdgeInsets.only(right: 12),
                       width: 120,
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF00274E) : Colors.grey[300]!,
+                          width: isSelected ? 3 : 1,
+                        ),
                       ),
                       child: Stack(
                         children: [
@@ -1435,8 +1686,29 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                               },
                             ),
                           ),
-                          // Botón de eliminar - solo si tiene permiso
-                          if (context.read<JobProvider>().permissions?.delete ?? false)
+                          // Checkbox cuando está en modo selección
+                          if (_isSelectionMode)
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFF00274E),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Icon(
+                                  isSelected ? Icons.check_circle : Icons.circle_outlined,
+                                  color: isSelected ? const Color(0xFF00274E) : Colors.grey,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          // Botón de eliminar - solo si tiene permiso y no está en modo selección
+                          if (!_isSelectionMode && (context.read<JobProvider>().permissions?.delete ?? false))
                             Positioned(
                               top: 4,
                               right: 4,

@@ -39,6 +39,15 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // DEBUG
+    print('📄 PdfConfigScreen iniciado');
+    print('📄 Job ID: ${widget.job.id}');
+    print('📄 Notas: ${widget.notes.length}');
+    print('📄 Archivos: ${widget.files.length}');
+    print('📄 arrivalDatetime: ${widget.job.arrivalDatetime}');
+    print('📄 closedDatetime: ${widget.job.closedDatetime}');
+    
     // Por defecto, seleccionar todas las notas e imágenes
     _selectedNoteIds = Set<int>.from(widget.notes.map((note) => note.id as int));
     _selectedImageIds = Set<int>.from(widget.files.map((file) => file.id));
@@ -46,6 +55,17 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
     // Solo incluir comentarios de cierre si existen
     _includeClosingComments = widget.job.closedJobObservation != null && 
                                widget.job.closedJobObservation!.isNotEmpty;
+  }
+  
+  String _formatDateTime(String? dateTimeStr) {
+    if (dateTimeStr == null || dateTimeStr.isEmpty) return 'No registrado';
+    try {
+      final dateTime = DateTime.parse(dateTimeStr);
+      return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
+    } catch (e) {
+      print('📄 ERROR formateando fecha: $dateTimeStr - Error: $e');
+      return 'Formato inválido';
+    }
   }
 
   void _toggleAllNotes(bool? value) {
@@ -143,9 +163,7 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
               children: [
                 _buildSwitchTile(
                   title: 'Fecha y hora de llegada',
-                  subtitle: widget.job.arrivalDatetime != null
-                      ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(widget.job.arrivalDatetime!))
-                      : 'No registrado',
+                  subtitle: _formatDateTime(widget.job.arrivalDatetime),
                   value: _includeArrivalTime,
                   onChanged: (value) {
                     setState(() => _includeArrivalTime = value);
@@ -153,9 +171,7 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
                 ),
                 _buildSwitchTile(
                   title: 'Fecha y hora de salida',
-                  subtitle: widget.job.closedDatetime != null
-                      ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(widget.job.closedDatetime!))
-                      : 'No registrado',
+                  subtitle: _formatDateTime(widget.job.closedDatetime),
                   value: _includeDepartureTime,
                   onChanged: (value) {
                     setState(() => _includeDepartureTime = value);
@@ -244,9 +260,9 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
                     ...widget.notes.map((note) {
                       final noteId = note.id as int;
                       final isSelected = _selectedNoteIds.contains(noteId);
-                      final createdAt = note.created_at != null
+                      final createdAt = note.createdAt != null
                           ? DateFormat('dd/MM/yyyy HH:mm').format(
-                              DateTime.parse(note.created_at)
+                              DateTime.parse(note.createdAt!)
                             )
                           : 'Sin fecha';
 

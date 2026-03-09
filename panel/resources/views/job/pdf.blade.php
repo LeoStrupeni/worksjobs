@@ -204,7 +204,7 @@
 <body>
     <div class="header">
         <div class="header-logo">
-            <img src="https://tecnicos.strupeni.com.ar/assets/media/Logo.png" alt="Strupeni Electrónica">
+            <img src="{{ public_path('assets/media/Logo.png') }}" alt="Strupeni Electrónica">
         </div>
         <div class="header-content">
             <h1>TRABAJO REALIZADO</h1>
@@ -327,7 +327,7 @@
         <div class="images-grid">
             @foreach($images as $image)
                 <div class="image-item">
-                    <img src="{{ public_path('storage/' . $image->name) }}" alt="Imagen de trabajo">
+                    <img src="{{ storage_path('app/public/' . $image->name) }}" alt="Imagen de trabajo">
                     <div class="image-caption">{{ $image->original_name ?? 'Imagen ' . $loop->iteration }}</div>
                 </div>
                 @if($loop->iteration % 3 == 0 && !$loop->last)
