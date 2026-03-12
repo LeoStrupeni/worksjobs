@@ -22,24 +22,24 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      print('📡 getTodayJobs: Llamando a ${ApiConfig.baseUrl}${ApiConfig.todayJobsEndpoint}');
+      // print('📡 getTodayJobs: Llamando a ${ApiConfig.baseUrl}${ApiConfig.todayJobsEndpoint}');
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.todayJobsEndpoint}'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
-      print('📥 getTodayJobs: Status ${response.statusCode}');
+      // print('📥 getTodayJobs: Status ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('📄 getTodayJobs: Response data keys: ${data.keys}');
+        // print('📄 getTodayJobs: Response data keys: ${data.keys}');
         
         if (data['success'] == true) {
-          print('✅ getTodayJobs: ${data['count']} citas encontradas');
+          // print('✅ getTodayJobs: ${data['count']} citas encontradas');
           final jobs = (data['data'] as List)
               .map((job) => Job.fromJson(job))
               .toList();
           
-          print('🔑 getTodayJobs: Permissions data: ${data['permissions']}');
+          // print('🔑 getTodayJobs: Permissions data: ${data['permissions']}');
           
           return {
             'success': true,
@@ -48,11 +48,11 @@ class JobService {
             'permissions': data['permissions'],
           };
         } else {
-          print('⚠️ getTodayJobs: success=false en response');
+          // print('⚠️ getTodayJobs: success=false en response');
         }
       } else {
         print('❌ getTodayJobs: Error HTTP ${response.statusCode}');
-        print('📄 getTodayJobs: Body: ${response.body}');
+        // print('📄 getTodayJobs: Body: ${response.body}');
       }
       
       return {'success': false, 'message': 'Error al obtener citas'};
@@ -110,16 +110,16 @@ class JobService {
       }
 
       final url = '${ApiConfig.baseUrl}${ApiConfig.calendarJobsEndpoint}?start_date=$startDate&end_date=$endDate';
-      print('📡 getJobsByDateRange: $url');
+      // print('📡 getJobsByDateRange: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
       );
 
-      print('📥 getJobsByDateRange: Status ${response.statusCode}');
+      // print('📥 getJobsByDateRange: Status ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('📄 getJobsByDateRange: ${data['count']} citas');
+        // print('📄 getJobsByDateRange: ${data['count']} citas');
         
         if (data['success'] == true) {
           final jobs = (data['data'] as List)
@@ -133,7 +133,7 @@ class JobService {
         }
       } else {
         print('❌ getJobsByDateRange: Error HTTP ${response.statusCode}');
-        print('📄 getJobsByDateRange: ${response.body}');
+        // print('📄 getJobsByDateRange: ${response.body}');
       }
       
       return {'success': false, 'message': 'Error al obtener citas'};
@@ -153,14 +153,14 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      print('📡 getJobDetail: Obteniendo detalle del job $jobId');
+      // print('📡 getJobDetail: Obteniendo detalle del job $jobId');
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
-      print('📥 getJobDetail: Status ${response.statusCode}');
-      print('📄 getJobDetail: Response body: ${response.body}');
+      // print('📥 getJobDetail: Status ${response.statusCode}');
+      // print('📄 getJobDetail: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -168,7 +168,7 @@ class JobService {
         if (data['success'] == true && data['job'] != null) {
           // El backend devuelve 'job' no 'data'
           if (data['job'] is! Map) {
-            print('⚠️ getJobDetail: data["job"] no es un Map');
+            // print('⚠️ getJobDetail: data["job"] no es un Map');
             return {'success': false, 'message': 'Formato de datos incorrecto'};
           }
           
@@ -180,7 +180,7 @@ class JobService {
               ? (data['files'] as List).map((f) => JobFile.fromJson(f)).toList()
               : <JobFile>[];
           
-          print('✅ getJobDetail: Job obtenido - ${job.clientName}');
+          // print('✅ getJobDetail: Job obtenido - ${job.clientName}');
           return {
             'success': true,
             'job': job,
@@ -188,7 +188,7 @@ class JobService {
             'files': files,
           };
         } else {
-          print('⚠️ getJobDetail: success=false o job es null');
+          // print('⚠️ getJobDetail: success=false o job es null');
           return {'success': false, 'message': data['message'] ?? 'Error desconocido'};
         }
       }
@@ -198,7 +198,7 @@ class JobService {
       return {'success': false, 'message': errorData['message'] ?? 'Error al obtener detalle'};
     } catch (e, stackTrace) {
       print('❌ getJobDetail: Exception: $e');
-      print('📚 getJobDetail: StackTrace: $stackTrace');
+      // print('📚 getJobDetail: StackTrace: $stackTrace');
       return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
   }
@@ -475,32 +475,32 @@ class JobService {
       }
 
       final url = '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files';
-      print('📡 uploadFiles: URL = $url');
-      print('📂 uploadFiles: ${filePaths.length} archivo(s) a subir');
+      // print('📡 uploadFiles: URL = $url');
+      // print('📂 uploadFiles: ${filePaths.length} archivo(s) a subir');
       
       var request = http.MultipartRequest('POST', Uri.parse(url));
       request.headers.addAll(ApiConfig.getHeaders(token: token));
 
       // Agregar archivos usando 'images[]' para coincidir con el backend
       for (var filePath in filePaths) {
-        print('📎 uploadFiles: Agregando archivo: $filePath');
+        // print('📎 uploadFiles: Agregando archivo: $filePath');
         request.files.add(await http.MultipartFile.fromPath('images[]', filePath));
       }
 
-      print('🚀 uploadFiles: Enviando petición...');
+      // print('🚀 uploadFiles: Enviando petición...');
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('📥 uploadFiles: Status ${response.statusCode}');
-      print('📄 uploadFiles: Response: ${response.body}');
+      // print('📥 uploadFiles: Status ${response.statusCode}');
+      // print('📄 uploadFiles: Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('✅ uploadFiles: Success = ${data['success']}');
-        return data['success'] == true;
+        // print('✅ uploadFiles: Success = ${data['success']}');
+        return data;
       }
       
-      print('⚠️ uploadFiles: Error - Status ${response.statusCode}');
+      // print('⚠️ uploadFiles: Error - Status ${response.statusCode}');
       return false;
     } catch (e) {
       print('❌ uploadFiles: Exception: $e');
@@ -519,52 +519,52 @@ class JobService {
       }
 
       final url = '${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}?search=$query';
-      print('🌐🌐🌐 searchClients URL: $url');
+      // print('🌐🌐🌐 searchClients URL: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
       );
 
-      print('📊📊📊 searchClients Status: ${response.statusCode}');
-      print('📄📄📄 searchClients Response COMPLETO: ${response.body}');
+      // print('📊📊📊 searchClients Status: ${response.statusCode}');
+      // print('📄📄📄 searchClients Response COMPLETO: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('🔑🔑🔑 searchClients Keys en response: ${data.keys}');
+        // print('🔑🔑🔑 searchClients Keys en response: ${data.keys}');
         
         // Intentar ambas estructuras posibles: {clients: []} o {data: []}
         List<dynamic>? clientsList;
         if (data['clients'] != null) {
           clientsList = data['clients'] as List;
-          print('✅ Encontrado en data["clients"]');
+          // print('✅ Encontrado en data["clients"]');
         } else if (data['data'] != null) {
           clientsList = data['data'] as List;
-          print('✅ Encontrado en data["data"]');
+          // print('✅ Encontrado en data["data"]');
         } else if (data is List) {
           clientsList = data;
-          print('✅ Response es un array directo');
+          // print('✅ Response es un array directo');
         } else {
           print('❌❌❌ NO SE ENCONTRÓ LISTA DE CLIENTES EN LA RESPUESTA');
         }
         
         if (clientsList != null) {
-          print('📝📝📝 Parseando ${clientsList.length} clientes...');
+          // print('📝📝📝 Parseando ${clientsList.length} clientes...');
           final clients = clientsList
               .map((client) {
-                print('   - Cliente: ${client['first_name']} ${client['last_name']}');
+                // print('   - Cliente: ${client['first_name']} ${client['last_name']}');
                 return Client.fromJson(client);
               })
               .toList();
           
-          print('✅✅✅ searchClients: ${clients.length} clientes parseados correctamente');
+          // print('✅✅✅ searchClients: ${clients.length} clientes parseados correctamente');
           return clients;
         }
       } else {
         print('❌❌❌ searchClients: Status code ${response.statusCode}');
         print('ERROR BODY: ${response.body}');
       }
-      
-      print('⚠️⚠️⚠️ searchClients: Retornando lista vacía');
+
+      // print('⚠️⚠️⚠️ searchClients: Retornando lista vacía');
       return [];
     } catch (e) {
       print('❌ searchClients: Exception: $e');
@@ -591,8 +591,8 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      print('📡 createJob: Creando tarea para cliente $clientId en dirección $addressId');
-      print('📍 Ubicación: lat=$latitude, lon=$longitude');
+      // print('📡 createJob: Creando tarea para cliente $clientId en dirección $addressId');
+      // print('📍 Ubicación: lat=$latitude, lon=$longitude');
       
       // Construir body solo con valores no nulos
       final Map<String, dynamic> bodyData = {
@@ -612,7 +612,7 @@ class JobService {
         bodyData['products'] = products.map((p) => p.toJson()).toList();
       }
       
-      print('📦 createJob: Body: $bodyData');
+      // print('📦 createJob: Body: $bodyData');
       
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}'),
@@ -620,11 +620,11 @@ class JobService {
         body: jsonEncode(bodyData),
       );
 
-      print('📥 createJob: Status ${response.statusCode}');
-      print('📄 createJob: Response: ${response.body}');
+      // print('📥 createJob: Status ${response.statusCode}');
+      // print('📄 createJob: Response: ${response.body}');
       
       if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
-        print('✅ createJob: Tarea creada exitosamente');
+        // print('✅ createJob: Tarea creada exitosamente');
         return {
           'success': true,
           'message': 'Tarea creada correctamente',
@@ -653,30 +653,30 @@ class JobService {
       }
 
       final url = '${ApiConfig.baseUrl}${ApiConfig.clientAddressesEndpoint}/$clientId';
-      print('🌐🌐🌐 getClientAddresses URL: $url');
-      print('🔑 Token presente: ${token.substring(0, 20)}...');
+      // print('🌐🌐🌐 getClientAddresses URL: $url');
+      // print('🔑 Token presente: ${token.substring(0, 20)}...');
       
       final response = await http.get(
         Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
       );
 
-      print('📊📊📊 getClientAddresses Status: ${response.statusCode}');
-      print('📄📄📄 getClientAddresses Response COMPLETO: ${response.body}');
+      // print('📊📊📊 getClientAddresses Status: ${response.statusCode}');
+      // print('📄📄📄 getClientAddresses Response COMPLETO: ${response.body}');
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('🔑🔑🔑 Keys en response: ${data.keys}');
+        // print('🔑🔑🔑 Keys en response: ${data.keys}');
         
         if (data['datos'] != null) {
           final addresses = (data['datos'] as List)
               .map((address) {
-                print('   - Dirección: ${address['address_street']} ${address['address_nro']}');
+                // print('   - Dirección: ${address['address_street']} ${address['address_nro']}');
                 return Address.fromJson(address);
               })
               .toList();
           
-          print('✅✅✅ getClientAddresses: ${addresses.length} direcciones parseadas');
+          // print('✅✅✅ getClientAddresses: ${addresses.length} direcciones parseadas');
           return addresses;
         } else {
           print('❌❌❌ data["datos"] es null!');
@@ -685,11 +685,11 @@ class JobService {
         print('❌❌❌ Status no es 200, Body: ${response.body}');
       }
       
-      print('⚠️⚠️⚠️ getClientAddresses: Retornando lista vacía');
+      // print('⚠️⚠️⚠️ getClientAddresses: Retornando lista vacía');
       return [];
     } catch (e, stackTrace) {
       print('❌❌❌ getClientAddresses Exception: $e');
-      print('📚 StackTrace: $stackTrace');
+      // print('📚 StackTrace: $stackTrace');
       return [];
     }
   }
@@ -710,8 +710,8 @@ class JobService {
       }
 
       final url = Uri.parse('${ApiConfig.baseUrl}/client/address');
-      print('🌐 createClientAddress URL: $url');
-      print('📝 Datos: client_id=$clientId, street=$street, number=$number, city=$city');
+      // print('🌐 createClientAddress URL: $url');
+      // print('📝 Datos: client_id=$clientId, street=$street, number=$number, city=$city');
 
       final response = await http.post(
         url,
@@ -729,23 +729,23 @@ class JobService {
         }),
       );
 
-      print('📊 createClientAddress Status: ${response.statusCode}');
-      print('📄 Response: ${response.body}');
+      // print('📊 createClientAddress Status: ${response.statusCode}');
+      // print('📄 Response: ${response.body}');
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['address'] != null) {
           final address = Address.fromJson(data['address']);
-          print('✅ Dirección creada: ${address.fullAddress}');
+          // print('✅ Dirección creada: ${address.fullAddress}');
           return address;
         }
       }
 
-      print('⚠️ Error al crear dirección: ${response.body}');
+      // print('⚠️ Error al crear dirección: ${response.body}');
       return null;
     } catch (e, stackTrace) {
       print('❌ createClientAddress Exception: $e');
-      print('📚 StackTrace: $stackTrace');
+      // print('📚 StackTrace: $stackTrace');
       rethrow;
     }
   }
@@ -770,7 +770,7 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      print('📡 updateJob: Actualizando job $jobId');
+      // print('📡 updateJob: Actualizando job $jobId');
       
       // Construir body solo con valores no nulos
       final Map<String, dynamic> bodyData = {
@@ -789,7 +789,7 @@ class JobService {
         bodyData['products'] = products.map((p) => p.toJson()).toList();
       }
       
-      print('📦 updateJob: Body: $bodyData');
+      // print('📦 updateJob: Body: $bodyData');
       
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/jobs/$jobId'),
@@ -797,16 +797,16 @@ class JobService {
         body: jsonEncode(bodyData),
       );
 
-      print('📥 updateJob: Status ${response.statusCode}');
-      print('📄 updateJob: Response: ${response.body}');
+      // print('📥 updateJob: Status ${response.statusCode}');
+      // print('📄 updateJob: Response: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 302) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          print('✅ updateJob: Tarea actualizada exitosamente');
+          // print('✅ updateJob: Tarea actualizada exitosamente');
           return {'success': true};
         } else {
-          print('⚠️ updateJob: ${data['message']}');
+          // print('⚠️ updateJob: ${data['message']}');
           return {'success': false, 'message': data['message']};
         }
       }
@@ -831,13 +831,13 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      print('📡 updateJobTechnicians: Actualizando técnicos del job $jobId');
+      // print('📡 updateJobTechnicians: Actualizando técnicos del job $jobId');
       
       final Map<String, dynamic> bodyData = {
         'technician_ids': technicianIds ?? [],
       };
       
-      print('📦 updateJobTechnicians: Body: $bodyData');
+      // print('📦 updateJobTechnicians: Body: $bodyData');
       
       final response = await http.patch(
         Uri.parse('${ApiConfig.baseUrl}/jobs/$jobId/technicians'),
@@ -845,16 +845,16 @@ class JobService {
         body: jsonEncode(bodyData),
       );
 
-      print('📥 updateJobTechnicians: Status ${response.statusCode}');
-      print('📄 updateJobTechnicians: Response: ${response.body}');
+      // print('📥 updateJobTechnicians: Status ${response.statusCode}');
+      // print('📄 updateJobTechnicians: Response: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 302) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          print('✅ updateJobTechnicians: Técnicos actualizados exitosamente');
+          // print('✅ updateJobTechnicians: Técnicos actualizados exitosamente');
           return {'success': true};
         } else {
-          print('⚠️ updateJobTechnicians: ${data['message']}');
+          // print('⚠️ updateJobTechnicians: ${data['message']}');
           return {'success': false, 'message': data['message']};
         }
       }
@@ -880,15 +880,15 @@ class JobService {
         return [];
       }
 
-      print('🔍 searchProducts: Buscando productos con query: "$query"');
+      // print('🔍 searchProducts: Buscando productos con query: "$query"');
       
       final response = await http.get(
         Uri.parse('${ApiConfig.baseUrl}/jobs/products?search=$query'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
-      print('📥 searchProducts: Status ${response.statusCode}');
-      print('📄 searchProducts: Response: ${response.body}');
+      // print('📥 searchProducts: Status ${response.statusCode}');
+      // print('📄 searchProducts: Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -896,7 +896,7 @@ class JobService {
           final products = (data['data'] as List)
               .map((product) => Product.fromJson(product))
               .toList();
-          print('✅ searchProducts: ${products.length} productos encontrados');
+          // print('✅ searchProducts: ${products.length} productos encontrados');
           return products;
         }
       }
@@ -921,8 +921,8 @@ class JobService {
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      print('📡 generateJobPDF: Generando PDF para job $jobId');
-      print('📄 generateJobPDF: Config: $config');
+      // print('📡 generateJobPDF: Generando PDF para job $jobId');
+      // print('📄 generateJobPDF: Config: $config');
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/generate-pdf'),
@@ -930,13 +930,13 @@ class JobService {
         body: jsonEncode(config),
       );
 
-      print('📥 generateJobPDF: Status ${response.statusCode}');
+      // print('📥 generateJobPDF: Status ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
         if (data['success'] == true) {
-          print('✅ generateJobPDF: PDF generado exitosamente');
+          // print('✅ generateJobPDF: PDF generado exitosamente');
           return {
             'success': true,
             'filename': data['filename'],
@@ -944,7 +944,7 @@ class JobService {
             'mime_type': data['mime_type'],
           };
         } else {
-          print('⚠️ generateJobPDF: ${data['message']}');
+          // print('⚠️ generateJobPDF: ${data['message']}');
           return {
             'success': false,
             'message': data['message'] ?? 'Error al generar PDF'
@@ -959,7 +959,7 @@ class JobService {
       };
     } catch (e, stackTrace) {
       print('❌ generateJobPDF: Exception: $e');
-      print('📄 generateJobPDF: StackTrace: $stackTrace');
+      // print('📄 generateJobPDF: StackTrace: $stackTrace');
       return {
         'success': false,
         'message': 'Error: ${e.toString()}'

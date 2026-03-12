@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    // console.error('Error:', error);
                     Swal.fire('Error', 'Error al subir los archivos: ' + error.message, 'error');
                 });
             }
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
             isLoading = false;
         })
         .catch(error => {
-            console.error('Error:', error);
+            // console.error('Error:', error);
             isLoading = false;
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-chevron-down me-2"></i>Cargar más';

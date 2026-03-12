@@ -71,4 +71,88 @@ class ApiSearchVarController extends Controller
         return $respuesta;
     }
 
+    /**
+     * Buscar cliente por colppy_id
+     */
+    public function getClientByColppyId(Request $request)
+    {
+        try {
+            $colppyId = $request->input('colppy_id');
+            
+            if (!$colppyId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'colppy_id es requerido'
+                ], 400);
+            }
+            
+            $client = Client::where('colppy_id', $colppyId)
+                ->whereNull('deleted_at')
+                ->first();
+            
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cliente no encontrado'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'client' => [
+                    'id' => $client->id,
+                    'first_name' => $client->first_name,
+                    'last_name' => $client->last_name,
+                    'colppy_id' => $client->colppy_id
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al buscar cliente: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Buscar productos por array de colppy_ids
+     */
+    public function getProductsByColppyIds(Request $request)
+    {
+        try {
+            $colppyIds = $request->input('colppy_ids', []);
+            
+            if (!is_array($colppyIds) || empty($colppyIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'colppy_ids debe ser un array no vacío'
+                ], 400);
+            }
+            
+            // Usar colppy_id que es el nombre real de la columna en BD
+            $products = Product::whereIn('colppy_id', $colppyIds)
+                ->whereNull('deleted_at')
+                ->get();
+            
+            return response()->json([
+                'success' => true,
+                'products' => $products->map(function($product) {
+                    return [
+                        'id' => $product->id,
+                        'codigo' => $product->codigo,
+                        'descripcion' => $product->descripcion,
+                        'idcolppy' => $product->idcolppy  // Accessor que mapea a colppy_id
+                    ];
+                })
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al buscar productos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

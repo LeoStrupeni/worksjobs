@@ -24,7 +24,7 @@ class SyncColppyProductsService
     public function syncProducts(): array
     {
         try {
-            Log::info('=== INICIO SINCRONIZACIÓN PRODUCTOS COLPPY ===');
+            // Log::info('=== INICIO SINCRONIZACIÓN PRODUCTOS COLPPY ===');
             
             $productosSincronizados = 0;
             $productosActualizados = 0;
@@ -86,12 +86,12 @@ class SyncColppyProductsService
 
             } while ($totalProcesados < $total);
 
-            Log::info('=== FIN SINCRONIZACIÓN PRODUCTOS COLPPY ===', [
-                'nuevos' => $productosSincronizados,
-                'actualizados' => $productosActualizados,
-                'errores' => $errores,
-                'total' => $totalProcesados
-            ]);
+            // Log::info('=== FIN SINCRONIZACIÓN PRODUCTOS COLPPY ===', [
+            //     'nuevos' => $productosSincronizados,
+            //     'actualizados' => $productosActualizados,
+            //     'errores' => $errores,
+            //     'total' => $totalProcesados
+            // ]);
 
             return [
                 'success' => true,

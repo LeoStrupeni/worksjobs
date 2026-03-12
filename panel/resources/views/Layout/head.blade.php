@@ -698,4 +698,28 @@
             color: #60d075 !important;
         }
     </style>
+    
+    <style>
+        /* Ajuste de ancho de modales para pantallas medianas y pequeñas */
+        @media (max-width: 1199.98px) {
+            .modal-dialog {
+                max-width: 90% !important;
+                width: 90% !important;
+            }
+            
+            .modal-xl,
+            .modal-lg {
+                max-width: 90% !important;
+            }
+        }
+        
+        /* Para pantallas muy pequeñas mantener un margen razonable */
+        @media (max-width: 575.98px) {
+            .modal-dialog {
+                max-width: 95% !important;
+                width: 95% !important;
+                margin: 0.5rem auto !important;
+            }
+        }
+    </style>
 </head>

@@ -12,6 +12,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\UserController;
@@ -89,7 +90,7 @@ Route::get('/debug/sync-stats-public', function() {
             $totalColppyValue = $resultado['total'] ?? 0;
         } catch (\Exception $colppyError) {
             // Continuar sin Colppy si falla
-            \Log::warning('No se pudo consultar Colppy desde debug', ['error' => $colppyError->getMessage()]);
+            // \Log::warning('No se pudo consultar Colppy desde debug', ['error' => $colppyError->getMessage()]);
         }
         
         $diferencia = $totalColppyValue - $clientesColppy;
@@ -171,6 +172,11 @@ Route::group(['middleware' => 'auth'], function () {
         $controller->generarPresupuestoColppy($id);
         return response()->json(['success' => true, 'message' => 'Presupuesto generado. Revisar logs en storage/logs/laravel.log']);
     })->name('job.test.budget');
+    
+    // ============= RUTAS PRESUPUESTOS COLPPY =============
+    Route::get('/budgets', [BudgetController::class,'index'])->name('budgets.index');
+    Route::post('/budgets/table', [BudgetController::class,'getBudgetsDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::post('/budgets/detail/{idFactura}', [BudgetController::class,'getBudgetDetail'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     
     // ============= RUTAS CMS =============
     // Panel principal CMS

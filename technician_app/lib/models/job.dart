@@ -77,6 +77,18 @@ class Job {
 
   factory Job.fromJson(Map<String, dynamic> json) {
     try {
+      // Función helper para limpiar strings
+      String? cleanString(dynamic value) {
+        if (value == null || value == 'null' || value == '' || value.toString().trim().isEmpty) {
+          return null;
+        }
+        return value.toString().trim();
+      }
+      
+      // Debug de direcciones
+      // print('🏠 Job ${json['id']}: client_addres_name = "${json['client_addres_name']}"');
+      // print('🏠 Job ${json['id']}: address_street = "${json['address_street']}"');
+      
       return Job(
         id: json['id'],
         clientId: json['client_id'],
@@ -120,19 +132,19 @@ class Job {
         products: json['products'] != null 
           ? (json['products'] as List).cast<Map<String, dynamic>>() 
           : null,
-        clientAddresName: json['client_addres_name'],
-        addressStreet: json['address_street'],
-        addressNumber: json['address_number'],
-        addressFloor: json['address_floor'],
-        addressApartment: json['address_apartment'],
-        addressCity: json['address_city'],
-        addressState: json['address_state'],
-        addressCountry: json['address_country'],
-        addressPostalCode: json['address_postal_code'],
+        clientAddresName: cleanString(json['client_addres_name']),
+        addressStreet: cleanString(json['address_street']),
+        addressNumber: cleanString(json['address_number']),
+        addressFloor: cleanString(json['address_floor']),
+        addressApartment: cleanString(json['address_apartment']),
+        addressCity: cleanString(json['address_city']),
+        addressState: cleanString(json['address_state']),
+        addressCountry: cleanString(json['address_country']),
+        addressPostalCode: cleanString(json['address_postal_code']),
       );
     } catch (e) {
       print('❌ Error parsing Job JSON: $e');
-      print('📄 JSON data: $json');
+      // print('📄 JSON data: $json');
       rethrow;
     }
   }
@@ -194,15 +206,15 @@ class Job {
     
     String address = parts.join(' ');
     
-    if (addressCity != null) {
-      address += ', $addressCity';
-    }
-    if (addressState != null) {
-      address += ', $addressState';
-    }
-    if (addressCountry != null) {
-      address += ', $addressCountry';
-    }
+    // if (addressCity != null) {
+    //   address += ', $addressCity';
+    // }
+    // if (addressState != null) {
+    //   address += ', $addressState';
+    // }
+    // if (addressCountry != null) {
+    //   address += ', $addressCountry';
+    // }
     
     return address;
   }

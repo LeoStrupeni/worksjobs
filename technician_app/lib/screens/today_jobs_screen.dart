@@ -14,10 +14,10 @@ class TodayJobsScreen extends StatelessWidget {
     return Scaffold(
       body: Consumer<JobProvider>(
         builder: (context, jobProvider, child) {
-          print('🖥️ TodayJobsScreen: isLoading=${jobProvider.isLoading}, todayJobs.length=${jobProvider.todayJobs.length}, errorMessage=${jobProvider.errorMessage}');
+          // print('🖥️ TodayJobsScreen: isLoading=${jobProvider.isLoading}, todayJobs.length=${jobProvider.todayJobs.length}, errorMessage=${jobProvider.errorMessage}');
           
           if (jobProvider.isLoading && jobProvider.todayJobs.isEmpty) {
-            print('⏳ TodayJobsScreen: Mostrando loading...');
+            // print('⏳ TodayJobsScreen: Mostrando loading...');
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -54,7 +54,7 @@ class TodayJobsScreen extends StatelessWidget {
           }
 
           if (jobProvider.todayJobs.isEmpty) {
-            print('📭 TodayJobsScreen: Mostrando "No hay citas"...');
+            // print('📭 TodayJobsScreen: Mostrando "No hay citas"...');
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -84,7 +84,7 @@ class TodayJobsScreen extends StatelessWidget {
             );
           }
           
-          print('✅ TodayJobsScreen: Mostrando ${jobProvider.todayJobs.length} citas');
+          // print('✅ TodayJobsScreen: Mostrando ${jobProvider.todayJobs.length} citas');
           return RefreshIndicator(
             onRefresh: () async {
               await jobProvider.fetchTodayJobs();

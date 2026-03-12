@@ -115,20 +115,20 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
   }
 
   Future<void> _loadInitialProducts() async {
-    print('🔵 EDIT: _loadInitialProducts: Iniciando carga...');
+    // print('🔵 EDIT: _loadInitialProducts: Iniciando carga...');
     final authService = AuthService();
     final productsData = await authService.getProducts();
-    print('🔵 EDIT: productsData recibidos: ${productsData.length}');
+    // print('🔵 EDIT: productsData recibidos: ${productsData.length}');
     final products = productsData.map((json) => Product.fromJson(json)).toList();
-    print('🔵 EDIT: ${products.length} productos parseados');
+    // print('🔵 EDIT: ${products.length} productos parseados');
     if (products.isNotEmpty) {
-      print('🔵 EDIT: Primer producto: ${products[0].displayName}');
+      // print('🔵 EDIT: Primer producto: ${products[0].displayName}');
     }
     setState(() {
       _initialProducts = products;
       _productSearchResults = products; // Mostrar inicialmente los 10 productos del login
     });
-    print('🔵 EDIT: Estado actualizado con ${_productSearchResults.length} productos');
+    // print('🔵 EDIT: Estado actualizado con ${_productSearchResults.length} productos');
   }
 
   Future<void> _selectDate() async {
@@ -161,15 +161,15 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
   }
   // Cargar productos existentes del job
   void _loadProducts() {
-    print('🟠 EDIT: _loadProducts iniciando...');
-    print('🟠 EDIT: widget.job.products = ${widget.job.products}');
+    // print('🟠 EDIT: _loadProducts iniciando...');
+    // print('🟠 EDIT: widget.job.products = ${widget.job.products}');
     if (widget.job.products != null && widget.job.products!.isNotEmpty) {
-      print('🟠 EDIT: Hay ${widget.job.products!.length} productos');
-      print('🟠 EDIT: Tipo de widget.job.products[0]: ${widget.job.products![0].runtimeType}');
+      // print('🟠 EDIT: Hay ${widget.job.products!.length} productos');
+      // print('🟠 EDIT: Tipo de widget.job.products[0]: ${widget.job.products![0].runtimeType}');
       try {
         setState(() {
           _selectedProducts = widget.job.products!.map((pData) {
-            print('🟠 EDIT: Procesando producto: $pData');
+            // print('🟠 EDIT: Procesando producto: $pData');
             
             // Convertir quantity de manera segura (puede venir como String o num)
             double parsedQuantity = 1.0;
@@ -204,13 +204,13 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
             );
           }).toList();
         });
-        print('✅ EDIT: Productos cargados: ${_selectedProducts.length}');
+        // print('✅ EDIT: Productos cargados: ${_selectedProducts.length}');
       } catch (e, stack) {
         print('❌ EDIT: Error al cargar productos: $e');
         print('❌ EDIT: Stack: $stack');
       }
     } else {
-      print('🟠 EDIT: No hay productos para cargar');
+      // print('🟠 EDIT: No hay productos para cargar');
     }
   }
 
@@ -227,10 +227,10 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
       _isSearchingProducts = true;
     });
 
-    print('🔍 Buscando productos: "$query"');
+    // print('🔍 Buscando productos: "$query"');
     final jobProvider = context.read<JobProvider>();
     final results = await jobProvider.searchProducts(query);
-    print('📦 Productos encontrados: ${results.length}');
+    // print('📦 Productos encontrados: ${results.length}');
 
     setState(() {
       _productSearchResults = results;
@@ -548,26 +548,26 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
         _selectedTime.minute,
       );
 
-      print('🔄 _updateJob: Iniciando actualización...');
+      // print('🔄 _updateJob: Iniciando actualización...');
       
       // Obtener ubicación GPS con timeout
       Map<String, dynamic>? location;
       try {
-        print('📍 _updateJob: Obteniendo ubicación GPS...');
+        // print('📍 _updateJob: Obteniendo ubicación GPS...');
         location = await _getCurrentLocation().timeout(
           const Duration(seconds: 10),
           onTimeout: () {
-            print('⏱️ _updateJob: Timeout obteniendo ubicación');
+            // print('⏱️ _updateJob: Timeout obteniendo ubicación');
             return null;
           },
         );
-        print('📍 _updateJob: Ubicación obtenida: $location');
+        // print('📍 _updateJob: Ubicación obtenida: $location');
       } catch (e) {
         print('❌ _updateJob: Error obteniendo ubicación: $e');
         location = null;
       }
 
-      print('🚀 _updateJob: Llamando a jobProvider.updateJob...');
+      // print('🚀 _updateJob: Llamando a jobProvider.updateJob...');
       final jobProvider = context.read<JobProvider>();
       
       // Ejecutar operación con alertas automáticas
@@ -594,7 +594,7 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
         getErrorMessage: () => jobProvider.errorMessage ?? 'Error inesperado al actualizar la tarea',
       );
       
-      print('📊 _updateJob: Resultado: $success');
+      // print('📊 _updateJob: Resultado: $success');
 
       if (mounted && success) {
         // Esperar a que se cierre el alert de éxito antes de cerrar la pantalla

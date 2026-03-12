@@ -33,6 +33,12 @@
                   href="{{ route('jobs.index') }}">Tareas</a>
                 </li>
               @endif
+              @if (in_array('read',Session::get('user')['permissions']['jobs']))
+                <li>
+                  <a class="link-body-emphasis d-inline-flex text-decoration-none rounded ms-5 text-white text-uppercase hover-success" 
+                  href="{{ route('budgets.index') }}">Presupuestos</a>
+                </li>
+              @endif
             </ul>
           </div>
         </li>

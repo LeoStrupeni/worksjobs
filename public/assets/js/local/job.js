@@ -44,6 +44,9 @@ function tableregister(data, page, callpaginas, url_query){
 
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}" style="border-bottom: 1px solid #f0f0f0;">
+            <td class="align-middle">
+                <span class="badge bg-se-primary rounded-pill px-3 py-2" style="font-size: 1rem;">${val.id}</span>
+            </td>
             <td class="align-middle fw-bold">${val.client_first_name} ${val.client_last_name ?? ''}</td>
             <td class="text-start py-3 align-middle">
                 <div class="d-flex flex-column gap-1">

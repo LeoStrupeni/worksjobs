@@ -41,12 +41,12 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
     super.initState();
     
     // DEBUG
-    print('📄 PdfConfigScreen iniciado');
-    print('📄 Job ID: ${widget.job.id}');
-    print('📄 Notas: ${widget.notes.length}');
-    print('📄 Archivos: ${widget.files.length}');
-    print('📄 arrivalDatetime: ${widget.job.arrivalDatetime}');
-    print('📄 closedDatetime: ${widget.job.closedDatetime}');
+    // print('📄 PdfConfigScreen iniciado');
+    // print('📄 Job ID: ${widget.job.id}');
+    // print('📄 Notas: ${widget.notes.length}');
+    // print('📄 Archivos: ${widget.files.length}');
+    // print('📄 arrivalDatetime: ${widget.job.arrivalDatetime}');
+    // print('📄 closedDatetime: ${widget.job.closedDatetime}');
     
     // Por defecto, seleccionar todas las notas e imágenes
     _selectedNoteIds = Set<int>.from(widget.notes.map((note) => note.id as int));
@@ -63,7 +63,7 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
       final dateTime = DateTime.parse(dateTimeStr);
       return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
     } catch (e) {
-      print('📄 ERROR formateando fecha: $dateTimeStr - Error: $e');
+      // print('📄 ERROR formateando fecha: $dateTimeStr - Error: $e');
       return 'Formato inválido';
     }
   }

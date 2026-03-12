@@ -57,12 +57,13 @@ class JobController extends Controller
         $job = Job::create([
             'client_id' => $request->client_id,
             'client_addres_id' => $request->address_id,
-            'visit_datetime' => $request->visit_datetime,
+            'visit_datetime' => $this->convertDateTimeFormat($request->visit_datetime),
             'job_description' => $request->job_description,
             'visit_latitud' => $request->latitude,
             'visit_longitud' => $request->longitude,
             'visit_coords_status' => $request->latitude != null && $request->longitude != null ? '1' : '0',
-            'visit_json_coords' => $request->jsongeolocation
+            'visit_json_coords' => $request->jsongeolocation,
+            'colppy_budget_id' => $request->colppy_budget_id ?? null
         ]);
 
         // Sincronizar técnicos asignados
@@ -147,6 +148,29 @@ class JobController extends Controller
             ->whereNull('deleted_at')
             ->get();
 
+        // Convertir fecha de BD (YYYY-MM-DD HH:mm:ss) a formato frontend (DD/MM/YYYY HH:mm)
+        if ($job->visit_datetime) {
+            try {
+                $date = \DateTime::createFromFormat('Y-m-d H:i:s', $job->visit_datetime);
+                if ($date !== false) {
+                    $job->visit_datetime = $date->format('d/m/Y H:i');
+                }
+            } catch (\Exception $e) {
+                // Si falla, intentar con formato sin segundos
+                try {
+                    $date = \DateTime::createFromFormat('Y-m-d H:i', $job->visit_datetime);
+                    if ($date !== false) {
+                        $job->visit_datetime = $date->format('d/m/Y H:i');
+                    }
+                } catch (\Exception $e2) {
+                    // Log::warning('No se pudo convertir fecha para edición', [
+                    //     'visit_datetime' => $job->visit_datetime,
+                    //     'error' => $e2->getMessage()
+                    // ]);
+                }
+            }
+        }
+
         $repuesta['job'] = $job;
         $repuesta['address'] = $address;
         $repuesta['files'] = $files;
@@ -164,7 +188,7 @@ class JobController extends Controller
 
     public function update(Request $request, $id)
     {   
-        Log::info('Request Data: ', $request->all(),$id);
+        // Log::info('Request Data: ', $request->all(),$id);
         $job = Job::find($id);
     
         $datos = array();
@@ -177,7 +201,7 @@ class JobController extends Controller
             $request->validate(['visit_datetime' => ['required']],
                 [ 'required' => 'El campo es requerido.']
             );
-            $datos['visit_datetime'] = $request->visit_datetime;
+            $datos['visit_datetime'] = $this->convertDateTimeFormat($request->visit_datetime);
         }
         if(isset($request->job_description) && $request->job_description != $job->job_description){
             $request->validate(['job_description' => ['required']],
@@ -331,10 +355,10 @@ class JobController extends Controller
             $this->generarPresupuestoColppy($job_id);
         } catch (\Exception $e) {
             // Log del error pero no interrumpir el cierre de la tarea
-            Log::warning('Error al generar presupuesto en Colppy al cerrar tarea', [
-                'job_id' => $job_id,
-                'error' => $e->getMessage()
-            ]);
+            // Log::warning('Error al generar presupuesto en Colppy al cerrar tarea', [
+            //     'job_id' => $job_id,
+            //     'error' => $e->getMessage()
+            // ]);
         }
 
         if ($request->expectsJson()) {
@@ -420,8 +444,8 @@ class JobController extends Controller
         // Soportar id en body o en ruta
         $job_id = $request->id ?? $request->route('id');
         
-        Log::info('onlyaddfiles: job_id=' . $job_id);
-        Log::info('onlyaddfiles: files in request', ['files' => $request->allFiles()]);
+        // Log::info('onlyaddfiles: job_id=' . $job_id);
+        // Log::info('onlyaddfiles: files in request', ['files' => $request->allFiles()]);
         
         $this->addfiles($request, $job_id);
         
@@ -480,7 +504,7 @@ class JobController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         $tempPath = $file->getRealPath();
         
-        Log::info("Optimizando imagen: $filename - Extension: $extension");
+        // Log::info("Optimizando imagen: $filename - Extension: $extension");
         
         // Crear imagen desde archivo temporal
         switch ($extension) {
@@ -501,7 +525,7 @@ class JobController extends Controller
 
         if (!$sourceImage) {
             // Si falla la creación de imagen, guardar sin optimizar
-            Log::warning("No se pudo crear imagen desde: $filename");
+            // Log::warning("No se pudo crear imagen desde: $filename");
             return $file->storeAs('public', $filename);
         }
 
@@ -509,7 +533,7 @@ class JobController extends Controller
         $originalWidth = imagesx($sourceImage);
         $originalHeight = imagesy($sourceImage);
         
-        Log::info("Dimensiones originales: {$originalWidth}x{$originalHeight}");
+        // Log::info("Dimensiones originales: {$originalWidth}x{$originalHeight}");
 
         // Calcular nuevas dimensiones manteniendo proporción
         $ratio = min($maxWidth / $originalWidth, $maxHeight / $originalHeight);
@@ -518,7 +542,7 @@ class JobController extends Controller
         $newWidth = (int)($originalWidth * $ratio);
         $newHeight = (int)($originalHeight * $ratio);
         
-        Log::info("Nuevas dimensiones: {$newWidth}x{$newHeight} (ratio: $ratio)");
+        // Log::info("Nuevas dimensiones: {$newWidth}x{$newHeight} (ratio: $ratio)");
 
         // Crear imagen redimensionada
         $optimizedImage = imagecreatetruecolor($newWidth, $newHeight);
@@ -541,11 +565,11 @@ class JobController extends Controller
             case 'jpg':
             case 'jpeg':
                 imagejpeg($optimizedImage, $storagePath, $jpegQuality);
-                Log::info("Imagen JPEG guardada con calidad $jpegQuality");
+                // Log::info("Imagen JPEG guardada con calidad $jpegQuality");
                 break;
             case 'png':
                 imagepng($optimizedImage, $storagePath, $pngCompression);
-                Log::info("Imagen PNG guardada con compresión $pngCompression");
+                // Log::info("Imagen PNG guardada con compresión $pngCompression");
                 break;
             case 'gif':
                 imagegif($optimizedImage, $storagePath);
@@ -554,7 +578,7 @@ class JobController extends Controller
         
         // Verificar tamaño del archivo guardado
         $fileSize = filesize($storagePath);
-        Log::info("Tamaño final del archivo: " . round($fileSize / 1024, 2) . " KB");
+        // Log::info("Tamaño final del archivo: " . round($fileSize / 1024, 2) . " KB");
 
         // Liberar memoria
         imagedestroy($sourceImage);
@@ -641,7 +665,7 @@ class JobController extends Controller
             
             return redirect()->back()->with('success', 'Productos actualizados correctamente');
         } catch (\Exception $e) {
-            Log::error('Error al actualizar productos: ' . $e->getMessage());
+            // Log::error('Error al actualizar productos: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error al actualizar productos');
         }
     }
@@ -657,16 +681,16 @@ class JobController extends Controller
         $job = Job::with(['client', 'products.product', 'notes'])->find($job_id);
         
         if (!$job) {
-            Log::warning('Tarea no encontrada para generar presupuesto', ['job_id' => $job_id]);
+            // Log::warning('Tarea no encontrada para generar presupuesto', ['job_id' => $job_id]);
             return;
         }
 
         // Validar que el cliente tenga idcolppy
         if (!$job->client || !$job->client->idcolppy) {
-            Log::info('Cliente sin idcolppy, no se genera presupuesto', [
-                'job_id' => $job_id,
-                'client_id' => $job->client->id ?? null
-            ]);
+            // Log::info('Cliente sin idcolppy, no se genera presupuesto', [
+            //     'job_id' => $job_id,
+            //     'client_id' => $job->client->id ?? null
+            // ]);
             return;
         }
 
@@ -707,10 +731,10 @@ class JobController extends Controller
                     $comentario = "Arribo: {$arriboStr} - Salida: {$salidaStr} - {$totalMinutos} min";
 
                 } catch (\Exception $e) {
-                    Log::warning('Error al calcular horas de trabajo', [
-                        'job_id' => $job_id,
-                        'error' => $e->getMessage()
-                    ]);
+                    // Log::warning('Error al calcular horas de trabajo', [
+                    //     'job_id' => $job_id,
+                    //     'error' => $e->getMessage()
+                    // ]);
                 }
             }
             
@@ -730,9 +754,9 @@ class JobController extends Controller
                 'Comentario' => $comentario
             ];
         } else {
-            Log::warning('No se encontró servicio de mano de obra con código 14', [
-                'job_id' => $job_id
-            ]);
+            // Log::warning('No se encontró servicio de mano de obra con código 14', [
+            //     'job_id' => $job_id
+            // ]);
         }
 
         // 2. Agregar productos de la tarea
@@ -764,7 +788,7 @@ class JobController extends Controller
 
         // Si no hay items, no generar presupuesto
         if (empty($items)) {
-            Log::info('No hay items para generar presupuesto', ['job_id' => $job_id]);
+            // Log::info('No hay items para generar presupuesto', ['job_id' => $job_id]);
             return;
         }
 
@@ -817,18 +841,18 @@ class JobController extends Controller
                 $siguienteNumero = str_pad($numeroActual + 1, 8, '0', STR_PAD_LEFT);
                 Config::where('name', 'colppy_numero_presupuesto')->update(['value' => $siguienteNumero]);
 
-                Log::info('Presupuesto generado exitosamente en Colppy', [
-                    'job_id' => $job_id,
-                    'idFactura' => $idFactura,
-                    'nroFactura' => $talonario . '-' . $numeroPresupuesto,
-                    'siguiente_numero' => $siguienteNumero,
-                    'items_count' => count($items)
-                ]);
+                // Log::info('Presupuesto generado exitosamente en Colppy', [
+                //     'job_id' => $job_id,
+                //     'idFactura' => $idFactura,
+                //     'nroFactura' => $talonario . '-' . $numeroPresupuesto,
+                //     'siguiente_numero' => $siguienteNumero,
+                //     'items_count' => count($items)
+                // ]);
             } else {
-                Log::warning('Respuesta OK pero sin idfactura', [
-                    'job_id' => $job_id,
-                    'response' => $response
-                ]);
+                // Log::warning('Respuesta OK pero sin idfactura', [
+                //     'job_id' => $job_id,
+                //     'response' => $response
+                // ]);
             }
         } else {
             Log::error('Error al crear presupuesto en Colppy', [
@@ -929,11 +953,11 @@ class JobController extends Controller
             return $pdf->download($fileName);
 
         } catch (\Exception $e) {
-            Log::error('Error al generar PDF', [
-                'job_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            // Log::error('Error al generar PDF', [
+            //     'job_id' => $id,
+            //     'error' => $e->getMessage(),
+            //     'trace' => $e->getTraceAsString()
+            // ]);
 
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
@@ -943,6 +967,49 @@ class JobController extends Controller
             }
 
             return back()->with('error', 'Error al generar PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Convertir formato de fecha del frontend (DD/MM/YYYY HH:mm) al formato de BD (YYYY-MM-DD HH:mm:ss)
+     * 
+     * @param string $dateTime Fecha en formato DD/MM/YYYY HH:mm
+     * @return string|null Fecha en formato YYYY-MM-DD HH:mm:ss
+     */
+    private function convertDateTimeFormat($dateTime)
+    {
+        if (empty($dateTime)) {
+            return null;
+        }
+
+        try {
+            // Si ya viene en formato ISO (YYYY-MM-DD), retornar as-is
+            if (preg_match('/^\d{4}-\d{2}-\d{2}/', $dateTime)) {
+                return $dateTime;
+            }
+
+            // Convertir de DD/MM/YYYY HH:mm a YYYY-MM-DD HH:mm:ss
+            // Formato esperado: 25/12/2024 14:30
+            $date = \DateTime::createFromFormat('d/m/Y H:i', $dateTime);
+            
+            if ($date === false) {
+                // Intentar con otros formatos comunes
+                $date = \DateTime::createFromFormat('d/m/Y H:i:s', $dateTime);
+            }
+            
+            if ($date === false) {
+                // Log::warning('Formato de fecha no reconocido', ['dateTime' => $dateTime]);
+                return $dateTime; // Retornar original si no se puede convertir
+            }
+
+            return $date->format('Y-m-d H:i:s');
+            
+        } catch (\Exception $e) {
+            // Log::error('Error al convertir formato de fecha', [
+            //     'dateTime' => $dateTime,
+            //     'error' => $e->getMessage()
+            // ]);
+            return $dateTime; // Retornar original en caso de error
         }
     }
 

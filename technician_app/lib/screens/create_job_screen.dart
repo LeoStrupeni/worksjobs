@@ -69,20 +69,20 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
   }
 
   Future<void> _loadInitialProducts() async {
-    print('🔵 _loadInitialProducts: Iniciando carga...');
+    // print('🔵 _loadInitialProducts: Iniciando carga...');
     final authService = AuthService();
     final productsData = await authService.getProducts();
-    print('🔵 _loadInitialProducts: productsData recibidos: ${productsData.length}');
+    // print('🔵 _loadInitialProducts: productsData recibidos: ${productsData.length}');
     final products = productsData.map((json) => Product.fromJson(json)).toList();
-    print('🔵 _loadInitialProducts: ${products.length} productos parseados');
+    // print('🔵 _loadInitialProducts: ${products.length} productos parseados');
     if (products.isNotEmpty) {
-      print('🔵 Primer producto: ${products[0].displayName}');
+      // print('🔵 Primer producto: ${products[0].displayName}');
     }
     setState(() {
       _initialProducts = products;
       _productSearchResults = products; // Mostrar inicialmente los 10 productos del login
     });
-    print('🔵 _loadInitialProducts: Estado actualizado con ${_productSearchResults.length} productos');
+    // print('🔵 _loadInitialProducts: Estado actualizado con ${_productSearchResults.length} productos');
   }
 
   Future<void> _searchClients(String query) async {
@@ -97,13 +97,13 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
       _isSearching = true;
     });
 
-    print('🔍🔍🔍 BÚSQUEDA DE CLIENTE: "$query"');
+    // print('🔍🔍🔍 BÚSQUEDA DE CLIENTE: "$query"');
     final jobProvider = context.read<JobProvider>();
     final results = await jobProvider.searchClients(query);
-    print('📋📋📋 RESULTADOS: ${results.length} clientes encontrados');
-    if (results.isNotEmpty) {
-      print('👤 Primer resultado: ${results[0].name}');
-    }
+    // print('📋📋📋 RESULTADOS: ${results.length} clientes encontrados');
+    // if (results.isNotEmpty) {
+    //   print('👤 Primer resultado: ${results[0].name}');
+    // }
 
     setState(() {
       _searchResults = results;
@@ -123,7 +123,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
   }
 
   Future<void> _loadClientAddresses(int clientId) async {
-    print('🏠🏠🏠 _loadClientAddresses: Cargando direcciones del cliente $clientId');
+    // print('🏠🏠🏠 _loadClientAddresses: Cargando direcciones del cliente $clientId');
     setState(() {
       _isLoadingAddresses = true;
       _selectedAddress = null;
@@ -131,12 +131,12 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
     });
 
     final jobProvider = context.read<JobProvider>();
-    print('🏠🏠🏠 Llamando a jobProvider.getClientAddresses...');
+    // print('🏠🏠🏠 Llamando a jobProvider.getClientAddresses...');
     final addresses = await jobProvider.getClientAddresses(clientId);
-    print('🏠🏠🏠 Direcciones recibidas: ${addresses.length}');
-    for (var addr in addresses) {
-      print('   - ${addr.fullAddress}');
-    }
+    // print('🏠🏠🏠 Direcciones recibidas: ${addresses.length}');
+    // for (var addr in addresses) {
+    //   print('   - ${addr.fullAddress}');
+    // }
 
     setState(() {
       _addresses = addresses;
@@ -145,12 +145,12 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
       // Si solo hay una dirección, seleccionarla automáticamente
       if (addresses.length == 1) {
         _selectedAddress = addresses[0];
-        print('✅ Dirección auto-seleccionada: ${addresses[0].fullAddress}');
+        // print('✅ Dirección auto-seleccionada: ${addresses[0].fullAddress}');
       }
     });
     
     if (addresses.isEmpty && mounted) {
-      print('⚠️⚠️⚠️ No se encontraron direcciones para el cliente $clientId');
+      // print('⚠️⚠️⚠️ No se encontraron direcciones para el cliente $clientId');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Este cliente no tiene direcciones. Agrega una nueva.'),
@@ -322,9 +322,9 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
 
   // Buscar productos
   Future<void> _searchProducts(String query) async {
-    print('🔍 _searchProducts llamado con query: "$query"');
+    // print('🔍 _searchProducts llamado con query: "$query"');
     if (query.length < 2) {
-      print('🔍 Query < 2, mostrando productos iniciales: ${_initialProducts.length}');
+      // print('🔍 Query < 2, mostrando productos iniciales: ${_initialProducts.length}');
       setState(() {
         _productSearchResults = _initialProducts; // Mostrar productos iniciales
       });
@@ -335,10 +335,10 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
       _isSearchingProducts = true;
     });
 
-    print('🔍 Buscando productos: "$query"');
+    // print('🔍 Buscando productos: "$query"');
     final jobProvider = context.read<JobProvider>();
     final results = await jobProvider.searchProducts(query);
-    print('📦 Productos encontrados: ${results.length}');
+    // print('📦 Productos encontrados: ${results.length}');
 
     setState(() {
       _productSearchResults = results;
@@ -437,13 +437,13 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          print('⚠️ Permiso de ubicación denegado');
+          // print('⚠️ Permiso de ubicación denegado');
           return null;
         }
       }
       
       if (permission == LocationPermission.deniedForever) {
-        print('⚠️ Permiso de ubicación denegado permanentemente');
+        // print('⚠️ Permiso de ubicación denegado permanentemente');
         return null;
       }
 
@@ -452,7 +452,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
         desiredAccuracy: LocationAccuracy.high,
       );
       
-      print('📍 Ubicación obtenida: ${position.latitude}, ${position.longitude}');
+      // print('📍 Ubicación obtenida: ${position.latitude}, ${position.longitude}');
       
       return {
         'latitude': position.latitude,
@@ -509,7 +509,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
         _selectedTime.minute,
       );
 
-      print('🔄 _createJob: Iniciando creación...');
+      // print('🔄 _createJob: Iniciando creación...');
       
       final jobProvider = context.read<JobProvider>();
       
@@ -520,21 +520,21 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
           // Obtener ubicación GPS dentro del loading
           Map<String, dynamic>? location;
           try {
-            print('📍 _createJob: Obteniendo ubicación GPS...');
+            // print('📍 _createJob: Obteniendo ubicación GPS...');
             location = await _getCurrentLocation().timeout(
               const Duration(seconds: 10),
               onTimeout: () {
-                print('⏱️ _createJob: Timeout obteniendo ubicación');
+                // print('⏱️ _createJob: Timeout obteniendo ubicación');
                 return null;
               },
             );
-            print('📍 _createJob: Ubicación obtenida: $location');
+            // print('📍 _createJob: Ubicación obtenida: $location');
           } catch (e) {
             print('❌ _createJob: Error obteniendo ubicación: $e');
             location = null;
           }
 
-          print('🚀 _createJob: Llamando a jobProvider.createJob...');
+          // print('🚀 _createJob: Llamando a jobProvider.createJob...');
           final result = await jobProvider.createJob(
             clientId: _selectedClient!.id,
             addressId: _selectedAddress!.id,
@@ -555,7 +555,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> with ButtonLockMixin 
         getErrorMessage: () => jobProvider.errorMessage ?? 'Error inesperado al crear la tarea',
       );
       
-      print('📊 _createJob: Resultado: $success');
+      // print('📊 _createJob: Resultado: $success');
 
       if (mounted && success) {
         // Cerrar la pantalla después de un momento

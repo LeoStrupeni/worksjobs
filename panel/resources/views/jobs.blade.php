@@ -78,6 +78,9 @@
                             <table class="table table-hover text-center sortable mb-0" id="table" style="background: white;">
                                 <thead style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); position: sticky; top: 0; z-index: 10;">
                                     <tr>
+                                        <th class="column_orden fw-bold text-dark" data-name="id" style="cursor: pointer; min-width: 100px; white-space: nowrap;">
+                                            <i class="fas fa-hashtag me-2"></i> Orden
+                                        </th>
                                         <th class="column_orden fw-bold text-dark" data-name="client_first_name" style="cursor: pointer; min-width: 150px; white-space: nowrap;">
                                             <i class="fas fa-user me-2"></i>Cliente
                                         </th>
@@ -106,7 +109,7 @@
                         </tbody>
                         <tbody id="table_roller">
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div style="display:block;" class="text-center">
                                         <br>
                                         <br>
@@ -121,7 +124,7 @@
 
                         <tbody id="table_error" class="d-none">
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div style="display:block;" class="text-center">
                                         <br>
                                         <br>
@@ -137,7 +140,7 @@
 
                         <tbody id="table_sindatos" class="d-none">
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div style="display:block;" class="text-center">
                                         <br>
                                         <br>

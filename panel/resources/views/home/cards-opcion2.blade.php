@@ -4,9 +4,14 @@
       {{-- Header con badge de estado --}}
       <div class="card-header border-0 bg-white pb-0 pt-3">
         <div class="d-flex justify-content-between align-items-start">
-          <span class="badge rounded-pill px-3 py-2" style="background-color: {{$j->vencimiento}}; font-size: 0.75rem;">
-            {{$j->estatus}}
-          </span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-dark rounded-pill px-3 py-2" style="font-size: 0.75rem;">
+              OT #{{$j->id}}
+            </span>
+            <span class="badge rounded-pill px-3 py-2" style="background-color: {{$j->vencimiento}}; font-size: 0.75rem;">
+              {{$j->estatus}}
+            </span>
+          </div>
           <div class="dropdown">
             <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
               <i class="fas fa-ellipsis-v me-2"></i>

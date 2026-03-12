@@ -11,7 +11,7 @@ class CmsThemeService {
       // Endpoint del tema CMS
       final url = Uri.parse('${ApiConfig.baseUrl}/flutter/theme');
       
-      print('🎨 Obteniendo tema CMS desde: $url');
+      // print('🎨 Obteniendo tema CMS desde: $url');
 
       final response = await http.get(
         url,
@@ -23,7 +23,7 @@ class CmsThemeService {
         },
       );
 
-      print('📡 Response status: ${response.statusCode}');
+      // print('📡 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
@@ -34,11 +34,11 @@ class CmsThemeService {
         }
         
         final theme = CmsTheme.fromJson(jsonData);
-        print('✅ Tema cargado: ${theme.name} v${theme.version}');
+        // print('✅ Tema cargado: ${theme.name} v${theme.version}');
         
         return theme;
       } else if (response.statusCode == 404) {
-        print('⚠️ No hay tema activo en el CMS');
+        // print('⚠️ No hay tema activo en el CMS');
         return null;
       } else {
         print('❌ Error al obtener tema: ${response.statusCode}');
@@ -59,7 +59,7 @@ class CmsThemeService {
       // Comparar versiones
       return theme.version != currentVersion;
     } catch (e) {
-      print('Error verificando actualización: $e');
+      // print('Error verificando actualización: $e');
       return false;
     }
   }

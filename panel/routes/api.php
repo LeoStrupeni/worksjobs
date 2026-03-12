@@ -32,6 +32,18 @@ Route::get('/flutter/theme', [CmsController::class, 'getActiveTheme']);
 Route::get('/searchvar', [ApiSearchVarController::class, 'searchvar']);
 Route::post('/searchvar', [ApiSearchVarController::class, 'searchvar']);
 
+// Buscar cliente por colppy_id
+Route::post('/clients/by-colppy-id', [ApiSearchVarController::class, 'getClientByColppyId']);
+
+// Buscar productos por array de colppy_ids
+Route::post('/products/by-colppy-ids', [ApiSearchVarController::class, 'getProductsByColppyIds']);
+
+// Buscar cliente por colppy_id
+Route::post('/clients/by-colppy-id', [ApiSearchVarController::class, 'getClientByColppyId']);
+
+// Buscar productos por array de colppy_ids
+Route::post('/products/by-colppy-ids', [ApiSearchVarController::class, 'getProductsByColppyIds']);
+
 // Rutas protegidas (requieren autenticación Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     // Usuario autenticado

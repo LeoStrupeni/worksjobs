@@ -117,7 +117,7 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                console.error('❌ Error ajax:', xhr.status, error);
+                // console.error('❌ Error ajax:', xhr.status, error);
                 $('#mediaLibraryContent').html(`
                     <div class="col-12 text-center py-5">
                         <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3 me-2"></i>

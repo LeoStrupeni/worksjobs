@@ -278,7 +278,7 @@ class ColppyService {
       ]);
     } catch (e) {
       // Si hay error guardando, simplemente continuamos sin caché
-      print('Error guardando sesión en caché: $e');
+      // print('Error guardando sesión en caché: $e');
     }
   }
 
@@ -328,7 +328,7 @@ class ColppyService {
         await prefs.remove(key);
       }
     } catch (e) {
-      print('Error limpiando sesión del caché: $e');
+      // print('Error limpiando sesión del caché: $e');
     }
   }
 

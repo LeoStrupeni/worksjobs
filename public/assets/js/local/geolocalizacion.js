@@ -71,7 +71,7 @@ function getGeolocation() {
             maximumAge: 0
         });
     } else {
-        console.error('❌ Geolocalización no soportada por este navegador');
+        // console.error('❌ Geolocalización no soportada por este navegador');
         showGeoStatus('error', 'Su navegador no soporta geolocalización.');
     }
 }

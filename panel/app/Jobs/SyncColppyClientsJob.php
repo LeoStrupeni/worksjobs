@@ -45,19 +45,19 @@ class SyncColppyClientsJob implements ShouldQueue
      */
     public function handle()
     {
-        Log::info('Job SyncColppyClientsJob iniciado');
+        // Log::info('Job SyncColppyClientsJob iniciado');
 
         try {
             $syncService = new SyncColppyClientsService();
             $resultado = $syncService->syncClients();
 
             if ($resultado['success']) {
-                Log::info('Job SyncColppyClientsJob completado exitosamente', [
-                    'nuevos' => $resultado['nuevos'],
-                    'actualizados' => $resultado['actualizados'],
-                    'errores' => $resultado['errores'],
-                    'total' => $resultado['total']
-                ]);
+                // Log::info('Job SyncColppyClientsJob completado exitosamente', [
+                //     'nuevos' => $resultado['nuevos'],
+                //     'actualizados' => $resultado['actualizados'],
+                //     'errores' => $resultado['errores'],
+                //     'total' => $resultado['total']
+                // ]);
             } else {
                 Log::error('Job SyncColppyClientsJob falló', ['mensaje' => $resultado['mensaje']]);
                 throw new \Exception($resultado['mensaje']);

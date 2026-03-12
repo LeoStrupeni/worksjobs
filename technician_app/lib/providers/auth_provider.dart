@@ -85,7 +85,7 @@ class AuthProvider with ChangeNotifier {
   // Iniciar timer de inactividad
   void _startInactivityTimer() {
     _inactivityTimer = Timer(_inactivityDuration, () {
-      print('⏰ Auto-logout por inactividad');
+      // print('⏰ Auto-logout por inactividad');
       logout();
     });
   }

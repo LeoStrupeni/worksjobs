@@ -173,11 +173,11 @@ class ThemeProvider extends ChangeNotifier {
       if (theme != null) {
         _cmsTheme = theme;
         await _saveThemeLocally(theme);
-        print('✅ Tema CMS cargado y guardado');
+        // print('✅ Tema CMS cargado y guardado');
       } else {
         // Intentar cargar tema guardado localmente
         await _loadThemeFromCache();
-        print('⚠️ Usando tema en caché');
+        // print('⚠️ Usando tema en caché');
       }
     } catch (e) {
       _error = e.toString();
@@ -193,7 +193,7 @@ class ThemeProvider extends ChangeNotifier {
 
   /// Recargar tema (para actualizar sin reiniciar app)
   Future<void> reloadTheme() async {
-    print('🔄 Recargando tema...');
+    // print('🔄 Recargando tema...');
     await loadTheme();
   }
 
@@ -209,7 +209,7 @@ class ThemeProvider extends ChangeNotifier {
       await prefs.setString('cached_cms_theme', themeJson);
       await prefs.setString('cached_theme_version', theme.version);
     } catch (e) {
-      print('Error guardando tema: $e');
+      // print('Error guardando tema: $e');
     }
   }
 
@@ -221,10 +221,10 @@ class ThemeProvider extends ChangeNotifier {
       
       if (themeJson != null) {
         // Aquí parsearías el JSON guardado
-        print('📦 Tema cargado desde caché');
+        // print('📦 Tema cargado desde caché');
       }
     } catch (e) {
-      print('Error cargando tema desde caché: $e');
+      // print('Error cargando tema desde caché: $e');
     }
   }
 

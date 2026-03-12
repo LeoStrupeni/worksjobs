@@ -204,12 +204,11 @@
 <body>
     <div class="header">
         <div class="header-logo">
-            <img src="{{ public_path('assets/media/Logo.png') }}" alt="Strupeni Electrónica">
+            <img src="{{ asset('assets/media/Logo.png') }}" alt="Strupeni Electrónica">
         </div>
         <div class="header-content">
-            <h1>TRABAJO REALIZADO</h1>
-            <p>Strupeni Electrónica</p>
-            <p style="font-size: 12px; margin-top: 5px;">Tarea #{{ $job->id }} - Generado el {{ date('d/m/Y H:i') }}</p>
+            <h1>Orden de Trabajo Nro: {{ $job->id }}</h1>
+            {{-- <p style="font-size: 12px; margin-top: 5px;">Generado el {{ date('d/m/Y H:i') }}</p>--}}
         </div>
     </div>
 
@@ -338,7 +337,6 @@
     @endif
 
     <div class="footer">
-        <p>Strupeni Electrónica - Documento generado automáticamente</p>
         <p>Este documento es una representación del trabajo realizado en la fecha indicada.</p>
     </div>
 </body>

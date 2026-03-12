@@ -57,7 +57,9 @@ class ApiJobController extends Controller
                   // Status y descripciones
                   ->orWhereRaw("CASE WHEN C.closed_datetime IS NOT NULL THEN 'Cerrado' WHEN C.arrival_datetime IS NOT NULL THEN 'En Lugar' ELSE 'Pendiente' END LIKE ?", ["%$search%"])
                   ->orWhereRaw("IFNULL(C.job_description,'') LIKE ?", ["%$search%"])
-                  ->orWhereRaw("IFNULL(C.closed_job_observation,'') LIKE ?", ["%$search%"]);
+                  ->orWhereRaw("IFNULL(C.closed_job_observation,'') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("C.id LIKE ?", ["%$search%"])
+                  ;
             });
         }
 
@@ -208,6 +210,12 @@ class ApiJobController extends Controller
         $query->orderBy('ordervisit', 'ASC');
         
         $jobs = $query->get();
+        
+        // DEBUG: Ver todos los campos de un job
+        // $debugJob = $jobs->firstWhere('id', 70);
+        // if ($debugJob) {
+        //     \Log::info('🔍 RAW Job 70 data:', (array) $debugJob);
+        // }
         
         foreach ($jobs as $j) {
             $note = Jobs_Note::where('jobs_id', $j->id)->first();   

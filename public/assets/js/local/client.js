@@ -365,7 +365,7 @@ $(document).ready(function() {
                     },
                     error: function(xhr, status, error) {
                         toastr["error"]("Error al eliminar el domicilio");
-                        console.error("Error:", xhr.responseText);
+                        // console.error("Error:", xhr.responseText);
                     }
                 }).always(function() {
                     closeSwal();

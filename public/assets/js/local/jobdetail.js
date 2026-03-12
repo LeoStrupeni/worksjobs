@@ -830,7 +830,7 @@ $(document).ready(function() {
                             },
                             error: function(xhr, status, error) {
                                 if (error !== 'abort') {
-                                    console.error('Error en búsqueda de productos:', error);
+                                    // console.error('Error en búsqueda de productos:', error);
                                 }
                             }
                         }).always(function() {
@@ -1676,7 +1676,7 @@ $('body').on('click', '.addproducts-job', function () {
             }
         },
         error: function(xhr, status, error) {
-            console.error('Error al cargar productos:', error);
+            // console.error('Error al cargar productos:', error);
             toastr["error"]("Error al cargar los productos de la tarea");
         },
         complete: function() {
@@ -1832,7 +1832,7 @@ async function shareSelectedImages(event, id_elemento) {
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
-                console.error('Error al compartir:', error);
+                // console.error('Error al compartir:', error);
                 // Fallback: copiar URLs al portapapeles
                 fallbackShareMultiple(imageUrls);
             }
@@ -1853,7 +1853,7 @@ function fallbackShareMultiple(imageUrls) {
         navigator.clipboard.writeText(urls).then(() => {
             toastr["info"]("URLs de las imágenes copiadas al portapapeles");
         }).catch(err => {
-            console.error('Error al copiar al portapapeles:', err);
+            // console.error('Error al copiar al portapapeles:', err);
             toastr["error"]("No se pudo compartir las imágenes");
         });
     } else {
@@ -1868,7 +1868,7 @@ function fallbackShareMultiple(imageUrls) {
             document.execCommand('copy');
             toastr["info"]("URLs de las imágenes copiadas al portapapeles");
         } catch (err) {
-            console.error('Error al copiar:', err);
+            // console.error('Error al copiar:', err);
             toastr["error"]("No se pudo compartir las imágenes");
         }
         document.body.removeChild(textArea);
@@ -1991,7 +1991,7 @@ function populatePdfConfigModal(jobData) {
             // Usar el campo correcto según lo que devuelve el backend (name o ruta)
             const imagePath = file.name || file.ruta || '';
             if (!imagePath) {
-                console.warn('Archivo sin ruta:', file);
+                // console.warn('Archivo sin ruta:', file);
                 return; // Saltar este archivo
             }
             
@@ -2220,7 +2220,7 @@ function generatePDF(action) {
         },
         error: function(xhr) {
             toastr["error"]("Error al generar el PDF");
-            console.error(xhr);
+            // console.error(xhr);
         },
         complete: function() {
             // Restaurar botones
@@ -2264,7 +2264,7 @@ function downloadPDF(base64Data, fileName) {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     } catch (error) {
-        console.error('Error al descargar PDF:', error);
+        // console.error('Error al descargar PDF:', error);
         toastr["error"]("Error al descargar el PDF");
     }
 }
@@ -2296,7 +2296,7 @@ function openPDFInNewTab(base64Data, fileName) {
             window.URL.revokeObjectURL(url);
         }, 1000);
     } catch (error) {
-        console.error('Error al abrir PDF:', error);
+        // console.error('Error al abrir PDF:', error);
         toastr["error"]("Error al abrir el PDF");
     }
 }

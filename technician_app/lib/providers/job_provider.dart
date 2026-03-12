@@ -38,19 +38,19 @@ class JobProvider with ChangeNotifier {
 
   // Obtener citas del día
   Future<void> fetchTodayJobs() async {
-    print('🔵 JobProvider.fetchTodayJobs: Iniciando...');
+    // print('🔵 JobProvider.fetchTodayJobs: Iniciando...');
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       final result = await _jobService.getTodayJobs();
-      print('📦 JobProvider.fetchTodayJobs: Result success=${result['success']}');
+      // print('📦 JobProvider.fetchTodayJobs: Result success=${result['success']}');
       
       if (result['success'] == true) {
         _todayJobs = result['jobs'];
-        print('✅ JobProvider.fetchTodayJobs: ${_todayJobs.length} citas guardadas en _todayJobs');
-        print('📋 JobProvider.fetchTodayJobs: Jobs IDs: ${_todayJobs.map((j) => j.id).toList()}');
+        // print('✅ JobProvider.fetchTodayJobs: ${_todayJobs.length} citas guardadas en _todayJobs');
+        // print('📋 JobProvider.fetchTodayJobs: Jobs IDs: ${_todayJobs.map((j) => j.id).toList()}');
         if (result['permissions'] != null) {
           _permissions = JobPermissions.fromJson(result['permissions']);
         }
@@ -63,7 +63,7 @@ class JobProvider with ChangeNotifier {
       print('❌ JobProvider.fetchTodayJobs: Exception - $e');
     } finally {
       _isLoading = false;
-      print('🔵 JobProvider.fetchTodayJobs: Finalizando, isLoading=$_isLoading, todayJobs.length=${_todayJobs.length}');
+      // print('🔵 JobProvider.fetchTodayJobs: Finalizando, isLoading=$_isLoading, todayJobs.length=${_todayJobs.length}');
       notifyListeners();
     }
   }
@@ -122,16 +122,16 @@ class JobProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print('🔍 JobProvider: Solicitando detalle del job $jobId');
+      // print('🔍 JobProvider: Solicitando detalle del job $jobId');
       final result = await _jobService.getJobDetail(jobId);
       
-      print('📦 JobProvider: Resultado recibido - success: ${result['success']}');
+      // print('📦 JobProvider: Resultado recibido - success: ${result['success']}');
       
       if (result['success'] == true) {
         _selectedJob = result['job'];
         _notes = result['notes'] ?? [];
         _files = result['files'] ?? [];
-        print('✅ JobProvider: Job cargado correctamente - ${_selectedJob?.clientName}');
+        // print('✅ JobProvider: Job cargado correctamente - ${_selectedJob?.clientName}');
       } else {
         _errorMessage = result['message'] ?? 'Error desconocido al cargar la cita';
         print('❌ JobProvider: Error - $_errorMessage');
@@ -357,7 +357,7 @@ class JobProvider with ChangeNotifier {
 
       return await Geolocator.getCurrentPosition();
     } catch (e) {
-      print('Error al obtener ubicación: $e');
+      // print('Error al obtener ubicación: $e');
       return null;
     }
   }

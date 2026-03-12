@@ -48,7 +48,7 @@ class ColppyService
             empty($this->paramUsuario) ||
             empty($this->paramPassword)
         ) {
-            Log::warning('Configuración de Colppy incompleta');
+            // Log::warning('Configuración de Colppy incompleta');
         }
     }
 
@@ -171,32 +171,33 @@ class ColppyService
                 $data = $response->json();
                 
                 // Log de respuesta completa para debugging
-                Log::info('Respuesta completa de Colppy', [
-                    'provision' => $payload['service']['provision'] ?? 'unknown',
-                    'operacion' => $payload['service']['operacion'] ?? 'unknown',
-                    'response' => $data
-                ]);
+                // Log::info('Respuesta completa de Colppy', [
+                //     'provision' => $payload['service']['provision'] ?? 'unknown',
+                //     'operacion' => $payload['service']['operacion'] ?? 'unknown',
+                //     'response' => $data
+                // ]);
 
                 $esExito = ($data['exito'] ?? false)
                     || (isset($data['result']['estado']) && (int) $data['result']['estado'] === 0)
                     || (isset($data['response']['success']) && $data['response']['success'] === true);
 
                 if ($esExito) {
-                    // Leer datos desde response.data (formato Colppy)
-                    $datos = $data['response']['data'] 
+                    // Leer datos desde response (formato Colppy para listar_facturasventa)
+                    $datos = $data['response']['datos']  // Array de facturas
+                        ?? $data['response']['data'] 
                         ?? $data['datos'] 
                         ?? [];
                     
-                    // Leer total desde response.total
-                    $total = isset($data['response']['total']) 
-                        ? (int) $data['response']['total'] 
-                        : null;
+                    // Leer total_registros desde response
+                    $total = isset($data['response']['total_registros']) 
+                        ? (int) $data['response']['total_registros'] 
+                        : (isset($data['response']['total']) ? (int) $data['response']['total'] : null);
 
                     return [
                         'success' => true,
                         'datos' => $datos,
                         'total' => $total,
-                        'response' => $data['response'] ?? []  // Incluir response completo para acceder a campos como idfactura
+                        'response' => $data['response'] ?? []  // Incluir response completo para acceder a campos adicionales
                     ];
                 }
 
@@ -673,19 +674,181 @@ class ColppyService
             ]
         ];
 
-        Log::info('Creando factura/presupuesto en Colppy', [
-            'idCliente' => $data['idCliente'],
-            'idTipoFactura' => $data['idTipoFactura'],
-            'items' => count($itemsFactura),
-            'totalFactura' => $totalFactura
-        ]);
+        // Log::info('Creando factura/presupuesto en Colppy', [
+        //     'idCliente' => $data['idCliente'],
+        //     'idTipoFactura' => $data['idTipoFactura'],
+        //     'items' => count($itemsFactura),
+        //     'totalFactura' => $totalFactura
+        // ]);
 
         // Log del payload completo para debugging
-        Log::info('Payload completo enviado a Colppy alta_facturaventa', [
-            'payload_parameters' => $payload['parameters']
-        ]);
+        // Log::info('Payload completo enviado a Colppy alta_facturaventa', [
+        //     'payload_parameters' => $payload['parameters']
+        // ]);
 
         return $this->hacerLlamada($payload);
+    }
+
+    /**
+     * Listar facturas de venta (incluye presupuestos borradores)
+     * 
+     * @param int $start Inicio de paginación
+     * @param int $limit Límite de registros
+     * @param array $filtros Filtros adicionales
+     * @param array $orden Ordenamiento
+     * @return array
+     */
+    public function listarFacturasVenta(
+        int $start = 0,
+        int $limit = 50,
+        array $filtros = [],
+        $orden = null  // Puede ser object o null
+    ): array {
+        $resultadoSesion = $this->obtenerClaveSesion();
+        if (!$resultadoSesion['success']) {
+            return $resultadoSesion;
+        }
+
+        $claveSesion = Session::get(self::SESSION_KEY);
+        if (empty($claveSesion)) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo obtener claveSesion'
+            ];
+        }
+
+        // Validar limit y start según documentación Colppy
+        if (empty($limit)) {
+            $limit = 50;
+        }
+        
+        if (empty($start) || $start > $limit) {
+            $start = 0;
+        }
+
+        $parameters = [
+            'sesion' => [
+                'usuario' => $this->paramUsuario,
+                'claveSesion' => $claveSesion
+            ],
+            'idEmpresa' => $this->idEmpresa,
+            'start' => $start,
+            'limit' => $limit
+        ];
+
+        // Filter: agregar filtros personalizados
+        $parameters['filter'] = !empty($filtros) ? $filtros : [];
+
+        // Order: Según documentación Colppy debe ser un OBJETO con field (array) y order (string)
+        if (empty($orden)) {
+            $parameters['order'] = (object)[
+                'field' => ['fechaFactura'],
+                'order' => 'desc'
+            ];
+        } else {
+            $parameters['order'] = $orden;
+        }
+
+        $payload = [
+            'auth' => [
+                'usuario' => $this->authUsuario,
+                'password' => md5($this->authPassword)
+            ],
+            'service' => [
+                'provision' => 'FacturaVenta',
+                'operacion' => 'listar_facturasventa'
+            ],
+            'parameters' => $parameters
+        ];
+
+        // Log detallado para debug
+        // Log::info('=== PETICIÓN A COLPPY (listar_facturasventa) ===');
+        // Log::info('Filtros aplicados:', $filtros);
+        // Log::info('Start: ' . $start . ' | Limit: ' . $limit);
+        // Log::info('Payload completo:', [
+        //     'service' => $payload['service'],
+        //     'parameters' => [
+        //         'idEmpresa' => $parameters['idEmpresa'],
+        //         'start' => $parameters['start'],
+        //         'limit' => $parameters['limit'],
+        //         'filter' => $parameters['filter'],
+        //         'order' => $parameters['order']
+        //     ]
+        // ]);
+
+        $resultado = $this->hacerLlamada($payload);
+        
+        // Log de respuesta
+        if (isset($resultado['success']) && $resultado['success']) {
+            $total = $resultado['datos']['total_registros'] ?? 0;
+            $registros = count($resultado['datos']['facturas'] ?? []);
+            // Log::info("=== RESPUESTA EXITOSA: {$registros} registros de {$total} totales ===");
+        } else {
+            Log::error('=== ERROR EN RESPUESTA DE COLPPY ===', [
+                'mensaje' => $resultado['mensaje'] ?? 'Sin mensaje',
+                'respuesta' => $resultado
+            ]);
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Leer detalle completo de una factura de venta
+     * Operación: leer_facturaventa
+     * 
+     * @param string $idFactura ID de la factura en Colppy
+     * @return array Respuesta con infofactura, itemsFactura, totalesiva, etc.
+     */
+    public function leerFacturaVenta(string $idFactura): array
+    {
+        $resultadoSesion = $this->obtenerClaveSesion();
+        if (!$resultadoSesion['success']) {
+            return $resultadoSesion;
+        }
+
+        $claveSesion = Session::get(self::SESSION_KEY);
+        if (empty($claveSesion)) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo obtener claveSesion'
+            ];
+        }
+
+        $payload = [
+            'auth' => [
+                'usuario' => $this->authUsuario,
+                'password' => md5($this->authPassword)
+            ],
+            'service' => [
+                'provision' => 'FacturaVenta',
+                'operacion' => 'leer_facturaventa'
+            ],
+            'parameters' => [
+                'sesion' => [
+                    'usuario' => $this->paramUsuario,
+                    'claveSesion' => $claveSesion
+                ],
+                'idEmpresa' => $this->idEmpresa,
+                'idFactura' => $idFactura
+            ]
+        ];
+
+        // Log::info('=== PETICIÓN A COLPPY (leer_facturaventa) ===', [
+        //     'idFactura' => $idFactura
+        // ]);
+
+        $resultado = $this->hacerLlamada($payload);
+
+        if (isset($resultado['success']) && $resultado['success']) {
+            // Log::info('=== DETALLE DE FACTURA OBTENIDO EXITOSAMENTE ===');
+        } else {
+            Log::error('=== ERROR AL LEER FACTURA ===', [
+                'mensaje' => $resultado['mensaje'] ?? 'Sin mensaje'
+            ]);
+        }
+
+        return $resultado;
     }
 
     /**
@@ -694,6 +857,6 @@ class ColppyService
     public function invalidarSesion(): void
     {
         Session::forget(self::SESSION_KEY);
-        Log::info('Sesión de Colppy invalidada');
+        // Log::info('Sesión de Colppy invalidada');
     }
 }

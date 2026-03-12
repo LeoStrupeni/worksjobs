@@ -26,9 +26,9 @@ class AuthService {
       );
 
       final data = jsonDecode(response.body);
-      print('🟢 Login response received');
-      print('🟢 Success: ${data['success']}');
-      print('🟢 Data keys: ${data['data']?.keys.toList()}');
+      // print('🟢 Login response received');
+      // print('🟢 Success: ${data['success']}');
+      // print('🟢 Data keys: ${data['data']?.keys.toList()}');
 
       if (response.statusCode == 200 && data['success'] == true) {
         // Guardar token y datos del usuario
@@ -37,29 +37,29 @@ class AuthService {
         
         // Guardar técnicos si vienen en la respuesta
         if (data['data']['technicians'] != null) {
-          print('🟢 Técnicos en respuesta: ${data['data']['technicians'].length}');
+          // print('🟢 Técnicos en respuesta: ${data['data']['technicians'].length}');
           await _saveTechnicians(data['data']['technicians']);
         } else {
-          print('🟢 NO hay técnicos en la respuesta');
+          // print('🟢 NO hay técnicos en la respuesta');
         }
         
         // Guardar productos si vienen en la respuesta
         if (data['data']['products'] != null) {
-          print('🟢 Productos en respuesta: ${data['data']['products'].length}');
-          print('🟢 Primer producto: ${data['data']['products'].isNotEmpty ? data['data']['products'][0] : 'vacío'}');
+          // print('🟢 Productos en respuesta: ${data['data']['products'].length}');
+          // print('🟢 Primer producto: ${data['data']['products'].isNotEmpty ? data['data']['products'][0] : 'vacío'}');
           await _saveProducts(data['data']['products']);
         } else {
-          print('🟢 NO hay productos en la respuesta');
+          // print('🟢 NO hay productos en la respuesta');
         }
         
         // DEBUG: Verificar permisos recibidos
         if (data['data']['user']['permissions'] != null) {
-          print('🔐 PERMISOS RECIBIDOS: ${data['data']['user']['permissions']}');
+          // print('🔐 PERMISOS RECIBIDOS: ${data['data']['user']['permissions']}');
           final permissions = List<String>.from(data['data']['user']['permissions']);
-          print('🔐 Tiene create share: ${permissions.contains('create share')}');
-          print('🔐 Tiene create pdf: ${permissions.contains('create pdf')}');
+          // print('🔐 Tiene create share: ${permissions.contains('create share')}');
+          // print('🔐 Tiene create pdf: ${permissions.contains('create pdf')}');
         } else {
-          print('🔐 NO HAY PERMISOS EN LA RESPUESTA');
+          // print('🔐 NO HAY PERMISOS EN LA RESPUESTA');
         }
         
         return {
@@ -144,32 +144,32 @@ class AuthService {
   // Guardar productos
   // Guardar productos
   Future<void> _saveProducts(List<dynamic> products) async {
-    print('🟢 AuthService._saveProducts: Guardando ${products.length} productos');
-    if (products.isNotEmpty) {
-      print('🟢 AuthService._saveProducts: Primer producto: ${products[0]}');
-    }
+    // print('🟢 AuthService._saveProducts: Guardando ${products.length} productos');
+    // if (products.isNotEmpty) {
+    //   print('🟢 AuthService._saveProducts: Primer producto: ${products[0]}');
+    // }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_productsKey, jsonEncode(products));
-    print('🟢 AuthService._saveProducts: Productos guardados exitosamente');
+    // print('🟢 AuthService._saveProducts: Productos guardados exitosamente');
   }
 
   // Obtener productos guardados
   Future<List<Map<String, dynamic>>> getProducts() async {
-    print('🟢 AuthService.getProducts: Obteniendo productos guardados...');
+    // print('🟢 AuthService.getProducts: Obteniendo productos guardados...');
     final prefs = await SharedPreferences.getInstance();
     final productsJson = prefs.getString(_productsKey);
-    print('🟢 AuthService.getProducts: productsJson = ${productsJson != null ? 'existe' : 'null'}');
+    // print('🟢 AuthService.getProducts: productsJson = ${productsJson != null ? 'existe' : 'null'}');
     
     if (productsJson != null) {
       final List<dynamic> decoded = jsonDecode(productsJson);
-      print('🟢 AuthService.getProducts: ${decoded.length} productos decodificados');
-      if (decoded.isNotEmpty) {
-        print('🟢 AuthService.getProducts: Primer producto: $decoded[0]');
-      }
+      // print('🟢 AuthService.getProducts: ${decoded.length} productos decodificados');
+      // if (decoded.isNotEmpty) {
+      //   print('🟢 AuthService.getProducts: Primer producto: $decoded[0]');
+      // }
       return decoded.cast<Map<String, dynamic>>();
     }
     
-    print('🟢 AuthService.getProducts: Retornando lista vacía');
+    // print('🟢 AuthService.getProducts: Retornando lista vacía');
     return [];
   }
 

@@ -432,7 +432,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         throw Exception('Error al descargar la imagen');
       }
     } catch (e) {
-      print('Error al descargar imagen: $e');
+      // print('Error al descargar imagen: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -504,7 +504,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         throw Exception('Error al descargar la imagen');
       }
     } catch (e) {
-      print('Error al compartir imagen: $e');
+      // print('Error al compartir imagen: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -601,7 +601,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         throw Exception('No se pudieron descargar las imágenes');
       }
     } catch (e) {
-      print('Error al compartir imágenes: $e');
+      // print('Error al compartir imágenes: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1027,6 +1027,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00274E),
+                      foregroundColor: Colors.white,
                     ),
                     child: const Text('Compartir'),
                   ),
@@ -1044,7 +1045,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         }
       }
     } catch (e) {
-      print('Error al generar PDF: $e');
+      // print('Error al generar PDF: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2086,8 +2087,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
     setState(() => _isLoading = true);
     
     try {
-      print('🟢 MODAL DETALLE: Iniciando carga de productos...');
-      print('🟢 MODAL DETALLE: widget.job.products = ${widget.job.products}');
+      // print('🟢 MODAL DETALLE: Iniciando carga de productos...');
+      // print('🟢 MODAL DETALLE: widget.job.products = ${widget.job.products}');
       
       // Cargar productos iniciales desde AuthService
       final authService = AuthService();
@@ -2099,21 +2100,21 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       // Si no hay productos en el job, cargar el detalle completo (por si acaso)
       List<dynamic> currentProductsData;
       if (widget.job.products == null) {
-        print('🟢 MODAL DETALLE: Productos null, cargando detalle completo...');
+        // print('🟢 MODAL DETALLE: Productos null, cargando detalle completo...');
         final jobProvider = context.read<JobProvider>();
         await jobProvider.fetchJobDetail(widget.job.id!);
         final jobDetail = jobProvider.selectedJob;
         _fullJob = jobDetail; // Guardar el job completo con address_id
         currentProductsData = jobDetail?.products ?? [];
-        print('🟢 MODAL DETALLE: Productos cargados desde detalle: ${currentProductsData.length}');
-        print('🟢 MODAL DETALLE: addressId desde detalle: ${jobDetail?.addressId}');
+        // print('🟢 MODAL DETALLE: Productos cargados desde detalle: ${currentProductsData.length}');
+        // print('🟢 MODAL DETALLE: addressId desde detalle: ${jobDetail?.addressId}');
       } else {
         currentProductsData = widget.job.products!;
         _fullJob = widget.job; // Usar el job original si ya tiene productos
       }
       
-      print('🟢 MODAL DETALLE: currentProductsData length = ${currentProductsData.length}');
-      print('🟢 MODAL DETALLE: currentProductsData = $currentProductsData');
+      // print('🟢 MODAL DETALLE: currentProductsData length = ${currentProductsData.length}');
+      // print('🟢 MODAL DETALLE: currentProductsData = $currentProductsData');
       
       setState(() {
         _initialProducts = products;

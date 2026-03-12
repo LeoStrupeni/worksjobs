@@ -40,7 +40,7 @@ class ApiDataTablesController extends Controller
         // Obtener modo de operación desde configuración
         $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
         
-        Log::info('=== MODO CLIENTES ===', ['modo' => $modo]);
+        // Log::info('=== MODO CLIENTES ===', ['modo' => $modo]);
 
         // Ejecutar según modo configurado
         switch ($modo) {
@@ -569,7 +569,7 @@ class ApiDataTablesController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error al disparar sincronización Colppy', ['error' => $e->getMessage()]);
+            // Log::error('Error al disparar sincronización Colppy', ['error' => $e->getMessage()]);
             
             return response()->json([
                 'success' => false,
@@ -586,7 +586,7 @@ class ApiDataTablesController extends Controller
     public function syncColppyClientsNow()
     {
         try {
-            Log::info('=== SINCRONIZACIÓN SINCRÓNICA INICIADA MANUALMENTE ===');
+            // Log::info('=== SINCRONIZACIÓN SINCRÓNICA INICIADA MANUALMENTE ===');
             
             $syncService = new \App\Services\SyncColppyClientsService();
             $resultado = $syncService->syncClients();
@@ -609,7 +609,7 @@ class ApiDataTablesController extends Controller
                 ], 500);
             }
         } catch (\Exception $e) {
-            Log::error('Error en sincronización sincrónica', ['error' => $e->getMessage()]);
+            // Log::error('Error en sincronización sincrónica', ['error' => $e->getMessage()]);
             
             return response()->json([
                 'success' => false,
@@ -663,11 +663,11 @@ class ApiDataTablesController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            Log::error('ERROR FATAL en getSyncStats', [
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
+            // Log::error('ERROR FATAL en getSyncStats', [
+            //     'error' => $e->getMessage(),
+            //     'file' => $e->getFile(),
+            //     'line' => $e->getLine()
+            // ]);
             
             return response()->json([
                 'success' => false,
@@ -704,7 +704,7 @@ class ApiDataTablesController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error al verificar sincronización de productos Colppy', ['error' => $e->getMessage()]);
+            // Log::error('Error al verificar sincronización de productos Colppy', ['error' => $e->getMessage()]);
             
             return response()->json([
                 'success' => false,
@@ -721,7 +721,7 @@ class ApiDataTablesController extends Controller
     public function syncColppyProductsNow()
     {
         try {
-            Log::info('=== SINCRONIZACIÓN SINCRÓNICA DE PRODUCTOS INICIADA MANUALMENTE ===');
+            // Log::info('=== SINCRONIZACIÓN SINCRÓNICA DE PRODUCTOS INICIADA MANUALMENTE ===');
             
             $syncService = new \App\Services\SyncColppyProductsService();
             $resultado = $syncService->syncProducts();
@@ -744,7 +744,7 @@ class ApiDataTablesController extends Controller
                 ], 500);
             }
         } catch (\Exception $e) {
-            Log::error('Error en sincronización sincrónica de productos', ['error' => $e->getMessage()]);
+            // Log::error('Error en sincronización sincrónica de productos', ['error' => $e->getMessage()]);
             
             return response()->json([
                 'success' => false,
@@ -798,11 +798,11 @@ class ApiDataTablesController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            Log::error('ERROR FATAL en getProductSyncStats', [
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
+            // Log::error('ERROR FATAL en getProductSyncStats', [
+            //     'error' => $e->getMessage(),
+            //     'file' => $e->getFile(),
+            //     'line' => $e->getLine()
+            // ]);
             
             return response()->json([
                 'success' => false,

@@ -28,6 +28,9 @@
                             @if (in_array('read',Session::get('user')['permissions']['jobs']))
                                 <li><a class="dropdown-item rounded py-3" href="{{ route('jobs.index') }}">Tareas</a></li>
                             @endif
+                            @if (in_array('read',Session::get('user')['permissions']['jobs']))
+                                <li><a class="dropdown-item rounded py-3" href="{{ route('budgets.index') }}">Presupuestos</a></li>
+                            @endif
                         </ul>
                     </li>
 

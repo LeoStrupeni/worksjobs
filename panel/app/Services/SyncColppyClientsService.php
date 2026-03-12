@@ -24,7 +24,7 @@ class SyncColppyClientsService
     public function syncClients(): array
     {
         try {
-            Log::info('=== INICIO SINCRONIZACIÓN CLIENTES COLPPY ===');
+            // Log::info('=== INICIO SINCRONIZACIÓN CLIENTES COLPPY ===');
             
             $clientesSincronizados = 0;
             $clientesActualizados = 0;
@@ -84,12 +84,12 @@ class SyncColppyClientsService
 
             } while ($totalProcesados < $total);
 
-            Log::info('=== FIN SINCRONIZACIÓN CLIENTES COLPPY ===', [
-                'nuevos' => $clientesSincronizados,
-                'actualizados' => $clientesActualizados,
-                'errores' => $errores,
-                'total' => $totalProcesados
-            ]);
+            // Log::info('=== FIN SINCRONIZACIÓN CLIENTES COLPPY ===', [
+            //     'nuevos' => $clientesSincronizados,
+            //     'actualizados' => $clientesActualizados,
+            //     'errores' => $errores,
+            //     'total' => $totalProcesados
+            // ]);
 
             return [
                 'success' => true,

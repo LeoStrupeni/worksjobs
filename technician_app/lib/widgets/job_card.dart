@@ -108,22 +108,22 @@ class JobCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             // Descripción como subtexto
-                            if (job.jobDescription != null && job.jobDescription!.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(
-                                  job.jobDescription!.length > 80
-                                      ? '${job.jobDescription!.substring(0, 80)}...'
-                                      : job.jobDescription!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
+                            // if (job.jobDescription != null && job.jobDescription!.isNotEmpty)
+                            //   Padding(
+                            //     padding: const EdgeInsets.only(top: 4),
+                            //     child: Text(
+                            //       job.jobDescription!.length > 80
+                            //           ? '${job.jobDescription!.substring(0, 80)}...'
+                            //           : job.jobDescription!,
+                            //       style: TextStyle(
+                            //         fontSize: 12,
+                            //         color: Colors.grey[500],
+                            //         fontStyle: FontStyle.italic,
+                            //       ),
+                            //       maxLines: 2,
+                            //       overflow: TextOverflow.ellipsis,
+                            //     ),
+                            //   ),
                           ],
                         ),
                       ),
@@ -138,6 +138,22 @@ class JobCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 4,
                 children: [
+                  // Badge de número de orden
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00274E),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'OT #${job.id}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                   _buildStatusChip(),
                   if (job.products != null && job.products!.isNotEmpty)
                     _buildProductsChip(),
@@ -159,7 +175,7 @@ class JobCard extends StatelessWidget {
     final roles = permissions.roles;
     final isAdmin = roles.contains('sistema') || roles.contains('admin');
     
-    print('🔑 JobCard buttons - Job ${job.id}: create=${permissions.create}, read=${permissions.read}, update=${permissions.update}, delete=${permissions.delete}, roles=$roles');
+    // print('🔑 JobCard buttons - Job ${job.id}: create=${permissions.create}, read=${permissions.read}, update=${permissions.update}, delete=${permissions.delete}, roles=$roles');
     
     return Column(
       children: [
@@ -383,22 +399,25 @@ class JobCard extends StatelessWidget {
     Color color = _getStatusColor();
     String statusText = job.status ?? 'Desconocido';
     
-    // Si está pendiente y vencida, mostrar "Vencida" en negro
+    // Si está pendiente y vencida, cambiar solo el texto (el color ya viene del backend)
     if (job.isOverdue) {
-      color = Colors.black;
       statusText = 'Vencida';
     }
     
-    return Chip(
-      label: Text(statusText),
-      backgroundColor: color.withOpacity(0.2),
-      labelStyle: TextStyle(
-        fontSize: 11,
-        color: color,
-        fontWeight: FontWeight.bold,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
       ),
-      padding: EdgeInsets.zero,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      child: Text(
+        statusText,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
@@ -424,7 +443,20 @@ class JobCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    switch (job.colorStatus?.toLowerCase()) {
+    final colorStr = job.colorStatus?.toLowerCase();
+    
+    // Si es un color hexadecimal (ej: #00274e)
+    if (colorStr != null && colorStr.startsWith('#')) {
+      try {
+        final hexColor = colorStr.substring(1);
+        return Color(int.parse('FF$hexColor', radix: 16));
+      } catch (e) {
+        return Colors.grey;
+      }
+    }
+    
+    // Colores por nombre
+    switch (colorStr) {
       case 'black':
         return Colors.black87;
       case 'green':
@@ -834,8 +866,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
     setState(() => _isLoading = true);
     
     try {
-      print('🔵 MODAL GESTIONAR: Iniciando carga de productos...');
-      print('🔵 MODAL GESTIONAR: widget.job.products = ${widget.job.products}');
+      // print('🔵 MODAL GESTIONAR: Iniciando carga de productos...');
+      // print('🔵 MODAL GESTIONAR: widget.job.products = ${widget.job.products}');
       
       // Cargar productos iniciales desde AuthService
       final authService = AuthService();
@@ -847,22 +879,22 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       // Si no hay productos en el job, cargar el detalle completo
       List<dynamic> currentProductsData;
       if (widget.job.products == null) {
-        print('🔵 MODAL GESTIONAR: Productos null, cargando detalle completo...');
+        // print('🔵 MODAL GESTIONAR: Productos null, cargando detalle completo...');
         final jobProvider = context.read<JobProvider>();
         await jobProvider.fetchJobDetail(widget.job.id!);
         final jobDetail = jobProvider.selectedJob;
         _fullJob = jobDetail; // Guardar el job completo con address_id
         currentProductsData = jobDetail?.products ?? [];
-        print('🔵 MODAL GESTIONAR: Productos cargados desde detalle: ${currentProductsData.length}');
-        print('🔵 MODAL GESTIONAR: addressId desde detalle: ${jobDetail?.addressId}');
-        print('🔵 MODAL GESTIONAR: clientId desde detalle: ${jobDetail?.clientId}');
+        // print('🔵 MODAL GESTIONAR: Productos cargados desde detalle: ${currentProductsData.length}');
+        // print('🔵 MODAL GESTIONAR: addressId desde detalle: ${jobDetail?.addressId}');
+        // print('🔵 MODAL GESTIONAR: clientId desde detalle: ${jobDetail?.clientId}');
       } else {
         currentProductsData = widget.job.products!;
         _fullJob = widget.job; // Usar el job original si ya tiene productos
       }
       
-      print('🔵 MODAL GESTIONAR: currentProductsData length = ${currentProductsData.length}');
-      print('🔵 MODAL GESTIONAR: currentProductsData = $currentProductsData');
+      // print('🔵 MODAL GESTIONAR: currentProductsData length = ${currentProductsData.length}');
+      // print('🔵 MODAL GESTIONAR: currentProductsData = $currentProductsData');
       
       setState(() {
         _initialProducts = products;
@@ -870,7 +902,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
         
         // Convertir los Map de productos del backend a SelectedProduct
         _selectedProducts = currentProductsData.map((pData) {
-          print('🔵 MODAL GESTIONAR: Procesando producto: $pData');
+          // print('🔵 MODAL GESTIONAR: Procesando producto: $pData');
           
           // Convertir quantity de manera segura (puede venir como String o num)
           double parsedQuantity = 1.0;
@@ -905,7 +937,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
           );
         }).toList();
         
-        print('🔵 MODAL GESTIONAR: _selectedProducts.length después de cargar = ${_selectedProducts.length}');
+        // print('🔵 MODAL GESTIONAR: _selectedProducts.length después de cargar = ${_selectedProducts.length}');
         _isLoading = false;
       });
     } catch (e) {
@@ -1003,13 +1035,13 @@ class _ProductsDialogState extends State<_ProductsDialog> {
   }
 
   Future<void> _saveProducts() async {
-    print('🔵 SAVE: Guardando ${_selectedProducts.length} productos...');
+    // print('🔵 SAVE: Guardando ${_selectedProducts.length} productos...');
     
     // Usar el job completo que tiene todos los datos necesarios
     final jobToUse = _fullJob ?? widget.job;
     
-    print('🔵 SAVE: jobToUse.id = ${jobToUse.id}');
-    print('🔵 SAVE: jobToUse.addressId = ${jobToUse.addressId}');
+    // print('🔵 SAVE: jobToUse.id = ${jobToUse.id}');
+    // print('🔵 SAVE: jobToUse.addressId = ${jobToUse.addressId}');
     
     if (jobToUse.addressId == null) {
       print('❌ SAVE: addressId es NULL!');
@@ -1037,10 +1069,10 @@ class _ProductsDialogState extends State<_ProductsDialog> {
     
     // Extraer IDs de técnicos
     final technicianIds = jobToUse.technicians?.map((t) => t['id'] as int).toList();
-    print('🔵 SAVE: technicianIds = $technicianIds');
-    print('🔵 SAVE: addressId = ${jobToUse.addressId}');
-    print('🔵 SAVE: visitDateTime = $visitDateTime');
-    print('🔵 SAVE: description = ${jobToUse.jobDescription}');
+    // print('🔵 SAVE: technicianIds = $technicianIds');
+    // print('🔵 SAVE: addressId = ${jobToUse.addressId}');
+    // print('🔵 SAVE: visitDateTime = $visitDateTime');
+    // print('🔵 SAVE: description = ${jobToUse.jobDescription}');
     
     final success = await CustomAlerts.executeWithLoading(
       context,

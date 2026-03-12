@@ -57,6 +57,7 @@ class Job extends Model
     {
         return DB::table('jobs as C')
             ->leftJoin('clients as CL', 'C.client_id', '=', 'CL.id')
+            ->leftJoin('clients_address as CA', 'C.client_addres_id', '=', 'CA.id')
             ->whereNull('C.deleted_at')
             ->selectRaw("
                 C.id,
@@ -65,6 +66,16 @@ class Job extends Model
                 CL.email AS client_email,
                 CL.phone1 AS client_phone,
                 CONCAT(CL.first_name, ' ', IFNULL(CL.last_name, '')) AS client_name,
+                CONCAT(IFNULL(CA.address_street,''),' ',
+                       IFNULL(CA.address_nro,''),' ',
+                       IFNULL(CA.city,'')) AS client_addres_name,
+                IFNULL(CA.address_street, '') AS address_street,
+                IFNULL(CA.address_nro, '') AS address_number,
+                IFNULL(CA.address_apartament, '') AS address_apartment,
+                IFNULL(CA.city, '') AS address_city,
+                IFNULL(CA.state, '') AS address_state,
+                IFNULL(CA.country, '') AS address_country,
+                IFNULL(CA.address_detail, '') AS address_detail,
                 DATE_FORMAT(C.created_at,'%d/%m/%y %H:%i') as created,
                 DATE_FORMAT(C.visit_datetime,'%d/%m/%y %H:%i') as visit,
                 DATE_FORMAT(C.arrival_datetime,'%d/%m/%y %H:%i') as arrival,
@@ -87,12 +98,12 @@ class Job extends Model
                     WHEN C.arrival_datetime IS NOT NULL THEN 1
                 ELSE 2 END as estatusorder,
                 C.visit_datetime as ordervisit,
-                CASE WHEN C.closed_datetime IS NOT NULL THEN 'black' 
+                CASE WHEN C.closed_datetime IS NOT NULL THEN '#00274e' 
                     WHEN C.arrival_datetime IS NOT NULL THEN 'green'  
                     WHEN DATEDIFF(C.visit_datetime, NOW()) <= 0 THEN 'red' 
                     WHEN DATEDIFF(C.visit_datetime, NOW()) <= 5 THEN 'orange' 
                 ELSE 'blue' END as vencimiento,
-                CASE WHEN C.closed_datetime IS NOT NULL THEN 'black' 
+                CASE WHEN C.closed_datetime IS NOT NULL THEN '#00274e' 
                     WHEN C.arrival_datetime IS NOT NULL THEN 'green'  
                     WHEN DATEDIFF(C.visit_datetime, NOW()) <= 0 THEN 'red' 
                     WHEN DATEDIFF(C.visit_datetime, NOW()) <= 5 THEN 'orange' 
