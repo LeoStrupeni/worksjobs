@@ -124,7 +124,9 @@ class Job extends Model
                 C.created_at,
                 C.updated_at,
                 C.client_id,
-                C.archived
+                C.archived,
+                C.colppy_budget_id,
+                C.colppy_budget_number
             ");
     }
 }

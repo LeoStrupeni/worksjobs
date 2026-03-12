@@ -59,6 +59,7 @@ class ApiJobController extends Controller
                   ->orWhereRaw("IFNULL(C.job_description,'') LIKE ?", ["%$search%"])
                   ->orWhereRaw("IFNULL(C.closed_job_observation,'') LIKE ?", ["%$search%"])
                   ->orWhereRaw("C.id LIKE ?", ["%$search%"])
+                  ->orWhereRaw("C.colppy_budget_number LIKE ?", ["%$search%"])
                   ;
             });
         }

@@ -4,13 +4,22 @@
       {{-- Header con badge de estado --}}
       <div class="card-header border-0 bg-white pb-0 pt-3">
         <div class="d-flex justify-content-between align-items-start">
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-dark rounded-pill px-3 py-2" style="font-size: 0.75rem;">
-              OT #{{$j->id}}
-            </span>
-            <span class="badge rounded-pill px-3 py-2" style="background-color: {{$j->vencimiento}}; font-size: 0.75rem;">
-              {{$j->estatus}}
-            </span>
+          <div class="d-flex flex-column gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-dark rounded-pill px-3 py-2" style="font-size: 0.75rem;">
+                OT #{{$j->id}}
+              </span>
+              <span class="badge rounded-pill px-3 py-2" style="background-color: {{$j->vencimiento}}; font-size: 0.75rem;">
+                {{$j->estatus}}
+              </span>
+            </div>
+            @if (!empty($j->colppy_budget_number))
+              <div>
+                <span class="badge bg-success rounded-pill px-3 py-2" style="font-size: 0.7rem;">
+                  <i class="fas fa-file-invoice me-1"></i>P: #{{$j->colppy_budget_number}}
+                </span>
+              </div>
+            @endif
           </div>
           <div class="dropdown">
             <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">

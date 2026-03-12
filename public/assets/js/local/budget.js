@@ -492,17 +492,221 @@ function generarTarea(idFactura) {
 
 /**
  * Asociar a tarea existente
+ * Muestra modal con lista de tareas disponibles (solo pendientes/en lugar, sin presupuesto)
  */
 function asociarTareaExistente(idFactura) {
+    // Cerrar modal de detalle si está abierto
+    const modalDetalle = bootstrap.Modal.getInstance(document.getElementById('modalDetalleFactura'));
+    if (modalDetalle) {
+        modalDetalle.hide();
+    }
+    
+    // Mostrar loading
+    showLoadingAlert('Cargando tareas disponibles...', 'Buscando tareas sin presupuesto asociado');
+    
+    // Obtener datos del presupuesto para mostrar número de factura
+    $.ajax({
+        url: `/budgets/detail/${idFactura}`,
+        type: 'POST',
+        dataType: 'json',
+        success: function(budgetResponse) {
+            const nroFactura = budgetResponse?.data?.infofactura?.nroFactura || idFactura;
+            
+            // Obtener tareas disponibles
+            $.ajax({
+                url: '/budgets/available-jobs',
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    closeSwal();
+                    
+                    if (response.success && response.jobs && response.jobs.length > 0) {
+                        mostrarModalAsociarTareas(idFactura, nroFactura, response.jobs);
+                    } else {
+                        Swal.fire({
+                            title: 'Sin tareas disponibles',
+                            text: 'No hay tareas pendientes o en lugar sin presupuesto asociado.',
+                            type: 'info',
+                            confirmButtonText: 'Entendido'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    closeSwal();
+                    showErrorAlert('Error', 'No se pudieron cargar las tareas disponibles');
+                }
+            });
+        },
+        error: function() {
+            // Si falla obtener el detalle, usar el ID como fallback
+            $.ajax({
+                url: '/budgets/available-jobs',
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    closeSwal();
+                    
+                    if (response.success && response.jobs && response.jobs.length > 0) {
+                        mostrarModalAsociarTareas(idFactura, idFactura, response.jobs);
+                    } else {
+                        Swal.fire({
+                            title: 'Sin tareas disponibles',
+                            text: 'No hay tareas pendientes o en lugar sin presupuesto asociado.',
+                            type: 'info',
+                            confirmButtonText: 'Entendido'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    closeSwal();
+                    showErrorAlert('Error', 'No se pudieron cargar las tareas disponibles');
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Mostrar modal con lista de tareas para asociar
+ */
+function mostrarModalAsociarTareas(idFactura, nroFactura, jobs) {
+    let html = `
+        <div class="text-start">
+            <p class="mb-3">Seleccione una o varias tareas para asociar al presupuesto <strong>${nroFactura}</strong>:</p>
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px;">
+                <table class="table table-hover table-sm mb-0">
+                    <thead style="position: sticky; top: 0; background: white; z-index: 10;">
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="selectAllJobs" class="form-check-input">
+                            </th>
+                            <th>OT #</th>
+                            <th>Cliente</th>
+                            <th>Estado</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+    
+    jobs.forEach(job => {
+        const descripcion = job.job_description ? 
+            (job.job_description.length > 50 ? job.job_description.substring(0, 50) + '...' : job.job_description) : 
+            'Sin descripción';
+        
+        const badgeClass = job.status === 'Pendiente' ? 'bg-warning' : 'bg-info';
+        
+        html += `
+            <tr>
+                <td>
+                    <input type="checkbox" class="form-check-input job-checkbox" value="${job.id}">
+                </td>
+                <td><strong>${job.id}</strong></td>
+                <td>${job.client_name || 'N/A'}</td>
+                <td><span class="badge ${badgeClass} rounded-pill">${job.status}</span></td>
+                <td class="small text-muted">${descripcion}</td>
+            </tr>`;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3 text-muted small">
+                <i class="fas fa-info-circle me-1"></i>
+                Solo se muestran tareas pendientes o en lugar sin presupuesto asociado.
+            </div>
+        </div>`;
+    
     Swal.fire({
-        title: 'Asociar a Tarea',
-        text: `Próximamente: Asociar factura #${idFactura} a una tarea existente`,
-        type: 'info'
+        title: 'Asociar Tareas',
+        html: html,
+        type: 'question',
+        width: 800,
+        showCancelButton: true,
+        confirmButtonText: 'Asociar Seleccionadas',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        didOpen: () => {
+            // Handler para "seleccionar todas"
+            $('#selectAllJobs').on('change', function() {
+                $('.job-checkbox').prop('checked', $(this).prop('checked'));
+            });
+            
+            // Handler para checkboxes individuales
+            $('.job-checkbox').on('change', function() {
+                const totalCheckboxes = $('.job-checkbox').length;
+                const checkedCheckboxes = $('.job-checkbox:checked').length;
+                $('#selectAllJobs').prop('checked', totalCheckboxes === checkedCheckboxes);
+            });
+        },
+        preConfirm: () => {
+            const selectedJobs = $('.job-checkbox:checked').map(function() {
+                return parseInt($(this).val());
+            }).get();
+            
+            if (selectedJobs.length === 0) {
+                Swal.showValidationMessage('Debe seleccionar al menos una tarea');
+                return false;
+            }
+            
+            return selectedJobs;
+        }
+    }).then((result) => {
+        if (result.value && Array.isArray(result.value)) {
+            guardarAsociacionTareas(idFactura, nroFactura, result.value);
+        }
+    });
+}
+
+/**
+ * Guardar asociación de tareas a presupuesto
+ */
+function guardarAsociacionTareas(idFactura, nroFactura, jobIds) {
+    showLoadingAlert('Asociando tareas...', `Asociando ${jobIds.length} tarea(s) al presupuesto`);
+    
+    $.ajax({
+        url: '/budgets/associate-jobs',
+        type: 'POST',
+        data: {
+            budget_id: idFactura,
+            budget_number: nroFactura,
+            job_ids: jobIds
+        },
+        dataType: 'json',
+        success: function(response) {
+            closeSwal();
+            
+            if (response.success) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: `${response.jobs_updated} tarea(s) asociada(s) correctamente al presupuesto ${nroFactura}`,
+                    type: 'success',
+                    confirmButtonText: 'Entendido'
+                }).then(() => {
+                    // Recargar la tabla de presupuestos
+                    callregister('/budgets/table', 1, $('#table_limit').val(), $('#table_order').val(), 'si');
+                });
+            } else {
+                showErrorAlert('Error', response.message || 'No se pudieron asociar las tareas');
+            }
+        },
+        error: function(xhr) {
+            closeSwal();
+            let mensaje = 'Error al asociar tareas al presupuesto';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                mensaje = xhr.responseJSON.message;
+            }
+            
+            showErrorAlert('Error', mensaje);
+        }
     });
 }
 
 /**
  * Ver tareas asociadas a este presupuesto
+ * Ahora abre el modal de detalle de tarea (#showjob) para cada tarea
  */
 function verTareasAsociadas(idsTareasStr) {
     // Convertir a string por si acaso viene como número o array
@@ -520,23 +724,168 @@ function verTareasAsociadas(idsTareasStr) {
         return;
     }
     
-    // Construir mensaje con links a las tareas
-    let mensaje = '<div class="text-start">';
-    mensaje += '<p class="fw-bold mb-3">Este presupuesto está asociado a las siguientes tareas:</p>';
-    mensaje += '<ul class="list-unstyled">';
+    // Si solo hay una tarea, abrir directamente el modal de detalle
+    if (idsTareas.length === 1) {
+        abrirModalDetalleTarea(idsTareas[0]);
+        return;
+    }
+    
+    // Si hay múltiples tareas, mostrar lista con botones para ver cada una
+    let html = '<div class="text-start">';
+    html += '<p class="fw-bold mb-3">Este presupuesto está asociado a las siguientes tareas:</p>';
+    html += '<div class="list-group">';
+    
     idsTareas.forEach(id => {
-        mensaje += `<li class="mb-2">
-            <a href="/jobs/${id}" target="_blank" class="btn btn-sm btn-outline-primary">
-                <i class="flaticon-eye me-2"></i>Tarea #${id}
-            </a>
-        </li>`;
+        html += `
+            <button type="button" 
+                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center ver-detalle-tarea-btn" 
+                    data-job-id="${id}">
+                <span>
+                    <i class="fas fa-tasks me-2"></i>Tarea OT #${id}
+                </span>
+                <i class="fas fa-chevron-right"></i>
+            </button>`;
     });
-    mensaje += '</ul></div>';
+    
+    html += '</div></div>';
     
     Swal.fire({
         title: `Tareas Asociadas (${idsTareas.length})`,
-        html: mensaje,
+        html: html,
         type: 'info',
-        width: 600
+        width: 600,
+        confirmButtonText: 'Cerrar'
+    });
+    
+    // Bindear eventos DESPUÉS de mostrar el SweetAlert (no en .then que se ejecuta al cerrar)
+    setTimeout(() => {
+        // console.log('Bindeando eventos a botones de tareas...');
+        $('.ver-detalle-tarea-btn').off('click').on('click', function() {
+            // console.log('Click en ver detalle de tarea (modal tareas asociadas)');
+            const jobId = $(this).data('job-id');
+            // console.log('Job ID:', jobId);
+            Swal.close();
+            abrirModalDetalleTarea(jobId);
+        });
+        // console.log('Eventos bindeados. Botones encontrados:', $('.ver-detalle-tarea-btn').length);
+    }, 100);
+}
+
+/**
+ * Abrir modal de detalle de tarea existente (#showjob)
+ * Usa el mismo mecanismo que el evento .read-job de jobdetail.js
+ */
+function abrirModalDetalleTarea(jobId) {
+    // console.log('abrirModalDetalleTarea:', jobId);
+    
+    // Verificar que el modal exista
+    if ($('#showjob').length === 0) {
+        // console.error('Modal #showjob no encontrado en el DOM');
+        Swal.fire({
+            title: 'Error',
+            text: 'No se pudo abrir el modal de detalle. Recargue la página e intente nuevamente.',
+            type: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // console.log('Modal #showjob encontrado');
+    
+    // Limpiar galería
+    $("#lightgalleryShow").empty();
+    
+    // Obtener y resetear el formulario
+    const form = document.getElementById("formshowjob");
+    if (form) {
+        $(form.elements).each(function(index) {
+            $(this).val('');
+        });
+        // console.log('Formulario reseteado');
+    } else {
+        // console.warn('Formulario #formshowjob no encontrado');
+    }
+    
+    // Resetear tabs a la primera pestaña (Información General)
+    if ($('#info-tab').length > 0) {
+        $('#info-tab').tab('show');
+        // console.log('Tab info activado');
+    }
+    
+    // Guardar el ID del trabajo en el modal
+    $('#showjob').data('job-id', jobId);
+    
+    // Mostrar spinner de carga
+    $('#modal-body-show-job-roller').removeClass('d-none');
+    $('#modal-body-show-job-error').addClass('d-none');
+    $('#modal-body-show-job').addClass('d-none');
+    
+    // console.log('Intentando abrir modal con Bootstrap 5...');
+    
+    // Mostrar el modal usando Bootstrap 5
+    const modalElement = document.getElementById('showjob');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // console.log('Modal.show() ejecutado');
+
+    // Cargar datos de la tarea
+    $.ajax({
+        contenttype: 'application/json; charset=utf-8',
+        url: $('meta[name="app_url"]').attr('content') + '/jobs/' + jobId + '/edit',
+        type: 'GET',
+        error: function(jqXHR, textStatus, errorThrown) {
+            $('#modal-body-show-job-roller').addClass('d-none');
+            $('#modal-body-show-job-error').removeClass('d-none');
+            // console.error('Error al cargar tarea:', errorThrown);
+        },
+        success: function(data) {
+            // console.log('Datos de tarea cargados:', data);
+            
+            // Verificar que existan las funciones necesarias de jobdetail.js
+            if (typeof viewjob === 'function') {
+                viewjob(data, form, 'showjob');
+                // console.log('viewjob ejecutado');
+            } else {
+                // console.error('Función viewjob no disponible');
+            }
+            
+            if (typeof viewfiles === 'function') {
+                viewfiles(data, 'lightgalleryShow');
+            }
+
+            // Mostrar técnicos asignados
+            if (typeof renderTechniciansShow === 'function') {
+                renderTechniciansShow(data.technicians);
+            }
+
+            // Mostrar productos relacionados
+            if (typeof renderProductsShow === 'function') {
+                renderProductsShow(data.products);
+            }
+            // Guardar datos del trabajo para el PDF
+            currentJobDataForPdf = data;
+            
+            // Controlar visibilidad del botón de PDF según permisos
+            if (data.permissions && data.permissions.pdf && data.permissions.pdf.includes('create')) {
+                $('#btn-generate-pdf').show();
+            } else {
+                $('#btn-generate-pdf').hide();
+            }
+            
+            // Controlar visibilidad del botón de compartir según permisos
+            const hasSharePermission = data.permissions && data.permissions.share && data.permissions.share.includes('create');
+            if (!hasSharePermission) {
+                $('#btn-share-selected-lightgalleryShow').hide();
+            }
+
+            $('#modal-body-show-job').removeClass('d-none');
+        }
+    }).always(function() {
+        $('#modal-body-show-job-roller').addClass('d-none');
     });
 }
+
+/**
+ * Mostrar alerta de error con SweetAlert
+ */

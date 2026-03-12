@@ -855,7 +855,8 @@ $(document).ready(function() {
         }
     });
 
-    function viewjob(data,form,origen){
+    // Exponer función al scope global para uso desde otros archivos
+    window.viewjob = function(data,form,origen){
         $.each( data.job , function( index, value ) {
             $( form.elements ).each(function( b ) {
                 if($(this).attr('name') == index){
@@ -883,7 +884,8 @@ $(document).ready(function() {
 
     }
 
-    function viewfiles(data,id_elemento){
+    // Exponer función al scope global para uso desde otros archivos
+    window.viewfiles = function(data,id_elemento){
         // Verificar permisos de compartir
         const hasSharePermission = data.permissions && data.permissions.share && data.permissions.share.includes('create');
         

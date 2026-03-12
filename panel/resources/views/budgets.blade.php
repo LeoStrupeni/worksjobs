@@ -216,6 +216,7 @@
     </div>
 
     @include('budget.show')
+    @include('job.show')
 @endsection
 
 @section('script_by_page')

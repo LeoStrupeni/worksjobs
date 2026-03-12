@@ -685,6 +685,15 @@ class JobController extends Controller
             return;
         }
 
+        // Si la tarea ya tiene un presupuesto asociado, no generar uno nuevo
+        if ($job->colppy_budget_id) {
+            // Log::info('Tarea ya tiene presupuesto asociado, no se genera nuevo presupuesto', [
+            //     'job_id' => $job_id,
+            //     'colppy_budget_id' => $job->colppy_budget_id
+            // ]);
+            return;
+        }
+
         // Validar que el cliente tenga idcolppy
         if (!$job->client || !$job->client->idcolppy) {
             // Log::info('Cliente sin idcolppy, no se genera presupuesto', [

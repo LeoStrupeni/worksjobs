@@ -258,4 +258,133 @@ class BudgetController extends Controller
 
         return $estados[$idEstado] ?? 'Desconocido';
     }
+
+    /**
+     * Obtener tareas disponibles para asociar a un presupuesto
+     * SOLO tareas con status 'Pendiente' o 'En Lugar' (NOT 'Cerrado')
+     * Y que NO tengan presupuesto asociado (colppy_budget_id IS NULL)
+     */
+    public function getAvailableJobs(Request $request)
+    {
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado'
+                ], 401);
+            }
+
+            // Obtener tareas disponibles
+            $jobs = DB::table('jobs as j')
+                ->leftJoin('clients as cl', 'j.client_id', '=', 'cl.id')
+                ->whereNull('j.deleted_at')
+                ->whereNull('j.colppy_budget_id')  // Sin presupuesto asociado
+                ->whereNull('j.closed_datetime')   // NO cerradas
+                ->select(
+                    'j.id',
+                    'j.created_at',
+                    'j.visit_datetime',
+                    'j.arrival_datetime',
+                    'j.job_description',
+                    DB::raw("CONCAT(cl.first_name, ' ', IFNULL(cl.last_name, '')) AS client_name"),
+                    DB::raw("CASE WHEN j.arrival_datetime IS NOT NULL THEN 'En Lugar' ELSE 'Pendiente' END as status")
+                )
+                ->orderBy('j.created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'jobs' => $jobs
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getAvailableJobs', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tareas disponibles'
+            ], 500);
+        }
+    }
+
+    /**
+     * Asociar una o varias tareas a un presupuesto/factura de Colppy
+     * Guarda tanto el ID (colppy_budget_id) como el número de factura (colppy_budget_number)
+     */
+    public function associateJobs(Request $request)
+    {
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado'
+                ], 401);
+            }
+
+            $request->validate([
+                'budget_id' => 'required|string',
+                'budget_number' => 'required|string',
+                'job_ids' => 'required|array',
+                'job_ids.*' => 'required|integer|exists:jobs,id'
+            ]);
+
+            $budgetId = $request->budget_id;
+            $budgetNumber = $request->budget_number;
+            $jobIds = $request->job_ids;
+
+            // Verificar que las tareas estén disponibles (sin presupuesto y no cerradas)
+            $unavailableJobs = DB::table('jobs')
+                ->whereIn('id', $jobIds)
+                ->where(function($query) {
+                    $query->whereNotNull('colppy_budget_id')
+                          ->orWhereNotNull('closed_datetime');
+                })
+                ->whereNull('deleted_at')
+                ->pluck('id')
+                ->toArray();
+
+            if (count($unavailableJobs) > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Algunas tareas ya tienen presupuesto asociado o están cerradas',
+                    'unavailable_jobs' => $unavailableJobs
+                ], 400);
+            }
+
+            // Actualizar las tareas
+            DB::table('jobs')
+                ->whereIn('id', $jobIds)
+                ->update([
+                    'colppy_budget_id' => $budgetId,
+                    'colppy_budget_number' => $budgetNumber,
+                    'updated_at' => now()
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tareas asociadas correctamente al presupuesto',
+                'jobs_updated' => count($jobIds)
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Error en associateJobs', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asociar tareas al presupuesto'
+            ], 500);
+        }
+    }
 }

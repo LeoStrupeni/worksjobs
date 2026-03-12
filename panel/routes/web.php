@@ -177,6 +177,8 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/budgets', [BudgetController::class,'index'])->name('budgets.index');
     Route::post('/budgets/table', [BudgetController::class,'getBudgetsDataTable'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     Route::post('/budgets/detail/{idFactura}', [BudgetController::class,'getBudgetDetail'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::post('/budgets/available-jobs', [BudgetController::class,'getAvailableJobs'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    Route::post('/budgets/associate-jobs', [BudgetController::class,'associateJobs'])->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     
     // ============= RUTAS CMS =============
     // Panel principal CMS

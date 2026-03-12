@@ -45,7 +45,14 @@ function tableregister(data, page, callpaginas, url_query){
     $.each(data.datos, function (key, val) {
         body += `<tr id="${val.id}" style="border-bottom: 1px solid #f0f0f0;">
             <td class="align-middle">
-                <span class="badge bg-se-primary rounded-pill px-3 py-2" style="font-size: 1rem;">${val.id}</span>
+                <div class="d-flex flex-column align-items-center gap-1">
+                    <span class="badge bg-se-primary rounded-pill px-3 py-2" style="font-size: 1rem;">${val.id}</span>`;
+                    if (val.colppy_budget_number) {
+                        body += `<span class="badge bg-success rounded-pill px-2 py-1" style="font-size: 0.7rem;" title="Factura Colppy asociada">
+                            <i class="fas fa-file-invoice me-1"></i>P: #${val.colppy_budget_number}
+                        </span>`;
+                    }
+                body += `</div>
             </td>
             <td class="align-middle fw-bold">${val.client_first_name} ${val.client_last_name ?? ''}</td>
             <td class="text-start py-3 align-middle">
