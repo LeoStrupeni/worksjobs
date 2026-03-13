@@ -1585,6 +1585,12 @@ $('#createjob').on('shown.bs.modal', function () {
         }
         pickerCreate = flatpickr(inputCreate, flatpickrConfig);
     }
+    
+    // Refrescar selectpicker de cliente con un pequeño delay
+    // para asegurar que el valor ya establecido se refleje visualmente
+    setTimeout(function() {
+        $('#client_id').selectpicker('refresh');
+    }, 100);
 });
 
 // Inicializar Flatpickr cuando se abra el modal de EDITAR

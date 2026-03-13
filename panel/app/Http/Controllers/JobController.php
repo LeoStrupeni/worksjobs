@@ -63,7 +63,8 @@ class JobController extends Controller
             'visit_longitud' => $request->longitude,
             'visit_coords_status' => $request->latitude != null && $request->longitude != null ? '1' : '0',
             'visit_json_coords' => $request->jsongeolocation,
-            'colppy_budget_id' => $request->colppy_budget_id ?? null
+            'colppy_budget_id' => $request->colppy_budget_id ?? null,
+            'colppy_budget_number' => $request->colppy_budget_number ?? null
         ]);
 
         // Sincronizar técnicos asignados
@@ -844,9 +845,13 @@ class JobController extends Controller
             $idFactura = $response['response']['idfactura'] ?? null;
             
             if ($idFactura) {
-                // Guardar el ID del presupuesto en la tarea
+                // Construir número de presupuesto completo
+                $nroPresupuestoCompleto = $talonario . '-' . $numeroPresupuesto;
+                
+                // Guardar el ID y número del presupuesto en la tarea
                 Job::where('id', $job_id)->update([
-                    'colppy_budget_id' => $idFactura
+                    'colppy_budget_id' => $idFactura,
+                    'colppy_budget_number' => $nroPresupuestoCompleto
                 ]);
 
                 // Incrementar el contador de presupuestos para el próximo

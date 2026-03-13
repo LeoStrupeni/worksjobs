@@ -385,14 +385,40 @@ function generarTarea(idFactura) {
                             $('#technician_ids_create').selectpicker('deselectAll');
                             $('textarea[name="job_description"]').val('');
                             
-                            // Establecer el idFactura en el campo hidden
+                            // Establecer el idFactura y número de presupuesto en campos hidden
                             $('#colppy_budget_id_create').val(idFactura);
+                            const nroPresupuesto = info.nroFactura1 + '-' + info.nroFactura2;
+                            $('#colppy_budget_number_create').val(nroPresupuesto);
                             
-                            // Pre-llenar cliente
-                            $('#client_id').val(cliente.id).selectpicker('refresh');
+                            // Buscar el cliente por ID usando la API searchvar
+                            const $clientSelect = $('#client_id');
                             
-                            // Obtener domicilios del cliente
-                            getAddress(cliente.id);
+                            $.ajax({
+                                url: "/api/searchvar",
+                                type: 'POST',
+                                data: {
+                                    search: cliente.id,
+                                    tipo: 'clients'
+                                },
+                                success: function(searchData) {
+                                    // Limpiar y llenar el select con los resultados
+                                    $clientSelect.find('option').remove();
+                                    $clientSelect.empty();
+                                    
+                                    // Agregar los clientes encontrados
+                                    $.each(searchData, function() {
+                                        var option = `<option value="${this.id}">${this.first_name} ${this.last_name ?? ''}</option>`;
+                                        $clientSelect.append(option);
+                                    });
+                                    
+                                    // Seleccionar el cliente específico
+                                    $clientSelect.val(cliente.id);
+                                    $clientSelect.selectpicker('refresh');
+                                    
+                                    // Obtener domicilios del cliente
+                                    getAddress(cliente.id);
+                                }
+                            });
                             
                             // Pre-llenar descripción
                             $('textarea[name="job_description"]').val(info.descripcion || '');

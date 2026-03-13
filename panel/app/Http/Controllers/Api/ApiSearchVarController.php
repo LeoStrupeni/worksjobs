@@ -19,7 +19,7 @@ class ApiSearchVarController extends Controller
         $respuesta = [];
         if($tipo == 'clients'){
             $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
-            
+    
             switch ($modo) {
                 case 'api':
                     $respuesta = Client::wherenull('deleted_at')
@@ -27,7 +27,8 @@ class ApiSearchVarController extends Controller
                             ->where(function($query) use ($search) {
                                 $query->where('first_name','LIKE',"%$search%")
                                 ->orwhere('last_name','LIKE',"%$search%")
-                                ->orwhere('num_doc','LIKE',"%$search%");
+                                ->orwhere('num_doc','LIKE',"%$search%")
+                                ->orwhere('id','LIKE',"%$search%");
                             })
                             ->limit(10)->get();
                     break;
@@ -35,6 +36,7 @@ class ApiSearchVarController extends Controller
                     $respuesta = Client::where('first_name','LIKE',"%$search%")
                             ->orwhere('last_name','LIKE',"%$search%")
                             ->orwhere('num_doc','LIKE',"%$search%")
+                            ->orwhere('id','LIKE',"%$search%")
                             ->limit(10)
                             ->get();
                     break;
@@ -47,7 +49,8 @@ class ApiSearchVarController extends Controller
                         ->where(function($query) use ($search) {
                                 $query->where('first_name','LIKE',"%$search%")
                                 ->orwhere('last_name','LIKE',"%$search%")
-                                ->orwhere('num_doc','LIKE',"%$search%");
+                                ->orwhere('num_doc','LIKE',"%$search%")
+                                ->orwhere('id','LIKE',"%$search%");
                             })
                         ->limit(10)->get();
             }

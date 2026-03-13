@@ -19,6 +19,7 @@
                     <input type="hidden" name="longitude">
                     <input type="hidden" name="jsongeolocation">
                     <input type="hidden" name="colppy_budget_id" id="colppy_budget_id_create">
+                    <input type="hidden" name="colppy_budget_number" id="colppy_budget_number_create">
                     
                     <!-- Indicador de Geolocalización -->
                     {{-- <div class="alert alert-info mb-3 d-flex align-items-center">
