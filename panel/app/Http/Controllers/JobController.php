@@ -148,25 +148,29 @@ class JobController extends Controller
             ->whereNull('deleted_at')
             ->get();
 
-        // Convertir fecha de BD (YYYY-MM-DD HH:mm:ss) a formato frontend (DD/MM/YYYY HH:mm)
-        if ($job->visit_datetime) {
-            try {
-                $date = \DateTime::createFromFormat('Y-m-d H:i:s', $job->visit_datetime);
-                if ($date !== false) {
-                    $job->visit_datetime = $date->format('d/m/Y H:i');
-                }
-            } catch (\Exception $e) {
-                // Si falla, intentar con formato sin segundos
+        // Convertir fechas de BD (YYYY-MM-DD HH:mm:ss) a formato frontend (DD/MM/YYYY HH:mm)
+        $dateFields = ['visit_datetime', 'arrival_datetime', 'closed_datetime'];
+        foreach ($dateFields as $field) {
+            if ($job->$field) {
                 try {
-                    $date = \DateTime::createFromFormat('Y-m-d H:i', $job->visit_datetime);
+                    $date = \DateTime::createFromFormat('Y-m-d H:i:s', $job->$field);
                     if ($date !== false) {
-                        $job->visit_datetime = $date->format('d/m/Y H:i');
+                        $job->$field = $date->format('d/m/Y H:i');
                     }
-                } catch (\Exception $e2) {
-                    // Log::warning('No se pudo convertir fecha para edición', [
-                    //     'visit_datetime' => $job->visit_datetime,
-                    //     'error' => $e2->getMessage()
-                    // ]);
+                } catch (\Exception $e) {
+                    // Si falla, intentar con formato sin segundos
+                    try {
+                        $date = \DateTime::createFromFormat('Y-m-d H:i', $job->$field);
+                        if ($date !== false) {
+                            $job->$field = $date->format('d/m/Y H:i');
+                        }
+                    } catch (\Exception $e2) {
+                        // Log::warning('No se pudo convertir fecha para edición', [
+                        //     'field' => $field,
+                        //     'value' => $job->$field,
+                        //     'error' => $e2->getMessage()
+                        // ]);
+                    }
                 }
             }
         }

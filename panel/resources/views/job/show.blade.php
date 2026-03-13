@@ -72,7 +72,7 @@
                                             </div>
                                             <div>
                                                 <label class="text-muted small mb-1">Fecha y hora de visita</label>
-                                                <input type="datetime-local" class="form-control border-0 bg-light" name="visit_datetime" readonly>
+                                                <input type="text" class="form-control border-0 bg-light" name="visit_datetime" readonly>
                                             </div>
                                         </div>
                                     </div>
@@ -167,13 +167,13 @@
                                                 <label class="text-muted small mb-1">
                                                     <i class="fas fa-sign-in-alt me-2 text-success"></i>Fecha y hora de arribo
                                                 </label>
-                                                <input type="datetime-local" class="form-control border-0 bg-light" name="arrival_datetime" readonly>
+                                                <input type="text" class="form-control border-0 bg-light" name="arrival_datetime" readonly>
                                             </div>
                                             <div>
                                                 <label class="text-muted small mb-1">
                                                     <i class="fas fa-sign-out-alt me-2 text-danger"></i>Fecha y hora de cierre
                                                 </label>
-                                                <input type="datetime-local" class="form-control border-0 bg-light" name="closed_datetime" readonly>
+                                                <input type="text" class="form-control border-0 bg-light" name="closed_datetime" readonly>
                                             </div>
                                         </div>
                                     </div>
