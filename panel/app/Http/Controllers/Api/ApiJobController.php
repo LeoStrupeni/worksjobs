@@ -13,6 +13,7 @@ use App\Models\JobProduct;
 use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 class ApiJobController extends Controller
@@ -118,38 +119,63 @@ class ApiJobController extends Controller
      */
     public function getTodayJobs(Request $request)
     {
-        $today = Carbon::now()->format('Y-m-d');
-        
-        // Usar query centralizado del modelo Job
-        $query = Job::getJobsQuery();
-        
-        // Trabajos de hoy O trabajos anteriores que estén abiertos (no cerrados)
-        $query->where(function($q) use ($today) {
-            $q->whereRaw("DATE(C.visit_datetime) = ?", [$today])
-              ->orWhere(function($subQ) use ($today) {
-                  $subQ->whereRaw("DATE(C.visit_datetime) < ?", [$today])
-                       ->whereNull('C.closed_datetime');
-              });
-        });
-        
-        $query->orderBy('estatusorder', 'ASC')
-              ->orderBy('ordervisit', 'ASC');
-        
-        $jobs = $query->get();
-        
-        foreach ($jobs as $j) {
-            $note = Jobs_Note::where('jobs_id', $j->id)->first();   
-            $j->getnotes = $note ? 'si' : 'no';
+        try {
+            $user = $request->user();
+            $today = Carbon::now()->format('Y-m-d');
+            
+            // Log del usuario que hace la petición
+            Log::info('📱 getTodayJobs - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
+            
+            if (!$user) {
+                Log::error('❌ getTodayJobs - Usuario no autenticado');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado'
+                ], 401);
+            }
+            
+            // Usar query centralizado del modelo Job
+            $query = Job::getJobsQuery();
+            
+            // Trabajos de hoy O trabajos anteriores que estén abiertos (no cerrados)
+            $query->where(function($q) use ($today) {
+                $q->whereRaw("DATE(C.visit_datetime) = ?", [$today])
+                  ->orWhere(function($subQ) use ($today) {
+                      $subQ->whereRaw("DATE(C.visit_datetime) < ?", [$today])
+                           ->whereNull('C.closed_datetime');
+                  });
+            });
+            
+            $query->orderBy('estatusorder', 'ASC')
+                  ->orderBy('ordervisit', 'ASC');
+            
+            $jobs = $query->get();
+            Log::info('✅ getTodayJobs - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
+            
+            foreach ($jobs as $j) {
+                $note = Jobs_Note::where('jobs_id', $j->id)->first();   
+                $j->getnotes = $note ? 'si' : 'no';
+            }
+            
+            $permissions = $this->getUserPermissions($user);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $jobs,
+                'count' => $jobs->count(),
+                'permissions' => $permissions
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ getTodayJobs - Exception: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener trabajos del día',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-        
-        $permissions = $this->getUserPermissions($request->user());
-        
-        return response()->json([
-            'success' => true,
-            'data' => $jobs,
-            'count' => $jobs->count(),
-            'permissions' => $permissions
-        ]);
     }
     
     /**
@@ -158,79 +184,122 @@ class ApiJobController extends Controller
      */
     public function getUpcomingJobs(Request $request)
     {
-        $today = Carbon::now()->format('Y-m-d');
-        
-        // Usar query centralizado del modelo Job
-        $query = Job::getJobsQuery();
-        
-        // Trabajos futuros que NO estén cerrados
-        $query->whereRaw("DATE(C.visit_datetime) > ?", [$today])
-              ->whereNull('C.closed_datetime');
-        
-        $query->orderBy('ordervisit', 'ASC');
-        
-        $jobs = $query->get();
-        
-        foreach ($jobs as $j) {
-            $note = Jobs_Note::where('jobs_id', $j->id)->first();   
-            $j->getnotes = $note ? 'si' : 'no';
+        try {
+            $user = $request->user();
+            $today = Carbon::now()->format('Y-m-d');
+            
+            Log::info('📱 getUpcomingJobs - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
+            
+            if (!$user) {
+                Log::error('❌ getUpcomingJobs - Usuario no autenticado');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado'
+                ], 401);
+            }
+            
+            // Usar query centralizado del modelo Job
+            $query = Job::getJobsQuery();
+            
+            // Trabajos futuros que NO estén cerrados
+            $query->whereRaw("DATE(C.visit_datetime) > ?", [$today])
+                  ->whereNull('C.closed_datetime');
+            
+            $query->orderBy('ordervisit', 'ASC');
+            
+            $jobs = $query->get();
+            Log::info('✅ getUpcomingJobs - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
+            
+            foreach ($jobs as $j) {
+                $note = Jobs_Note::where('jobs_id', $j->id)->first();   
+                $j->getnotes = $note ? 'si' : 'no';
+            }
+            
+            $permissions = $this->getUserPermissions($user);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $jobs,
+                'count' => $jobs->count(),
+                'permissions' => $permissions
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ getUpcomingJobs - Exception: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener próximos trabajos',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-        
-        $permissions = $this->getUserPermissions($request->user());
-        
-        return response()->json([
-            'success' => true,
-            'data' => $jobs,
-            'count' => $jobs->count(),
-            'permissions' => $permissions
-        ]);
     }
     
     /**
-     * Obtener trabajos por rango de fechas (para calendario)
+     * Obtener trabajos por rango de fechas
      * Usado por: Web (AJAX) y App Móvil
      */
     public function getJobsByDateRange(Request $request)
     {
-        $start_date = $request->input('start_date');
-        $end_date = $request->input('end_date');
-        
-        if (!$start_date || !$end_date) {
+        try {
+            $user = $request->user();
+            $start_date = $request->input('start_date');
+            $end_date = $request->input('end_date');
+            
+            Log::info('📱 getJobsByDateRange - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
+            
+            if (!$user) {
+                Log::error('❌ getJobsByDateRange - Usuario no autenticado');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado'
+                ], 401);
+            }
+            
+            if (!$start_date || !$end_date) {
+                Log::warning('⚠️ getJobsByDateRange - Faltan fechas');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Se requieren start_date y end_date'
+                ], 400);
+            }
+            
+            // Usar query centralizado del modelo Job
+            $query = Job::getJobsQuery();
+            
+            $query->whereRaw("DATE(C.visit_datetime) >= ?", [$start_date])
+                  ->whereRaw("DATE(C.visit_datetime) <= ?", [$end_date]);
+            
+            $query->orderBy('ordervisit', 'ASC');
+            
+            $jobs = $query->get();
+            Log::info('✅ getJobsByDateRange - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
+            
+            foreach ($jobs as $j) {
+                $note = Jobs_Note::where('jobs_id', $j->id)->first();   
+                $j->getnotes = $note ? 'si' : 'no';
+            }
+            
+            $permissions = $this->getUserPermissions($user);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $jobs,
+                'count' => $jobs->count(),
+                'permissions' => $permissions
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ getJobsByDateRange - Exception: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Se requieren start_date y end_date'
-            ], 400);
+                'message' => 'Error al obtener trabajos por rango de fechas',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-        
-        // Usar query centralizado del modelo Job
-        $query = Job::getJobsQuery();
-        
-        $query->whereRaw("DATE(C.visit_datetime) >= ?", [$start_date])
-              ->whereRaw("DATE(C.visit_datetime) <= ?", [$end_date]);
-        
-        $query->orderBy('ordervisit', 'ASC');
-        
-        $jobs = $query->get();
-        
-        // DEBUG: Ver todos los campos de un job
-        // $debugJob = $jobs->firstWhere('id', 70);
-        // if ($debugJob) {
-        //     \Log::info('🔍 RAW Job 70 data:', (array) $debugJob);
-        // }
-        
-        foreach ($jobs as $j) {
-            $note = Jobs_Note::where('jobs_id', $j->id)->first();   
-            $j->getnotes = $note ? 'si' : 'no';
-        }
-        
-        $permissions = $this->getUserPermissions($request->user());
-        
-        return response()->json([
-            'success' => true,
-            'data' => $jobs,
-            'count' => $jobs->count(),
-            'permissions' => $permissions
-        ]);
     }
     
     /**

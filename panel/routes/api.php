@@ -52,6 +52,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::post('/logout', [ApiAuthController::class, 'logout']);
     
+    // Health check - Verificar estado de autenticación
+    Route::get('/health-check', [ApiAuthController::class, 'healthCheck']);
+    
     // Jobs/Citas endpoints
     Route::prefix('jobs')->group(function () {
         // Lectura (GET) - ApiJobController

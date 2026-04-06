@@ -7,6 +7,8 @@ import '../models/job_file.dart';
 import '../models/client.dart';
 import '../models/address.dart';
 import '../models/product.dart';
+import '../utils/debug_logger.dart';
+import '../utils/network_helper.dart';
 import 'auth_service.dart';
 
 class JobService {
@@ -14,88 +16,153 @@ class JobService {
 
   // Obtener citas del día
   Future<Map<String, dynamic>> getTodayJobs() async {
+    await DebugLogger.instance.info('📅 Obteniendo citas de hoy...', category: 'JOBS');
+    
     try {
       final token = await _authService.getToken();
       
       if (token == null) {
-        print('❌ getTodayJobs: No autenticado');
-        return {'success': false, 'message': 'No autenticado'};
+        await DebugLogger.instance.error('❌ No hay token de autenticación', category: 'JOBS');
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
       }
 
-      // print('📡 getTodayJobs: Llamando a ${ApiConfig.baseUrl}${ApiConfig.todayJobsEndpoint}');
-      final response = await http.get(
+      // Usar NetworkHelper con retry automático
+      final result = await NetworkHelper.getWithRetry(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.todayJobsEndpoint}'),
         headers: ApiConfig.getHeaders(token: token),
+        maxRetries: 2,
+        logCategory: 'JOBS',
       );
 
-      // print('📥 getTodayJobs: Status ${response.statusCode}');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // print('📄 getTodayJobs: Response data keys: ${data.keys}');
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+      
+      if (data['success'] == true) {
+        final jobs = (data['data'] as List)
+            .map((job) => Job.fromJson(job))
+            .toList();
         
-        if (data['success'] == true) {
-          // print('✅ getTodayJobs: ${data['count']} citas encontradas');
-          final jobs = (data['data'] as List)
-              .map((job) => Job.fromJson(job))
-              .toList();
-          
-          // print('🔑 getTodayJobs: Permissions data: ${data['permissions']}');
-          
-          return {
-            'success': true,
-            'jobs': jobs,
-            'count': data['count'] ?? 0,
-            'permissions': data['permissions'],
-          };
-        } else {
-          // print('⚠️ getTodayJobs: success=false en response');
-        }
+        await DebugLogger.instance.success(
+          '✅ ${jobs.length} citas de hoy obtenidas',
+          category: 'JOBS',
+          data: {'count': jobs.length},
+        );
+        
+        return {
+          'success': true,
+          'jobs': jobs,
+          'count': data['count'] ?? 0,
+          'permissions': data['permissions'],
+        };
       } else {
-        print('❌ getTodayJobs: Error HTTP ${response.statusCode}');
-        // print('📄 getTodayJobs: Body: ${response.body}');
+        await DebugLogger.instance.warning(
+          '⚠️ API retornó success=false',
+          category: 'JOBS',
+          data: {'message': data['message']},
+        );
       }
       
-      return {'success': false, 'message': 'Error al obtener citas'};
-    } catch (e) {
-      print('❌ getTodayJobs: Exception: $e');
-      return {'success': false, 'message': 'Error: ${e.toString()}'};
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error al obtener citas',
+      };
+    } catch (e, stackTrace) {
+      await DebugLogger.instance.error(
+        '❌ Exception en getTodayJobs: $e',
+        category: 'JOBS',
+        data: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
+      );
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error: ${e.toString()}',
+      };
     }
   }
 
   // Obtener próximas citas
   Future<Map<String, dynamic>> getUpcomingJobs({int limit = 50}) async {
+    await DebugLogger.instance.info('📅 Obteniendo próximas citas...', category: 'JOBS');
+    
     try {
       final token = await _authService.getToken();
       
       if (token == null) {
-        return {'success': false, 'message': 'No autenticado'};
+        await DebugLogger.instance.error('❌ No hay token de autenticación', category: 'JOBS');
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
       }
 
-      final response = await http.get(
+      // Usar NetworkHelper con retry automático
+      final result = await NetworkHelper.getWithRetry(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.upcomingJobsEndpoint}?limit=$limit'),
         headers: ApiConfig.getHeaders(token: token),
+        maxRetries: 2,
+        logCategory: 'JOBS',
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+      
+      if (data['success'] == true) {
+        final jobs = (data['data'] as List)
+            .map((job) => Job.fromJson(job))
+            .toList();
         
-        if (data['success'] == true) {
-          final jobs = (data['data'] as List)
-              .map((job) => Job.fromJson(job))
-              .toList();
-          
-          return {
-            'success': true,
-            'jobs': jobs,
-            'count': data['count'] ?? 0,
-            'permissions': data['permissions'],
-          };
-        }
+        await DebugLogger.instance.success(
+          '✅ ${jobs.length} próximas citas obtenidas',
+          category: 'JOBS',
+          data: {'count': jobs.length, 'limit': limit},
+        );
+        
+        return {
+          'success': true,
+          'jobs': jobs,
+          'count': data['count'] ?? 0,
+          'permissions': data['permissions'],
+        };
       }
       
-      return {'success': false, 'message': 'Error al obtener citas'};
-    } catch (e) {
-      return {'success': false, 'message': 'Error: ${e.toString()}'};
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error al obtener citas',
+      };
+    } catch (e, stackTrace) {
+      await DebugLogger.instance.error(
+        '❌ Exception en getUpcomingJobs: $e',
+        category: 'JOBS',
+        data: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
+      );
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error: ${e.toString()}',
+      };
     }
   }
 

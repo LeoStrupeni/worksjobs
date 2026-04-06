@@ -175,7 +175,7 @@
 
 ---
 
-### �🔧 Troubleshooting
+### 🔧 Troubleshooting
 
 #### [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) ⭐⭐⭐⭐⭐
 **Estado**: **ESENCIAL** - Solución de problemas (nuevo)
@@ -199,6 +199,151 @@
 - Performance
 
 **Usar cuando**: Tienes un error o problema
+
+---
+
+### 📱 Debugging de App Móvil
+
+#### [`TROUBLESHOOTING_APP_RESUMEN.md`](TROUBLESHOOTING_APP_RESUMEN.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Guía rápida de decisión (NUEVO - 23/03/2026)
+
+**Contenido**:
+- Diagnóstico inicial en 30 segundos
+- Matriz de decisión (backend vs cliente)
+- Soluciones por efectividad
+- Comandos rápidos
+- Flujo de soporte sugerido
+
+**Usar cuando**: 
+- Usuario reporta error en la app móvil
+- Necesitas decidir rápido qué documento usar
+- Primera respuesta a incidentes
+
+**¡EMPIEZA AQUÍ!** 👈 Si hay un problema con la app móvil
+
+
+#### [`DEBUGGING_APP_MOVIL.md`](DEBUGGING_APP_MOVIL.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Problemas del backend (NUEVO - 23/03/2026)
+
+**Contenido**:
+- Logging detallado implementado en backend
+- Endpoint `/api/health-check` para verificar autenticación
+- Script `test-api-mobile.php` para testing automático
+- Análisis de logs del servidor
+- Verificación de tokens en base de datos
+- Diagnóstico de errores SQL/servidor
+
+**Usar cuando**: 
+- El error ocurre en TODOS los dispositivos
+- Las credenciales del usuario funcionan en tu dispositivo
+- Necesitas debuggear el backend/API
+
+**Herramientas incluidas**:
+- ✅ Logging con emojis para fácil identificación
+- ✅ Health check endpoint
+- ✅ Script de test automático (`panel/test-api-mobile.php`)
+- ✅ Queries SQL para verificar usuarios/tokens
+
+
+#### [`DEBUGGING_APP_MOVIL_CLIENTE.md`](DEBUGGING_APP_MOVIL_CLIENTE.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Problemas del dispositivo (NUEVO - 23/03/2026)
+
+**Contenido**:
+- Token corrupto en almacenamiento local (60% de casos)
+- Caché corrupto (20%)
+- Versión antigua de app (10%)
+- Permisos insuficientes (5%)
+- Problemas de red (3%)
+- Soluciones probadas por efectividad
+
+**Usar cuando**: 
+- El error ocurre SOLO en el dispositivo del usuario
+- Las credenciales funcionan correctamente en tu dispositivo
+- Necesitas instrucciones para el usuario final
+
+**Mejoras técnicas sugeridas**:
+- 📝 Implementar logging local en la app
+- 📝 Agregar pantalla de debug oculta
+- 📝 Manejo de errores mejorado con códigos específicos
+- 📝 Auto-recuperación con retry
+
+
+#### [`GUIA_SOPORTE_USUARIO_FINAL.md`](GUIA_SOPORTE_USUARIO_FINAL.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Para copiar/pegar al usuario (NUEVO - 23/03/2026)
+
+**Contenido**:
+- 6 opciones de comunicación (WhatsApp, Email, Llamada, etc.)
+- Mensajes predefinidos listos para enviar
+- FAQ con respuestas estándar
+- Guías paso a paso para Android e iOS
+- Checklist de seguimiento
+
+
+#### [`DEBUGGING_APP_FLUTTER.md`](DEBUGGING_APP_FLUTTER.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Sistema de debugging Flutter (NUEVO - 23/03/2026)
+
+**Contenido**:
+- Sistema completo de logging local (DebugLogger)
+- Pantalla de debug oculta (gesto secreto: tap 5 veces en logo)
+- Códigos de error específicos (NO_TOKEN, TIMEOUT, NO_INTERNET, etc.)
+- Sistema de retry automático en peticiones HTTP
+- NetworkHelper con exponential backoff
+- Exportación de logs (compartir por WhatsApp/email)
+- Herramientas de diagnóstico integradas
+
+**Usar cuando**: 
+- Implementar debugging en la app Flutter
+- Agregar logging a nuevos servicios
+- Diagnosticar problemas remotamente sin acceso físico al dispositivo
+- Verificar estado del token, API, usuario desde el dispositivo
+
+**Componentes implementados**:
+- ✅ `lib/utils/debug_logger.dart` - Logging persistente (100 logs)
+- ✅ `lib/utils/network_helper.dart` - Peticiones con retry automático
+- ✅ `lib/screens/debug_screen.dart` - Pantalla de debug completa
+- ✅ `lib/services/job_service.dart` - Integrado con logging y retry
+- ✅ `lib/screens/home_screen.dart` - Gesto secreto de acceso
+
+**Gesto de acceso**: Tap 5 veces en 3 segundos en el ícono del rayo (esquina superior izquierda)
+
+
+#### [`VERSIONADO_FLUTTER.md`](VERSIONADO_FLUTTER.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Versionado correcto de la app (NUEVO - 23/03/2026)
+
+**Contenido**:
+- Formato de versionado: `MAJOR.MINOR.PATCH+BUILD_NUMBER`
+- Cuándo incrementar cada parte (feature, bug fix, rediseño)
+- Configuración en `pubspec.yaml`
+- Ejemplos prácticos con changelog
+- Troubleshooting de versionCode duplicado en Play Store
+- Mejores prácticas (Git tags, changelog, testing)
+- Comandos útiles para cambiar versión
+
+**Usar cuando**: 
+- Vas a compilar una nueva versión de la app
+- Google Play rechaza la APK por versionCode duplicado
+- Necesitas documentar cambios entre versiones
+- Quieres verificar qué versión tiene un usuario
+
+**Problema resuelto**: Cada compilación dejaba de generar `1.0.0` → Ahora se versiona correctamente
+
+**Ubicación**: `technician_app/pubspec.yaml` → línea `version: X.Y.Z+N`
+
+**Ejemplos**:
+- Bug fix: `1.0.0+1` → `1.0.1+2`
+- Nuevo feature: `1.0.1+2` → `1.1.0+3`
+- Rediseño: `1.5.0+25` → `2.0.0+26`
+
+**Usar cuando**: 
+- Necesitas enviar instrucciones al usuario
+- Soporte por WhatsApp/Email/Teléfono
+- Comunicación no técnica
+
+**Formato**:
+- ✅ Copy/paste listo para WhatsApp
+- ✅ Email formal con pasos detallados
+- ✅ Script para explicar por teléfono
+- ✅ FAQ para respuestas rápidas
 
 ---
 
@@ -328,16 +473,28 @@
 2. `CONFIGURACION_COLPPY.md` - Setup inicial
 3. `CONFIGURAR_LIMITES_PHP.md` - Configuración servidor
 4. `INSTRUCCIONES_PRODUCCION_STORAGE.md` - Deploy producción
+5. `API_ENDPOINTS.md` - Referencia completa de endpoints
+6. `TROUBLESHOOTING_APP_RESUMEN.md` - **¡EMPIEZA AQUÍ si hay error en app móvil!**
 
 ### ⭐ IMPORTANTES (Referencias frecuentes)
 1. `IMPLEMENTACION_COLPPY.md` - Detalles técnicos
 2. `EJEMPLOS_USO_COLPPY.md` - Código de referencia
 3. `COLPPY_QUICK_START.md` - Referencia rápida
+4. `SISTEMA_CLIENTES_DOMICILIOS.md` - Arquitectura BD
+5. `SISTEMA_PRODUCTOS_TAREAS.md` - Sistema de productos
+6. `TROUBLESHOOTING.md` - Solución de problemas generales
+7. `DEBUGGING_APP_MOVIL.md` - Problemas backend app
+8. `DEBUGGING_APP_MOVIL_CLIENTE.md` - Problemas dispositivo
+9. `GUIA_SOPORTE_USUARIO_FINAL.md` - Mensajes para usuarios
+10. `CONVENCIONES_JAVASCRIPT.md` - Guía de desarrollo frontend
+11. `DEBUGGING_APP_FLUTTER.md` - **NUEVO** Sistema de debugging Flutter
+12. `VERSIONADO_FLUTTER.md` - **NUEVO** Versionado correcto de la app
 
 ### 📚 COMPLEMENTARIOS (Consulta ocasional)
 1. `FLUJOS_COLPPY_DIAGRAMA.md` - Visualización
 2. `CONFIGURAR_QUEUE_WORKER.md` - Si activas queues
 3. `CONFIGURAR_SCHEDULER.md` - Si activas scheduler
+4. `SINCRONIZACION_PRODUCTOS_UPDATE.md` - Sincronización productos
 
 ### ✅ REVISADOS/ACTUALIZADOS
 1. ✅ `SISTEMA_DOMICILIOS_DUAL.md` - **ELIMINADO** (contenía información incorrecta)
@@ -348,14 +505,18 @@
 6. ✅ `TROUBLESHOOTING.md` - **CREADO** (guía de problemas y soluciones)
 7. ✅ `CONVENCIONES_JAVASCRIPT.md` - **CREADO** (guía de desarrollo frontend y SweetAlert)
 8. ✅ `SINCRONIZACION_PRODUCTOS_UPDATE.md` - **CREADO** (actualización de sincronización de productos)
-9. 📝 `SCHEDULER_RESUMEN.md` - Pendiente: Considerar eliminar (redundante)
-10. 📝 `MIGRACION_CMS_SECCIONES.md` - Pendiente: Archivar (histórico)
+9. ✅ `TROUBLESHOOTING_APP_RESUMEN.md` - **CREADO 23/03/2026** (guía rápida debugging app)
+10. ✅ `DEBUGGING_APP_MOVIL.md` - **CREADO 23/03/2026** (debugging backend app)
+11. ✅ `DEBUGGING_APP_MOVIL_CLIENTE.md` - **CREADO 23/03/2026** (debugging cliente app)
+12. ✅ `GUIA_SOPORTE_USUARIO_FINAL.md` - **CREADO 23/03/2026** (mensajes para usuarios)
+13. 📝 `SCHEDULER_RESUMEN.md` - Pendiente: Considerar eliminar (redundante)
+14. 📝 `MIGRACION_CMS_SECCIONES.md` - Pendiente: Archivar (histórico)
 
 ---
 
 ## 🎯 RECOMENDACIONES
 
-### ✅ Acciones Completadas (27/02/2026)
+### ✅ Acciones Completadas (Última actualización: 23/03/2026)
 1. ✅ **Eliminado** `SISTEMA_DOMICILIOS_DUAL.md` (contenía arquitectura incorrecta)
 2. ✅ **Creado** `SISTEMA_CLIENTES_DOMICILIOS.md` (arquitectura real: single table)
 3. ✅ **Actualizado** `INTEGRACION_HIBRIDA_COLPPY.md` (disclaimer agregado - modo híbrido NO recomendado)
@@ -365,6 +526,22 @@
 7. ✅ **Creado** `CONVENCIONES_JAVASCRIPT.md` (guía completa de desarrollo frontend)
 8. ✅ **Actualizado** Agente personalizado (`.github/agents/strupeni-dev.md`) con información correcta
 9. ✅ **Creado** `SINCRONIZACION_PRODUCTOS_UPDATE.md` (documentación de sincronización de productos)
+10. ✅ **Creado** `TROUBLESHOOTING_APP_RESUMEN.md` (guía rápida debugging app - 23/03/2026)
+11. ✅ **Creado** `DEBUGGING_APP_MOVIL.md` (debugging backend app móvil - 23/03/2026)
+12. ✅ **Creado** `DEBUGGING_APP_MOVIL_CLIENTE.md` (debugging dispositivo específico - 23/03/2026)
+13. ✅ **Creado** `GUIA_SOPORTE_USUARIO_FINAL.md` (mensajes copy/paste para usuarios - 23/03/2026)
+14. ✅ **Implementado** Logging detallado en `ApiJobController` (getTodayJobs, getUpcomingJobs, getJobsByDateRange)
+15. ✅ **Implementado** Endpoint `/api/health-check` para verificar autenticación
+16. ✅ **Creado** Script `panel/test-api-mobile.php` para testing automático de usuarios
+17. ✅ **Creado** `DEBUGGING_APP_FLUTTER.md` (sistema completo de debugging Flutter - 23/03/2026)
+18. ✅ **Creado** `VERSIONADO_FLUTTER.md` (guía de versionado correcto - 23/03/2026)
+19. ✅ **Implementado** Sistema de logging local en app Flutter (`lib/utils/debug_logger.dart`)
+20. ✅ **Implementado** Pantalla de debug oculta en Flutter (`lib/screens/debug_screen.dart`)
+21. ✅ **Implementado** Códigos de error específicos (`lib/utils/network_helper.dart`)
+22. ✅ **Implementado** Auto-retry en peticiones HTTP con exponential backoff
+23. ✅ **Implementado** Gesto secreto de debug (tap 5 veces en logo)
+24. ✅ **Mejorado** `JobService` con logging y retry automático
+25. ✅ **Configurado** Versionado correcto en `pubspec.yaml` con comentarios explicativos
 
 ### 📝 Mantenimiento Pendiente (Opcional)
 1. **Consolidar**: Fusionar `SCHEDULER_RESUMEN.md` en `CONFIGURAR_SCHEDULER.md`
@@ -374,6 +551,27 @@
 1. **`GUIA_FLUTTER_APP.md`**: Documentar la app móvil de técnicos (modelos, providers, pantallas)
 2. **`ARQUITECTURA_BACKEND.md`**: Diagrama y explicación de services, jobs, commands
 3. **`GUIA_TESTING.md`**: Convenciones de testing, cómo ejecutar tests, coverage
+
+### 🔧 Mejoras Técnicas Implementadas (App Móvil)
+1. ✅ **IMPLEMENTADO** Logging local en la app Flutter (guardar últimos 100 logs)
+2. ✅ **IMPLEMENTADO** Pantalla de debug oculta (tap 5 veces en logo del rayo)
+3. ✅ **IMPLEMENTADO** Manejo de errores mejorado con códigos específicos (NO_TOKEN, UNAUTHORIZED, TIMEOUT, NO_INTERNET, etc.)
+4. ✅ **IMPLEMENTADO** Auto-recuperación con retry automático (hasta 2 reintentos con exponential backoff)
+5. 📝 **Pendiente** Sistema de reportes de errores (enviar automáticamente al backend cuando ocurre un error)
+
+**Archivos creados**:
+- `technician_app/lib/utils/debug_logger.dart` - Sistema de logging persistente
+- `technician_app/lib/utils/network_helper.dart` - Peticiones con retry y códigos de error
+- `technician_app/lib/screens/debug_screen.dart` - Pantalla de debug completa (3 pestañas)
+
+**Archivos modificados**:
+- `technician_app/lib/services/job_service.dart` - Integrado con logging y retry
+- `technician_app/lib/screens/home_screen.dart` - Gesto secreto de acceso
+- `technician_app/pubspec.yaml` - Comentarios sobre versionado
+
+**Documentación**:
+- `docs/DEBUGGING_APP_FLUTTER.md` - Guía completa del sistema de debugging
+- `docs/VERSIONADO_FLUTTER.md` - Guía de versionado correcto
 
 ---
 
@@ -396,12 +594,20 @@
 2. `INSTRUCCIONES_PRODUCCION_STORAGE.md` - Storage y permisos
 3. Opcionalmente: `CONFIGURAR_QUEUE_WORKER.md` y `CONFIGURAR_SCHEDULER.md`
 
-### Tengo un error
+### Usuario reporta error en la app móvil ⚠️
+**¡PROCESO DE 3 PASOS!**
+1. **PRIMERO**: Lee `TROUBLESHOOTING_APP_RESUMEN.md` (30 segundos)
+2. **Diagnostica**: ¿Funciona en tu teléfono con sus credenciales?
+   - ✅ SÍ funciona → Lee `DEBUGGING_APP_MOVIL_CLIENTE.md` + Envía `GUIA_SOPORTE_USUARIO_FINAL.md`
+   - ❌ NO funciona → Lee `DEBUGGING_APP_MOVIL.md` + Ejecuta `test-api-mobile.php`
+3. **Resuelve**: Sigue las instrucciones específicas del documento
+
+### Tengo un error general (no app móvil)
 1. Buscar en logs: `panel/storage/logs/laravel.log`
-2. Ver troubleshooting en el agente
-3. Consultar doc relevante según el área del error
+2. Consultar: `TROUBLESHOOTING.md`
+3. Si es específico de Colppy: Ver sección de troubleshooting en `INTEGRACION_COLPPY.md`
 
 ---
 
-**Última actualización**: 27 de febrero de 2026
+**Última actualización**: 23 de marzo de 2026
 **Mantenedor**: Equipo de Desarrollo Strupeni Electrónica

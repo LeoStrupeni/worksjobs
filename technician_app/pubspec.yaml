@@ -2,7 +2,19 @@ name: technician_app
 description: App móvil para técnicos - Gestión de citas Strupeni Electrónica
 publish_to: 'none'
 
-version: 1.0.0+1
+# Versión de la app: MAJOR.MINOR.PATCH+BUILD_NUMBER
+# - MAJOR: Cambios incompatibles (1.0.0 → 2.0.0)
+# - MINOR: Nuevas funcionalidades compatibles (1.0.0 → 1.1.0)
+# - PATCH: Bug fixes (1.0.0 → 1.0.1)
+# - BUILD_NUMBER: Número de compilación incremental (Android versionCode, iOS CFBundleVersion)
+# 
+# Ejemplo: 
+#   versión: 1.2.3+15
+#   → Versión visible: "1.2.3" (versionName en Android)
+#   → Número de build: 15 (versionCode en Android, CFBundleVersion en iOS)
+#
+# IMPORTANTE: Cambiar ANTES de compilar cada nueva versión
+version: 1.0.7+7
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -49,6 +61,7 @@ dependencies:
   
   # Utils
   flutter_launcher_icons: ^0.13.1
+  package_info_plus: ^8.1.2
 
 dev_dependencies:
   flutter_test:

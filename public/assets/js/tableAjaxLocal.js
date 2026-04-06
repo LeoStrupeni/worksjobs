@@ -14,6 +14,9 @@ function callregister(url_query,page,limit,table_orden,callpaginas){
             order 	    : table_orden,
             search      : $('#table_search').val()
         },
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
         url : $('meta[name="app_url"]').attr('content')+url_query,
         type : 'POST',
         done : function(response) { $('#table_error').removeClass('d-none'); },

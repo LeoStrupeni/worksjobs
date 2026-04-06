@@ -126,4 +126,58 @@ class ApiAuthController extends Controller
             'message' => 'Se cerraron todas las sesiones'
         ], 200);
     }
+    
+    /**
+     * Health check - Verificar autenticación y estado del usuario
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function healthCheck(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                \Log::warning('⚠️ Health Check - Usuario no autenticado');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado',
+                    'authenticated' => false
+                ], 401);
+            }
+            
+            // Obtener información del usuario
+            $roles = $user->getRoleNames();
+            $permissions = $user->getAllPermissions()->pluck('name');
+            
+            \Log::info('✅ Health Check - Usuario: ' . $user->id . ' - ' . $user->email . ' - Roles: ' . $roles->implode(','));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Autenticación válida',
+                'authenticated' => true,
+                'data' => [
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'roles' => $roles,
+                    'permissions_count' => $permissions->count(),
+                    'estatus' => $user->estatus,
+                    'token_name' => $user->currentAccessToken()->name ?? null,
+                    'token_created_at' => $user->currentAccessToken()->created_at ?? null
+                ]
+            ], 200);
+            
+        } catch (\Exception $e) {
+            \Log::error('❌ Health Check - Exception: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error en health check',
+                'authenticated' => false,
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
 }

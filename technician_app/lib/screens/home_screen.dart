@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/job_provider.dart';
+import '../utils/debug_logger.dart';
 import 'today_jobs_screen.dart';
 import 'upcoming_jobs_screen.dart';
 import 'calendar_screen.dart';
 import 'create_job_screen.dart';
+import 'debug_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +18,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  
+  // Para el gesto de debug
+  int _debugTapCount = 0;
+  DateTime? _lastDebugTap;
 
   final List<Widget> _screens = const [
     TodayJobsScreen(),
@@ -26,6 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Inicializar el logger
+    DebugLogger.instance.initialize();
+    
     // Cargar citas del día al iniciar
     Future.microtask(() {
       context.read<JobProvider>().fetchTodayJobs();
@@ -85,6 +94,45 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  /// Gesto secreto de debug: tap 5 veces en 3 segundos en el logo
+  void _handleDebugTap() {
+    final now = DateTime.now();
+    
+    // Si pasaron más de 3 segundos desde el último tap, resetear contador
+    if (_lastDebugTap != null && now.difference(_lastDebugTap!).inSeconds > 3) {
+      _debugTapCount = 0;
+    }
+    
+    _debugTapCount++;
+    _lastDebugTap = now;
+    
+    // Feedback visual
+    ScaffoldMessenger.of(context).clearSnackBars();
+    
+    if (_debugTapCount >= 5) {
+      // ¡Abrir debug screen!
+      DebugLogger.instance.info('🛠️ Debug screen abierta por gesto secreto');
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DebugScreen(),
+        ),
+      );
+      
+      _debugTapCount = 0; // Resetear
+    } else {
+      // Mostrar progreso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Debug: Tap $_debugTapCount/5'),
+          duration: const Duration(milliseconds: 500),
+          backgroundColor: Colors.deepPurple,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -102,6 +150,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 end: Alignment.centerRight,
                 colors: [Color(0xFF00274E), Color(0xFF004B87)],
               ),
+          ),
+        ),
+        // Logo con gesto secreto de debug
+        leading: GestureDetector(
+          onTap: _handleDebugTap,
+          child: const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Icon(
+              Icons.electrical_services,
+              color: Colors.white,
+              size: 32,
+            ),
           ),
         ),
         title: Text(_getTitleForIndex(_selectedIndex), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
