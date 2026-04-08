@@ -16,8 +16,8 @@ class SyncColppyProductsService
     }
 
     /**
-     * Sincronizar productos de Colppy a base de datos local
-     * Solo sincroniza productos tipo "P" (no servicios ni kits)
+     * Sincronizar items de inventario de Colppy a base de datos local
+     * Sincroniza productos (P), servicios (S) y kits (K)
      * 
      * @return array Resultado de la sincronización
      */

@@ -152,7 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ),
         ),
-        // Logo con gesto secreto de debug
+        // START_DEBUG_FEATURE
+        // Logo con gesto secreto de debug (5 taps para abrir pantalla de logs)
         leading: GestureDetector(
           onTap: _handleDebugTap,
           child: const Padding(
@@ -164,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        // END_DEBUG_FEATURE
         title: Text(_getTitleForIndex(_selectedIndex), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [

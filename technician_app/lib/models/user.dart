@@ -44,4 +44,9 @@ class User {
   // Helper methods para verificar permisos específicos
   bool get canShare => permissions.contains('create share');
   bool get canGeneratePDF => permissions.contains('create pdf');
+  
+  // Permisos de presupuestos
+  bool get canCreateBudgets => permissions.contains('create budgets');
+  bool get canReadBudgets => permissions.contains('read budgets');
+  bool get canCreateClients => permissions.contains('create clients');
 }

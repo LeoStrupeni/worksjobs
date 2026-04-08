@@ -9,6 +9,39 @@ $(document).ready(function() {
     // Cargar datos iniciales
     callregister('/budgets/table',1,$('#table_limit').val(),$('#table_order').val(),'si');
     
+    // ========================================================
+    // EVENT HANDLERS PARA TABLA (búsqueda, ordenamiento, límite)
+    // ========================================================
+    
+    // Cambio de límite de registros por página
+    $('body').on('change', "#table_limit", function () {
+        callregister('/budgets/table', 1, $('#table_limit').val(), $('#table_order').val(), 'si');
+    });
+    
+    // Click en columnas ordenables
+    $('body').on('click', ".column_orden", function(){
+        var name = $(this).data('name');
+        var orden = name + ' ASC';
+
+        if ($(this).hasClass('sorttable_sorted')) {
+            orden = name + ' DESC';
+        }
+
+        $('#table_order').val(orden);
+        callregister('/budgets/table', 1, $('#table_limit').val(), orden, 'si');
+    });
+    
+    // Búsqueda en tiempo real con debounce
+    var controladorTiempo;
+    $('#table_search').on('change, keyup', function() {
+        clearInterval(controladorTiempo);
+        controladorTiempo = setInterval(function(){
+            callregister('/budgets/table', 1, $('#table_limit').val(), $('#table_order').val(), 'si');
+            clearInterval(controladorTiempo);
+        }, 800); 
+    });
+    
+    // ========================================================
     // Event handlers para dropdown actions
     $('body').on('click', '.ver-detalle-factura', function(e) {
         e.preventDefault();

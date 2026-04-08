@@ -690,6 +690,203 @@ class ColppyService
     }
 
     /**
+     * Editar Factura de Venta en Colppy (operación editar_facturaventa)
+     * Usado para actualizar presupuestos existentes
+     * 
+     * @param array $data Datos de la factura (DEBE incluir idFactura)
+     * @return array Respuesta de Colppy
+     */
+    public function editarFacturaVenta(array $data): array
+    {
+        $resultadoSesion = $this->obtenerClaveSesion();
+        if (!$resultadoSesion['success']) {
+            return $resultadoSesion;
+        }
+
+        $claveSesion = Session::get(self::SESSION_KEY);
+        if (empty($claveSesion)) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo obtener claveSesion'
+            ];
+        }
+
+        // Validar campo obligatorio: idFactura
+        if (empty($data['idFactura'])) {
+            return [
+                'success' => false,
+                'mensaje' => 'idFactura es obligatorio para editar'
+            ];
+        }
+
+        // Validar campos obligatorios
+        if (empty($data['idCliente'])) {
+            return [
+                'success' => false,
+                'mensaje' => 'idCliente es obligatorio'
+            ];
+        }
+
+        if (empty($data['items']) || !is_array($data['items'])) {
+            return [
+                'success' => false,
+                'mensaje' => 'items es obligatorio y debe ser un array'
+            ];
+        }
+
+        // Construir itemsFactura según estructura de Colppy
+        $itemsFactura = [];
+        $netoGravado = 0;
+        $netoNoGravado = 0;
+        $totalesPorIVA = [
+            '0' => ['baseImp' => 0, 'importe' => 0],
+            '10.5' => ['baseImp' => 0, 'importe' => 0],
+            '21' => ['baseImp' => 0, 'importe' => 0],
+            '27' => ['baseImp' => 0, 'importe' => 0]
+        ];
+
+        foreach ($data['items'] as $item) {
+            $cantidad = $item['Cantidad'] ?? $item['cantidad'] ?? 1;
+            $importeUnitario = $item['ImporteUnitario'] ?? $item['precioUnitario'] ?? 0;
+            $iva = $item['IVA'] ?? $item['iva'] ?? 21;
+            $porcDesc = $item['porcDesc'] ?? '0.00';
+            
+            // Normalizar IVA: '21.00' => '21', '10.50' => '10.5', '0.00' => '0'
+            $ivaFloat = floatval($iva);
+            $iva = rtrim(rtrim(number_format($ivaFloat, 2, '.', ''), '0'), '.');
+
+            // Calcular subtotal del item
+            $subtotalItem = $cantidad * $importeUnitario;
+            
+            // Aplicar descuento si existe
+            if ($porcDesc > 0) {
+                $subtotalItem = $subtotalItem * (1 - ($porcDesc / 100));
+            }
+
+            $itemFactura = [
+                'Descripcion' => $item['Descripcion'] ?? $item['descripcion'] ?? '',
+                'unidadMedida' => $item['unidadMedida'] ?? 'U',
+                'ccosto1' => $item['ccosto1'] ?? '',
+                'ccosto2' => $item['ccosto2'] ?? '',
+                'Cantidad' => $cantidad,
+                'ImporteUnitario' => $importeUnitario,
+                'porcDesc' => $porcDesc,
+                'IVA' => (string)$iva,
+                'idPlanCuenta' => $item['idPlanCuenta'] ?? 'Ventas de mercaderías',
+                'Comentario' => $item['Comentario'] ?? '',
+                'subtotal' => round($subtotalItem, 2)
+            ];
+
+            // Si el item tiene idItem (producto de inventario), agregar campos adicionales
+            if (!empty($item['idItem'])) {
+                $itemFactura['idItem'] = $item['idItem'];
+                
+                if (isset($item['codigo'])) {
+                    $itemFactura['codigo'] = $item['codigo'];
+                }
+                
+                if (isset($item['tipoItem'])) {
+                    $itemFactura['tipoItem'] = $item['tipoItem'];
+                }
+            }
+
+            $itemsFactura[] = $itemFactura;
+
+            // Acumular en neto gravado o no gravado
+            if ($iva > 0) {
+                $netoGravado += $subtotalItem;
+                
+                // Calcular IVA y acumular por alícuota
+                $importeIVA = round($subtotalItem * ($iva / 100), 2);
+                $totalesPorIVA[(string)$iva]['baseImp'] += $subtotalItem;
+                $totalesPorIVA[(string)$iva]['importe'] += $importeIVA;
+            } else {
+                $netoNoGravado += $subtotalItem;
+            }
+        }
+
+        // Redondear totales
+        $netoGravado = round($netoGravado, 2);
+        $netoNoGravado = round($netoNoGravado, 2);
+        $totalIVA = 0;
+
+        foreach (['0', '10.5', '21', '27'] as $alicuota) {
+            $totalIVA += $totalesPorIVA[$alicuota]['importe'];
+        }
+
+        $totalIVA = round($totalIVA, 2);
+        $totalFactura = $netoGravado + $netoNoGravado + $totalIVA + 
+                        floatval($data['percepcionIVA'] ?? 0) + 
+                        floatval($data['percepcionIIBB'] ?? 0);
+
+        // Construir payload según documentación de Colppy editar_facturaventa
+        $payload = [
+            'auth' => [
+                'usuario' => $this->authUsuario,
+                'password' => md5($this->authPassword)
+            ],
+            'service' => [
+                'provision' => 'FacturaVenta',
+                'operacion' => 'editar_facturaventa'
+            ],
+            'parameters' => [
+                'sesion' => [
+                    'usuario' => $this->paramUsuario,
+                    'claveSesion' => $claveSesion
+                ],
+                'idFactura' => $data['idFactura'],  // Campo OBLIGATORIO
+                'descripcion' => $data['descripcion'] ?? '',
+                'esresumen' => '0',
+                'fechaFactura' => $data['fechaFactura'],
+                'fechaPago' => $data['fechaPago'] ?? $data['fechaFactura'],
+                'idCliente' => $data['idCliente'],
+                'idCondicionIva' => $data['idCondicionIva'] ?? '1',
+                'idCondicionPago' => $data['idCondicionPago'] ?? 'Contado',
+                'idEmpresa' => $this->idEmpresa,
+                'idEstadoAnterior' => $data['idEstadoAnterior'] ?? '',
+                'idEstadoFactura' => $data['idEstadoFactura'] ?? 'Aprobada',
+                'idMoneda' => $data['idMoneda'] ?? '1',
+                'idPlanCuenta' => $data['idPlanCuenta'] ?? 'Ventas',
+                'idTipoComprobante' => $data['idTipoComprobante'] ?? '4',
+                'idTipoFactura' => $data['idTipoFactura'] ?? 'A',
+                'labelfe' => $data['labelfe'] ?? '',
+                'netoGravado' => number_format($netoGravado, 2, '.', ''),
+                'netoNoGravado' => number_format($netoNoGravado, 2, '.', ''),
+                'nroFactura1' => $data['nroFactura1'] ?? '',
+                'nroFactura2' => $data['nroFactura2'] ?? '',
+                'orderId' => $data['orderId'] ?? '',
+                'percepcionIVA' => number_format(floatval($data['percepcionIVA'] ?? 0), 2, '.', ''),
+                'percepcionIIBB' => number_format(floatval($data['percepcionIIBB'] ?? 0), 2, '.', ''),
+                'IVA105' => number_format($totalesPorIVA['10.5']['importe'], 2, '.', ''),
+                'IVA21' => number_format($totalesPorIVA['21']['importe'], 2, '.', ''),
+                'IVA27' => number_format($totalesPorIVA['27']['importe'], 2, '.', ''),
+                'itemsFactura' => $itemsFactura,
+                'totalFactura' => number_format($totalFactura, 2, '.', ''),
+                'totalIVA' => number_format($totalIVA, 2, '.', ''),
+                'valorCambio' => $data['valorCambio'] ?? '1'
+            ]
+        ];
+
+        // Agregar campos opcionales si están presentes
+        if (isset($data['codigoActividad'])) {
+            $payload['parameters']['codigoActividad'] = (int)$data['codigoActividad'];
+        }
+        
+        if (isset($data['codigoOperacion'])) {
+            $payload['parameters']['codigoOperacion'] = (int)$data['codigoOperacion'];
+        }
+
+        Log::info('🔧 PAYLOAD EDITARFACTURAVENTA', [
+            'idFactura' => $data['idFactura'],
+            'descripcion' => $payload['parameters']['descripcion'],
+            'items_count' => count($itemsFactura),
+            'totalFactura' => $payload['parameters']['totalFactura']
+        ]);
+
+        return $this->hacerLlamada($payload);
+    }
+
+    /**
      * Listar facturas de venta (incluye presupuestos borradores)
      * 
      * @param int $start Inicio de paginación
@@ -852,11 +1049,562 @@ class ColppyService
     }
 
     /**
+     * Listar talonarios/resoluciones de un tipo de comprobante
+     * Operación: listar_resoluciones (provision: Empresa)
+     * 
+     * @param string $idTipoComprobante Tipo de comprobante (FAV, NDV, NCV, REC, FE, FAV-FE, REM)
+     * @return array ['success' => bool, 'datos' => array, 'total' => int, 'mensaje' => string]
+     */
+    public function listarTalonarios(string $idTipoComprobante = 'FAV-FE'): array
+    {
+        // Asegurar que existe una sesión activa
+        $resultadoSesion = $this->obtenerClaveSesion();
+        if (!$resultadoSesion['success']) {
+            return $resultadoSesion;
+        }
+
+        $claveSesion = Session::get(self::SESSION_KEY);
+        if (empty($claveSesion)) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo obtener claveSesion para listar talonarios'
+            ];
+        }
+
+        $payload = [
+            'auth' => [
+                'usuario' => $this->authUsuario,
+                'password' => md5($this->authPassword)
+            ],
+            'service' => [
+                'provision' => 'Empresa',
+                'operacion' => 'listar_resoluciones'
+            ],
+            'parameters' => [
+                'sesion' => [
+                    'usuario' => $this->paramUsuario,
+                    'claveSesion' => $claveSesion
+                ],
+                'idEmpresa' => $this->idEmpresa,
+                'idTipoComprobante' => $idTipoComprobante
+            ]
+        ];
+
+        Log::info('Listando talonarios desde Colppy', [
+            'idTipoComprobante' => $idTipoComprobante
+        ]);
+
+        $resultado = $this->hacerLlamada($payload);
+
+        if (isset($resultado['success']) && $resultado['success']) {
+            $talonarios = $resultado['datos'] ?? [];
+            Log::info('Talonarios obtenidos exitosamente', [
+                'total' => count($talonarios),
+                'tipo' => $idTipoComprobante,
+                'response_completa' => $resultado  // Log de respuesta completa para debug
+            ]);
+
+            return [
+                'success' => true,
+                'datos' => $talonarios,
+                'total' => count($talonarios),
+                'response_raw' => $resultado  // Incluir respuesta completa para debugging
+            ];
+        }
+
+        Log::error('Error al listar talonarios desde Colppy', [
+            'mensaje' => $resultado['mensaje'] ?? 'Error desconocido',
+            'idTipoComprobante' => $idTipoComprobante
+        ]);
+
+        return [
+            'success' => false,
+            'mensaje' => $resultado['mensaje'] ?? 'Error al listar talonarios',
+            'datos' => []
+        ];
+    }
+
+    /**
+     * Obtener el próximo número disponible de un talonario específico
+     * Busca el talonario por su prefijo (ej: '0002') y devuelve su proximoNum
+     * 
+     * @param string $prefijo Prefijo del talonario (ej: '0002', '0001', '0004')
+     * @param string $idTipoComprobante Tipo de comprobante (FAV, NDV, NCV, FAV-FE, etc.)
+     * @return array ['success' => bool, 'proximoNum' => string, 'talonario' => array, 'mensaje' => string]
+     */
+    public function obtenerProximoNumeroTalonario(
+        string $prefijo = '0002',
+        string $idTipoComprobante = 'FAV-FE'
+    ): array {
+        // Listar todos los talonarios del tipo especificado
+        $resultadoListado = $this->listarTalonarios($idTipoComprobante);
+
+        if (!$resultadoListado['success']) {
+            return [
+                'success' => false,
+                'mensaje' => 'No se pudo listar talonarios: ' . ($resultadoListado['mensaje'] ?? 'Error desconocido')
+            ];
+        }
+
+        $talonarios = $resultadoListado['datos'] ?? [];
+
+        if (empty($talonarios)) {
+            Log::warning('No se encontraron talonarios en Colppy', [
+                'idTipoComprobante' => $idTipoComprobante
+            ]);
+            return [
+                'success' => false,
+                'mensaje' => 'No hay talonarios configurados en Colppy para el tipo ' . $idTipoComprobante
+            ];
+        }
+
+        // Buscar el talonario con el prefijo especificado
+        $talonarioEncontrado = null;
+        foreach ($talonarios as $talonario) {
+            if (isset($talonario['prefijo']) && $talonario['prefijo'] === $prefijo) {
+                $talonarioEncontrado = $talonario;
+                break;
+            }
+        }
+
+        if ($talonarioEncontrado === null) {
+            Log::warning('Talonario no encontrado', [
+                'prefijo_buscado' => $prefijo,
+                'idTipoComprobante' => $idTipoComprobante,
+                'talonarios_disponibles' => array_column($talonarios, 'prefijo')
+            ]);
+            return [
+                'success' => false,
+                'mensaje' => "No se encontró un talonario con prefijo '{$prefijo}' en Colppy"
+            ];
+        }
+
+        // Verificar que tenga próximo número configurado
+        if (!isset($talonarioEncontrado['proximoNum']) || empty($talonarioEncontrado['proximoNum'])) {
+            Log::error('Talonario sin próximo número configurado', [
+                'prefijo' => $prefijo,
+                'talonario' => $talonarioEncontrado
+            ]);
+            return [
+                'success' => false,
+                'mensaje' => "El talonario '{$prefijo}' no tiene un próximo número configurado en Colppy"
+            ];
+        }
+
+        $proximoNum = $talonarioEncontrado['proximoNum'];
+
+        Log::info('Próximo número de talonario obtenido exitosamente', [
+            'prefijo' => $prefijo,
+            'proximoNum' => $proximoNum,
+            'descripcion' => $talonarioEncontrado['descripcion'] ?? 'Sin descripción'
+        ]);
+
+        return [
+            'success' => true,
+            'proximoNum' => $proximoNum,
+            'talonario' => $talonarioEncontrado,
+            'mensaje' => 'Próximo número obtenido correctamente'
+        ];
+    }
+
+    /**
+     * Obtener datos de tercero desde AFIP por CUIT
+     * 
+     * @param string $cuit CUIT del tercero (solo números, con o sin guiones)
+     * @return array
+     */
+    public function obtenerDatosTerceroDeAfip(string $cuit): array
+    {
+        try {
+            $resultadoSesion = $this->obtenerClaveSesion();
+            if (!$resultadoSesion['success']) {
+                return $resultadoSesion;
+            }
+
+            $claveSesion = Session::get(self::SESSION_KEY);
+            if (empty($claveSesion)) {
+                return [
+                    'success' => false,
+                    'mensaje' => 'No se pudo obtener la clave de sesión'
+                ];
+            }
+
+            // Limpiar el CUIT (quitar guiones y espacios)
+            $cuitLimpio = preg_replace('/[^0-9]/', '', $cuit);
+
+            $payload = [
+                'auth' => [
+                    'usuario' => $this->authUsuario,
+                    'password' => md5($this->authPassword)
+                ],
+                'service' => [
+                    'provision' => 'Tercero',
+                    'operacion' => 'obtener_datos_tercero_de_afip'
+                ],
+                'parameters' => [
+                    'sesion' => [
+                        'usuario' => $this->paramUsuario,
+                        'claveSesion' => $claveSesion
+                    ],
+                    'cuit' => $cuitLimpio,
+                    'idEmpresa' => $this->idEmpresa
+                ]
+            ];
+
+            Log::info('ColppyService::obtenerDatosTerceroDeAfip - Request', [
+                'cuit' => $cuitLimpio,
+                'idEmpresa' => $this->idEmpresa
+            ]);
+
+            $response = Http::withOptions(['verify' => false])->timeout(30)->post($this->urlApi, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Log::info('ColppyService::obtenerDatosTerceroDeAfip - Response', [
+                    'data' => $data
+                ]);
+
+                // Verificar si la operación fue exitosa
+                $esExito = (isset($data['response']['success']) && $data['response']['success'] === true)
+                    || (isset($data['result']['estado']) && (int) $data['result']['estado'] === 0);
+
+                if ($esExito && isset($data['response']['data'])) {
+                    return [
+                        'success' => true,
+                        'data' => $data['response']['data'],
+                        'mensaje' => $data['response']['message'] ?? 'Datos obtenidos correctamente'
+                    ];
+                }
+
+                // Si no fue exitoso, devolver el mensaje de error
+                $mensajeError = $data['response']['message'] ?? $data['result']['mensaje'] ?? 'Error al obtener datos de AFIP';
+                
+                return [
+                    'success' => false,
+                    'mensaje' => $mensajeError,
+                    'data' => $data
+                ];
+            }
+
+            Log::error('ColppyService::obtenerDatosTerceroDeAfip - Error HTTP', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return [
+                'success' => false,
+                'mensaje' => 'Error de comunicación con Colppy: ' . $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('ColppyService::obtenerDatosTerceroDeAfip - Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'mensaje' => 'Error al consultar AFIP: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Crear cliente en Colppy
+     * 
+     * @param array $datosCliente Datos del cliente a crear
+     * @return array
+     */
+    public function crearCliente(array $datosCliente): array
+    {
+        try {
+            $resultadoSesion = $this->obtenerClaveSesion();
+            if (!$resultadoSesion['success']) {
+                return $resultadoSesion;
+            }
+
+            $claveSesion = Session::get(self::SESSION_KEY);
+            if (empty($claveSesion)) {
+                return [
+                    'success' => false,
+                    'mensaje' => 'No se pudo obtener la clave de sesión'
+                ];
+            }
+
+            // Preparar datos obligatorios
+            $infoGeneral = [
+                'idEmpresa' => $this->idEmpresa,
+                'RazonSocial' => $datosCliente['razon_social'] ?? '',
+                'NombreFantasia' => $datosCliente['nombre_fantasia'] ?? $datosCliente['razon_social'] ?? '',
+            ];
+
+            // Agregar CUIT si existe
+            if (!empty($datosCliente['cuit'])) {
+                $infoGeneral['CUIT'] = preg_replace('/[^0-9]/', '', $datosCliente['cuit']);
+            }
+
+            // Agregar DNI si existe
+            if (!empty($datosCliente['dni'])) {
+                $infoGeneral['dni'] = preg_replace('/[^0-9]/', '', $datosCliente['dni']);
+            }
+
+            // Agregar datos opcionales de contacto
+            if (!empty($datosCliente['email'])) {
+                $infoGeneral['Email'] = $datosCliente['email'];
+            }
+
+            if (!empty($datosCliente['telefono'])) {
+                $infoGeneral['Telefono'] = $datosCliente['telefono'];
+            }
+
+            // Agregar datos de dirección postal
+            if (!empty($datosCliente['direccion'])) {
+                $infoGeneral['DirPostal'] = $datosCliente['direccion'];
+            }
+
+            if (!empty($datosCliente['ciudad'])) {
+                $infoGeneral['DirPostalCiudad'] = $datosCliente['ciudad'];
+            }
+
+            if (!empty($datosCliente['codigo_postal'])) {
+                $infoGeneral['DirPostalCodigoPostal'] = $datosCliente['codigo_postal'];
+            }
+
+            if (!empty($datosCliente['provincia'])) {
+                $infoGeneral['DirPostalProvincia'] = $datosCliente['provincia'];
+            }
+
+            if (!empty($datosCliente['pais'])) {
+                $infoGeneral['DirPostalPais'] = $datosCliente['pais'];
+            }
+
+            // Información adicional (obligatoria)
+            $infoOtra = [
+                'Activo' => '1',
+                'FechaAlta' => '',  // Colppy asigna automáticamente
+                'DirFiscal' => '',
+                'DirFiscalCiudad' => '',
+                'DirFiscalCodigoPostal' => '',
+                'DirFiscalProvincia' => '',
+                'DirFiscalPais' => '',
+                'idCondicionPago' => '',  // Condición de pago por defecto
+                'porcentajeIVA' => '',
+                'idPlanCuenta' => '',  // Cuenta de ingresos
+                'CuentaCredito' => '',
+                'DirEnvio' => '',
+                'DirEnvioCiudad' => '',
+                'DirEnvioCodigoPostal' => '',
+                'DirEnvioProvincia' => '',
+                'DirEnvioPais' => ''
+            ];
+
+            // Agregar condición de IVA si existe
+            if (!empty($datosCliente['id_condicion_iva'])) {
+                $infoOtra['idCondicionIva'] = $datosCliente['id_condicion_iva'];
+            }
+
+            $payload = [
+                'auth' => [
+                    'usuario' => $this->authUsuario,
+                    'password' => md5($this->authPassword)
+                ],
+                'service' => [
+                    'provision' => 'Cliente',
+                    'operacion' => 'alta_cliente'
+                ],
+                'parameters' => [
+                    'sesion' => [
+                        'usuario' => $this->paramUsuario,
+                        'claveSesion' => $claveSesion
+                    ],
+                    'info_general' => $infoGeneral,
+                    'info_otra' => $infoOtra
+                ]
+            ];
+
+            Log::info('ColppyService::crearCliente - Request', [
+                'info_general' => $infoGeneral
+            ]);
+
+            $response = Http::withOptions(['verify' => false])->timeout(30)->post($this->urlApi, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                Log::info('ColppyService::crearCliente - Response', [
+                    'data' => $data
+                ]);
+
+                // Verificar si la operación fue exitosa
+                $esExito = (isset($data['response']['success']) && $data['response']['success'] === true)
+                    || (isset($data['result']['estado']) && (int) $data['result']['estado'] === 0);
+
+                if ($esExito) {
+                    // Colppy puede devolver 'idcliente' o 'idCliente'
+                    $idCliente = $data['response']['data']['idCliente'] 
+                              ?? $data['response']['data']['idcliente'] 
+                              ?? null;
+                    
+                    if ($idCliente) {
+                        return [
+                            'success' => true,
+                            'idCliente' => $idCliente,
+                            'mensaje' => $data['response']['message'] ?? 'Cliente creado correctamente'
+                        ];
+                    }
+                }
+
+                // Si no fue exitoso, devolver el mensaje de error
+                $mensajeError = $data['response']['message'] ?? $data['result']['mensaje'] ?? 'Error al crear cliente';
+                
+                return [
+                    'success' => false,
+                    'mensaje' => $mensajeError,
+                    'data' => $data
+                ];
+            }
+
+            Log::error('ColppyService::crearCliente - Error HTTP', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return [
+                'success' => false,
+                'mensaje' => 'Error de comunicación con Colppy: ' . $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('ColppyService::crearCliente - Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'mensaje' => 'Error al crear cliente: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Invalidar sesión actual (limpiar de SESSION)
      */
     public function invalidarSesion(): void
     {
         Session::forget(self::SESSION_KEY);
         // Log::info('Sesión de Colppy invalidada');
+    }
+
+    /**
+     * Generar PDF de un presupuesto/factura NO electrónica desde Colppy
+     * 
+     * @param string $idFactura ID de la factura en Colppy
+     * @param string $idCliente ID del cliente en Colppy
+     * @return array {success: bool, pdf?: string (binary), mensaje?: string}
+     */
+    public function generateBudgetPdf(string $idFactura, string $idCliente): array
+    {
+        try {
+            // Validar parámetros obligatorios
+            if (empty($idFactura) || empty($idCliente)) {
+                return [
+                    'success' => false,
+                    'mensaje' => 'Faltan parámetros obligatorios (idFactura, idCliente)'
+                ];
+            }
+
+            // Validar configuración
+            if (empty($this->idEmpresa) || empty($this->paramUsuario)) {
+                return [
+                    'success' => false,
+                    'mensaje' => 'Configuración de Colppy incompleta'
+                ];
+            }
+
+            // URL del endpoint para facturas NO electrónicas
+            // NOTA: Puede ser staging.colppy.com o login.colppy.com según la empresa
+            // Intentaremos con login primero ya que es la URL configurada para esta empresa
+            $baseUrl = 'https://login.colppy.com';
+            $url = $baseUrl . '/resources/php/clientes/AR_ImprimirFactura.php';
+
+            // Parámetros GET
+            $params = [
+                'idEmpresa' => $this->idEmpresa,
+                'idCliente' => $idCliente,
+                'idFactura' => $idFactura,
+                'idUsuario' => $this->paramUsuario,
+                'correo' => 'no' // No enviar por email
+            ];
+
+            Log::info('ColppyService::generateBudgetPdf - Solicitando PDF', [
+                'params' => $params
+            ]);
+
+            // Hacer petición GET
+            $response = Http::withOptions([
+                'verify' => false,
+                'timeout' => 60 // Mayor timeout para descarga de PDF
+            ])->get($url, $params);
+
+            // Verificar respuesta
+            if ($response->successful()) {
+                $contentType = $response->header('Content-Type');
+
+                // Verificar que la respuesta sea un PDF
+                if (strpos($contentType, 'application/pdf') !== false) {
+                    Log::info('ColppyService::generateBudgetPdf - PDF generado correctamente');
+
+                    return [
+                        'success' => true,
+                        'pdf' => $response->body(), // Contenido binario del PDF
+                        'content_type' => $contentType
+                    ];
+                } else {
+                    // Si no es PDF, probablemente sea un error en HTML o JSON
+                    Log::error('ColppyService::generateBudgetPdf - Respuesta no es PDF', [
+                        'content_type' => $contentType,
+                        'body' => substr($response->body(), 0, 500)
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'mensaje' => 'La respuesta de Colppy no es un PDF. Verifique los parámetros.'
+                    ];
+                }
+            }
+
+            // Error HTTP (403, 404, etc.)
+            Log::error('ColppyService::generateBudgetPdf - Error HTTP', [
+                'status' => $response->status(),
+                'body' => substr($response->body(), 0, 500)
+            ]);
+
+            $errorMessage = 'Error al generar PDF';
+
+            if ($response->status() === 403) {
+                $errorMessage = 'Acceso denegado. Verifique las credenciales y permisos en Colppy.';
+            } elseif ($response->status() === 404) {
+                $errorMessage = 'Presupuesto no encontrado en Colppy.';
+            }
+
+            return [
+                'success' => false,
+                'mensaje' => $errorMessage,
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('ColppyService::generateBudgetPdf - Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'mensaje' => 'Error al generar PDF: ' . $e->getMessage()
+            ];
+        }
     }
 }

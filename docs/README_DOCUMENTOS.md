@@ -103,6 +103,57 @@
 **Nota**: ✅ Reemplaza el antiguo `SISTEMA_DOMICILIOS_DUAL.md` (desactualizado)
 
 
+#### [`INTEGRACION_AFIP_CLIENTES.md`](INTEGRACION_AFIP_CLIENTES.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Integración AFIP y Alta de Clientes (NUEVO - 06/04/2026)
+
+**Contenido**:
+- Consulta de datos fiscales desde AFIP por CUIT
+- Alta de clientes automática en Colppy con datos AFIP
+- Sincronización local de clientes creados
+- Métodos ColppyService: `obtenerDatosTerceroDeAfip()`, `crearCliente()`
+- Endpoint API: `POST /api/clients` con soporte CUIT
+- Flujo completo: AFIP → Colppy → Base de datos local
+- Campos requeridos de Colppy (info_otra)
+- Condiciones de IVA
+- Pruebas realizadas (4 CUIT verificados, 2 clientes creados)
+
+**Usar cuando**: 
+- Implementar alta de clientes con validación AFIP
+- Crear clientes desde app móvil
+- Entender flujo de creación de clientes para presupuestos
+- Debugging de alta de clientes en Colppy
+
+**Características**:
+- ✅ Consulta AFIP automática con solo CUIT
+- ✅ Fallback a datos manuales si AFIP falla
+- ✅ Creación directa en Colppy ERP
+- ✅ Sincronización local con idcolppy
+- ✅ Manejo de duplicados (error "CUIT ya existe")
+- ✅ Validación completa de campos obligatorios
+
+
+#### [`SINCRONIZACION_PRODUCTOS_UPDATE.md`](SINCRONIZACION_PRODUCTOS_UPDATE.md) ⭐⭐⭐⭐
+**Estado**: **ACTIVO** - Sincronización de productos desde Colppy (ACTUALIZADO)
+
+**Contenido**:
+- Sistema de sincronización de productos desde inventario Colppy
+- Service: `SyncColppyProductsService`
+- Scheduler: Ejecuta cada 2 horas automáticamente
+- Comando manual: `php artisan colppy:sync-products`
+- Campos sincronizados: código, descripción, stock, precio, idcolppy
+- Marca productos con `is_from_colppy = 1`
+
+**Usar cuando**: 
+- Entender sincronización de productos
+- Configurar sincronización automática
+- Debugging de productos no actualizados
+- Extender para incluir servicios (Fase 3 pendiente)
+
+**Estado actual**:
+- ✅ Sincroniza productos (tipo_item = 'P')
+- ⏳ PENDIENTE: Extender para servicios (tipo_item = 'S') - Fase 3
+
+
 #### [`SISTEMA_PRODUCTOS_TAREAS.md`](SISTEMA_PRODUCTOS_TAREAS.md) ⭐⭐⭐⭐⭐
 **Estado**: **ESENCIAL** - Sistema de productos en tareas (nuevo)
 
@@ -437,6 +488,121 @@
 
 ---
 
+### 🚀 Módulos y Proyectos
+
+#### [`PLAN_INTEGRAL_PRESUPUESTOS.md`](PLAN_INTEGRAL_PRESUPUESTOS.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Plan maestro del módulo de presupuestos (NUEVO - 07/04/2026)
+
+**Contenido**:
+- Plan completo de 6 fases con progreso detallado (67% completado)
+- Fase 1: ✅ Backend - Sistema de Talonarios (COMPLETA)
+- Fase 2: ✅ Backend - API REST para Móvil (COMPLETA)
+- Fase 2.5: ✅ Integración AFIP y Alta de Clientes (COMPLETA)
+- Fase 3: ✅ Sincronización de Servicios (COMPLETA)
+- Fase 4: ✅ Interfaz Flutter (COMPLETA)
+- Fase 5: ⏳ Permisos y Seguridad (PENDIENTE - SIGUIENTE)
+- Fase 6: ⏳ Testing Integral (PENDIENTE)
+- Descubrimientos críticos (FAV-FE vs FAV)
+- Sistema de reintentos para conflictos
+- Especificaciones técnicas detalladas
+- Código de ejemplo para cada fase
+- Decisiones de arquitectura
+- Changelog del proyecto
+
+**Usar cuando**: 
+- Planificar próximos pasos del módulo
+- Entender arquitectura completa del sistema de presupuestos
+- Verificar qué está completo y qué falta
+- Documentar decisiones técnicas
+- Onboarding al proyecto de presupuestos
+
+**Estado actual**:
+- ✅ Talonario 0002 unificado
+- ✅ API REST con 5 endpoints operativos
+- ✅ Alta de clientes con AFIP
+- ✅ Servicios sincronizados desde Colppy
+- ✅ UI Flutter completa (8 archivos, ~2,579 líneas)
+- ⏳ Falta: Permisos y Testing
+
+
+#### [`RESUMEN_EJECUTIVO_PRESUPUESTOS.md`](RESUMEN_EJECUTIVO_PRESUPUESTOS.md) ⭐⭐⭐⭐⭐
+**Estado**: **ESENCIAL** - Resumen rápido del proyecto (NUEVO - 07/04/2026)
+
+**Contenido**:
+- Vista rápida del progreso (67% completado)
+- Barra visual de progreso por fase
+- Siguiente paso inmediato (Fase 5)
+- Decisiones tomadas resumidas
+- Llamado a la acción claro
+
+**Usar cuando**: 
+- Necesitas actualización rápida del estado
+- Decidir qué hacer a continuación
+- Presentación ejecutiva del proyecto
+- Daily standup o reuniones de seguimiento
+
+**Formato**: Optimizado para lectura en < 2 minutos
+
+**Recomendación**: Leer este primero, luego profundizar en `PLAN_INTEGRAL_PRESUPUESTOS.md` si necesitas detalles técnicos.
+
+
+#### [`FASE_4_FLUTTER_COMPLETA.md`](FASE_4_FLUTTER_COMPLETA.md) ⭐⭐⭐⭐⭐
+**Estado**: **ACTIVO** - Implementación completa de UI móvil (NUEVO - 07/04/2026)
+
+**Contenido**:
+- Detalles completos de los 8 archivos implementados
+- Modelos: Budget, BudgetItem (231 líneas)
+- Services: ProductService, BudgetService (522 líneas)
+- Provider: BudgetProvider con paginación (224 líneas)
+- Screens: Lista, Detalle, Crear (1,602 líneas)
+- Patrones de diseño utilizados (Provider, Repository, Observer)
+- Checklist de testing funcional completo
+- Estadísticas de implementación (~2,579 líneas totales)
+- Features: AFIP, búsqueda en vivo, cálculo automático
+
+**Usar cuando**: 
+- Referencia de implementación Fase 4
+- Onboarding de desarrolladores Flutter
+- Revisar arquitectura de componentes
+- Preparar testing de la aplicación móvil
+- Entender flujo de creación de presupuestos
+
+**Características destacadas**:
+- ✅ Sistema completo de presupuestos en Flutter
+- ✅ Integración con AFIP para alta de clientes
+- ✅ Búsqueda inteligente de productos/servicios
+- ✅ Paginación eficiente en lista
+- ✅ Validaciones en múltiples capas
+- ✅ UI/UX consistente con resto de la app
+
+
+#### [`FASE_5_PERMISOS_COMPLETA.md`](FASE_5_PERMISOS_COMPLETA.md) ⭐⭐⭐⭐⭐
+**Estado**: **ACTIVO** - Implementación completa de permisos (NUEVO - 07/04/2026)
+
+**Contenido**:
+- Sistema de permisos en 3 capas (Backend, API, Flutter)
+- 5 archivos modificados con detalles línea por línea
+- Matriz completa de permisos por rol
+- 4 opciones para aplicar cambios en BD
+- Checklist de verificación completa
+- Troubleshooting de problemas comunes
+- Estadísticas de implementación
+
+**Usar cuando**: 
+- Implementar permisos en nuevos módulos
+- Debugging de problemas de permisos
+- Aplicar cambios de permisos en producción
+- Referencia de patrón de implementación
+
+**Características destacadas**:
+- ✅ Middleware en ApiBudgetController
+- ✅ Helpers en User model (Flutter)
+- ✅ Verificación en BudgetProvider
+- ✅ UI condicional (FAB oculto sin permisos)
+- ✅ Permisos: `create budgets`, `read budgets`
+
+---
+
 ### ⚠️ DOCUMENTOS DESACTUALIZADOS
 
 #### [`SISTEMA_DOMICILIOS_DUAL.md`](SISTEMA_DOMICILIOS_DUAL.md) ❌
@@ -487,8 +653,12 @@
 8. `DEBUGGING_APP_MOVIL_CLIENTE.md` - Problemas dispositivo
 9. `GUIA_SOPORTE_USUARIO_FINAL.md` - Mensajes para usuarios
 10. `CONVENCIONES_JAVASCRIPT.md` - Guía de desarrollo frontend
-11. `DEBUGGING_APP_FLUTTER.md` - **NUEVO** Sistema de debugging Flutter
-12. `VERSIONADO_FLUTTER.md` - **NUEVO** Versionado correcto de la app
+11. `DEBUGGING_APP_FLUTTER.md` - Sistema de debugging Flutter
+12. `VERSIONADO_FLUTTER.md` - Versionado correcto de la app
+13. `PLAN_INTEGRAL_PRESUPUESTOS.md` - Plan maestro presupuestos (83%)
+14. `RESUMEN_EJECUTIVO_PRESUPUESTOS.md` - Resumen rápido progreso
+15. `FASE_4_FLUTTER_COMPLETA.md` - Implementación UI móvil
+16. `FASE_5_PERMISOS_COMPLETA.md` - **NUEVO** Sistema de permisos
 
 ### 📚 COMPLEMENTARIOS (Consulta ocasional)
 1. `FLUJOS_COLPPY_DIAGRAMA.md` - Visualización

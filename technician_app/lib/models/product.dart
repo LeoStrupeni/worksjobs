@@ -3,12 +3,16 @@ class Product {
   final String codigo;
   final String descripcion;
   final bool isFromColppy;
+  final double? precio; // Precio del producto/servicio
+  final String? tipoItem; // 'P' = Producto, 'S' = Servicio, 'K' = Kit
 
   Product({
     required this.id,
     required this.codigo,
     required this.descripcion,
     required this.isFromColppy,
+    this.precio,
+    this.tipoItem,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -19,6 +23,10 @@ class Product {
       isFromColppy: json['is_from_colppy'] == 1 || 
                     json['is_from_colppy'] == '1' || 
                     json['is_from_colppy'] == true,
+      precio: json['precio'] is String
+          ? double.tryParse(json['precio'])
+          : (json['precio'] as num?)?.toDouble(),
+      tipoItem: json['tipo_item'],
     );
   }
 
@@ -28,10 +36,18 @@ class Product {
       'codigo': codigo,
       'descripcion': descripcion,
       'is_from_colppy': isFromColppy ? 1 : 0,
+      if (precio != null) 'precio': precio,
+      if (tipoItem != null) 'tipo_item': tipoItem,
     };
   }
 
   String get displayName => '$codigo - $descripcion';
+
+  // Verificar si es un servicio
+  bool get isService => tipoItem == 'S';
+
+  // Verificar si es un producto
+  bool get isProduct => tipoItem == 'P';
 }
 
 // Clase para productos seleccionados con cantidad y tipo

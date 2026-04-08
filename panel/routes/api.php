@@ -44,6 +44,11 @@ Route::post('/clients/by-colppy-id', [ApiSearchVarController::class, 'getClientB
 // Buscar productos por array de colppy_ids
 Route::post('/products/by-colppy-ids', [ApiSearchVarController::class, 'getProductsByColppyIds']);
 
+Route::prefix('budgets')->group(function () {
+    Route::get('/{idFactura}/pdf/view', [\App\Http\Controllers\Api\ApiBudgetController::class, 'viewPdf']);
+    Route::get('/{idFactura}/pdf/preview', [\App\Http\Controllers\Api\ApiBudgetController::class, 'previewHtml']);
+});
+
 // Rutas protegidas (requieren autenticación Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     // Usuario autenticado
@@ -111,4 +116,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('products')->group(function () {
         Route::get('/', [ApiDataTablesController::class, 'getProducts']);
     });
+
+    // Presupuestos endpoints (NUEVO)
+    Route::prefix('budgets')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\ApiBudgetController::class, 'index']);
+        Route::get('/available-jobs', [\App\Http\Controllers\Api\ApiBudgetController::class, 'getAvailableJobs']);
+        
+        // Rutas de PDF (más específicas primero)
+        Route::get('/{idFactura}/pdf', [\App\Http\Controllers\Api\ApiBudgetController::class, 'downloadPdf']);
+        
+        Route::get('/{idFactura}', [\App\Http\Controllers\Api\ApiBudgetController::class, 'show']);
+        Route::post('/', [\App\Http\Controllers\Api\ApiBudgetController::class, 'store']);
+        Route::put('/{idFactura}', [\App\Http\Controllers\Api\ApiBudgetController::class, 'update']);
+        Route::post('/{idFactura}/associate-jobs', [\App\Http\Controllers\Api\ApiBudgetController::class, 'associateJobsToBudget']);
+    });
+    
+    // Productos y Servicios para presupuestos (NUEVO)
+    Route::get('/products-services', [\App\Http\Controllers\Api\ApiBudgetController::class, 'getProductsAndServices']);
+    
+    // Creación de clientes desde app (NUEVO)
+    Route::post('/clients', [\App\Http\Controllers\Api\ApiBudgetController::class, 'createClient']);
 });

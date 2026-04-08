@@ -39,6 +39,10 @@ class RoleSeeder extends Seeder
         $permission_update_job = Permission::create(['name'=>'update jobs']);
         $permission_delete_job = Permission::create(['name'=>'delete jobs']);
 
+        // Permisos de presupuestos
+        $permission_create_budget = Permission::create(['name'=>'create budgets']);
+        $permission_read_budget = Permission::create(['name'=>'read budgets']);
+
         $permission_create_permission = Permission::create(['name'=>'create permissions']);
         $permission_read_permission = Permission::create(['name'=>'read permissions']);
         $permission_update_permission = Permission::create(['name'=>'update permissions']);
@@ -65,6 +69,8 @@ class RoleSeeder extends Seeder
             $permission_read_job,
             $permission_update_job,
             $permission_delete_job,
+            $permission_create_budget,
+            $permission_read_budget,
             $permission_create_permission,
             $permission_read_permission,
             $permission_update_permission,
@@ -76,9 +82,12 @@ class RoleSeeder extends Seeder
         $permissions_technical = [
             $permission_read_client,
             $permission_update_client,
+            $permission_create_client,  // Para alta con AFIP desde presupuestos
             $permission_create_job,
             $permission_read_job,
             $permission_update_job,
+            $permission_create_budget,  // Crear presupuestos
+            $permission_read_budget,    // Ver presupuestos
             $permission_create_share,
             $permission_create_pdf
         ];

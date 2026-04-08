@@ -50,9 +50,11 @@ class BudgetController extends Controller
             $limit = $request->limit ?? 10;
             $search = $request->search;
 
-            // Calcular start para la API de Colppy
-            $start = ($page - 1) * $limit;
-
+            // ========================================================
+            // ESTRATEGIA: Obtener TODOS los registros y ordenar localmente
+            // porque Colppy ordena como texto (fechas y números incorrectos)
+            // ========================================================
+            
             // Construir filtros para Colppy
             // Filtrar presupuestos borradores: nroFactura >= "0002-0000000" (formato: XXXX-XXXXXXX)
             $filtros = [
@@ -79,27 +81,9 @@ class BudgetController extends Controller
                 ];
             }
 
-            // Construir orden según documentación Colppy
-            // Debe ser un objeto con: field (array) y order (string "asc"/"desc")
-            $orden = (object)[];
-            if (!empty($order)) {
-                // Parsear orden del formato "campo ASC" o "campo DESC"
-                $orderParts = explode(' ', $order);
-                if (count($orderParts) >= 2) {
-                    $orden = (object)[
-                        'field' => [$orderParts[0]],  // Colppy espera un array de campos
-                        'order' => strtolower($orderParts[1])  // "asc" o "desc" en minúsculas
-                    ];
-                }
-            }
-
-            // Si no hay orden específico, dejar vacío para que el servicio use el default
-            if (empty((array)$orden)) {
-                $orden = null;
-            }
-
-            // Llamar al servicio de Colppy
-            $resultado = $this->colppyService->listarFacturasVenta($start, $limit, $filtros, $orden);
+            // Obtener TODOS los registros (sin paginación) para ordenar localmente
+            // Usamos un límite alto (1000) asumiendo que no hay tantos presupuestos borradores
+            $resultado = $this->colppyService->listarFacturasVenta(0, 1000, $filtros, null);
 
             if (!$resultado['success']) {
                 // Log::error('Error al obtener presupuestos desde Colppy', [
@@ -114,7 +98,7 @@ class BudgetController extends Controller
 
             // Procesar datos de respuesta
             $datos = $resultado['datos'] ?? [];
-            $total = $resultado['total'] ?? count($datos);
+            $totalRegistros = count($datos);
 
             // Obtener IDs de facturas para verificar asociaciones con tareas
             $idsFacturas = array_column($datos, 'idFactura');
@@ -152,15 +136,65 @@ class BudgetController extends Controller
                 ];
             }
 
-            // Construir respuesta compatible con tableAjaxLocal.js
-            $totalPages = ceil($total / $limit);
-            $totalFiltrados = $total; // En este caso son iguales ya que filtramos en Colppy
+            // ========================================================
+            // ORDENAMIENTO PERSONALIZADO (fechas y números correctos)
+            // ========================================================
+            if (!empty($order)) {
+                $orderParts = explode(' ', $order);
+                $campo = $orderParts[0] ?? '';
+                $direccion = strtoupper($orderParts[1] ?? 'ASC');
+                
+                usort($datosFormateados, function($a, $b) use ($campo, $direccion) {
+                    $valorA = $a[$campo] ?? '';
+                    $valorB = $b[$campo] ?? '';
+                    
+                    // Ordenamiento para nroFactura (formato: 0002-00000046)
+                    if ($campo === 'nroFactura') {
+                        // Extraer los números eliminando el guión
+                        $numA = (int)str_replace('-', '', $valorA);
+                        $numB = (int)str_replace('-', '', $valorB);
+                        
+                        $resultado = $numA <=> $numB;
+                    }
+                    // Ordenamiento para fechaFactura (formato: YYYY-MM-DD o DD/MM/YYYY)
+                    elseif ($campo === 'fechaFactura') {
+                        // Convertir a timestamp para comparar correctamente
+                        $timeA = strtotime($valorA);
+                        $timeB = strtotime($valorB);
+                        
+                        // Si no se pueden convertir, ordenar alfabéticamente
+                        if ($timeA === false || $timeB === false) {
+                            $resultado = strcmp($valorA, $valorB);
+                        } else {
+                            $resultado = $timeA <=> $timeB;
+                        }
+                    }
+                    // Ordenamiento alfabético para otros campos
+                    else {
+                        $resultado = strcasecmp($valorA, $valorB);
+                    }
+                    
+                    // Invertir si es DESC
+                    return $direccion === 'DESC' ? -$resultado : $resultado;
+                });
+            }
 
+            // ========================================================
+            // PAGINACIÓN LOCAL
+            // ========================================================
+            $totalFiltrados = count($datosFormateados);
+            $totalPages = ceil($totalFiltrados / $limit);
+            $start = ($page - 1) * $limit;
+            
+            // Obtener solo los registros de la página actual
+            $datosPaginados = array_slice($datosFormateados, $start, $limit);
+
+            // Construir respuesta compatible con tableAjaxLocal.js
             $respuesta = [
-                'totales' => $total,
+                'totales' => $totalFiltrados,
                 'filtrados' => $totalFiltrados,
                 'paginastotal' => $totalPages,
-                'datos' => $datosFormateados,
+                'datos' => $datosPaginados,
                 'roluser' => $roluser,
                 'permissions' => $permissions,
                 'special_role_ids' => get_special_role_ids()
@@ -168,8 +202,8 @@ class BudgetController extends Controller
 
             // Información de paginación
             $inicio = $start + 1;
-            $fin = min($start + $limit, $total);
-            $respuesta['infototal'] = "Mostrando registros del $inicio al $fin de un total de $total";
+            $fin = min($start + $limit, $totalFiltrados);
+            $respuesta['infototal'] = "Mostrando registros del $inicio al $fin de un total de $totalFiltrados";
 
             return response()->json($respuesta);
 

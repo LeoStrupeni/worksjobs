@@ -18,4 +18,5 @@ return [
     'roles' => 'Roles',
     'share' => 'Compartir',
     'pdf' => 'PDF',
+    'budgets' => 'Presupuestos',
 ];

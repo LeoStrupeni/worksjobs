@@ -118,6 +118,9 @@ $(document).ready(function() {
                     // Permisos que solo tienen la opción "crear"
                     const createOnlyPermissions = ['share', 'pdf'];
                     
+                    // Permisos sin opción de "eliminar" (create, read, update solamente)
+                    const noDeletePermissions = ['budgets'];
+                    
                     $.each(data.datos, function (key, val) {
                         var disabled = '';
                         if(!data.permissions.includes('update') ) {
@@ -126,7 +129,12 @@ $(document).ready(function() {
                         
                         // Verificar si es un permiso solo de "crear"
                         const isCreateOnly = createOnlyPermissions.includes(val.general);
-                        const disabledOthers = isCreateOnly ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : '';
+                        const disabledRead = isCreateOnly ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : '';
+                        const disabledUpdate = isCreateOnly ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : '';
+                        
+                        // Verificar si es un permiso sin "eliminar"
+                        const hasNoDelete = noDeletePermissions.includes(val.general);
+                        const disabledDelete = (isCreateOnly || hasNoDelete) ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : '';
                         
                         body += `<tr id="${val.general}">
                             <td class="align-middle text-start ps-3">${val.general_es ? val.general_es : val.general}</td>
@@ -143,7 +151,7 @@ $(document).ready(function() {
                                     <input type="hidden" name="rolid" value="${rolid}">
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="read">
-                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="read" ${val.p_read == 1 ? 'checked' : ''} ${disabled} ${disabledOthers}>
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="read" ${val.p_read == 1 ? 'checked' : ''} ${disabled} ${disabledRead}>
                                 </form>
                             </td>
                             <td class="align-middle text-center">
@@ -151,7 +159,7 @@ $(document).ready(function() {
                                     <input type="hidden" name="rolid" value="${rolid}">
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="update">
-                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="update" ${val.p_update == 1 ? 'checked' : ''} ${disabled} ${disabledOthers}>
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="update" ${val.p_update == 1 ? 'checked' : ''} ${disabled} ${disabledUpdate}>
                                 </form>
                             </td>
                             <td class="align-middle text-center">
@@ -159,7 +167,7 @@ $(document).ready(function() {
                                     <input type="hidden" name="rolid" value="${rolid}">
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="delete">
-                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="delete" ${val.p_delete == 1 ? 'checked' : ''} ${disabled} ${disabledOthers}>
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="delete" ${val.p_delete == 1 ? 'checked' : ''} ${disabled} ${disabledDelete}>
                                 </form>
                             </td>
                         </tr>`;

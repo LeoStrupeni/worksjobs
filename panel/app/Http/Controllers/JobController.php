@@ -808,74 +808,135 @@ class JobController extends Controller
 
         // Preparar datos para el presupuesto según formato de Colppy
         $fechaActual = Carbon::now()->format('d-m-Y');
-        
-        // Obtener número de talonario y contador de presupuestos desde configs
-        $talonario = Config::where('name', 'colppy_talonario_presupuesto')->value('value') ?? '0004';
-        $numeroPresupuesto = Config::where('name', 'colppy_numero_presupuesto')->value('value') ?? '00000001';
-        
-        $datosPresupuesto = [
-            'descripcion' => 'Generado desde la tarea #' . $job_id,
-            'fechaFactura' => $fechaActual,
-            'fechaPago' => $fechaActual,
-            'idCliente' => $job->client->idcolppy,
-            'idCondiciónPago' => 'a 7 Dias',
-            'idEstadoFactura' => 'Borrador',
-            'idEstadoAnterior' => '',  // Vacío en operación de alta
-            'idFactura' => '',  // Vacío en operación de alta (Colppy lo genera)
-            'idTipoFactura' => 'X',  // X = Presupuesto/Cotización
-            'idTipoComprobante' => '4',
-            'idMoneda' => '1',
-            'idUsuario' => '',  // Vacío en operación de alta
-            'valorCambio' => '1',
-            'nroFactura1' => $talonario,
-            'nroFactura2' => $numeroPresupuesto,
-            'percepcionIVA' => '0.00',
-            'percepcionIIBB' => '0.00',
-            'orderId' => '',
-            'items' => $items
-        ];
-
-        // Llamar al servicio de Colppy
         $colppyService = new ColppyService();
-        $response = $colppyService->crearFacturaVenta($datosPresupuesto);
-
-        // Verificar respuesta
-        if (isset($response['success']) && $response['success'] === true) {
-            // Colppy devuelve idfactura en response.idfactura para alta_facturaventa
-            $idFactura = $response['response']['idfactura'] ?? null;
+        $talonario = '0002';
+        
+        // Sistema de reintentos para manejar conflictos de numeración
+        $maxIntentos = 3;
+        $intentoActual = 0;
+        $presupuestoCreado = false;
+        
+        while ($intentoActual < $maxIntentos && !$presupuestoCreado) {
+            $intentoActual++;
             
-            if ($idFactura) {
-                // Construir número de presupuesto completo
-                $nroPresupuestoCompleto = $talonario . '-' . $numeroPresupuesto;
-                
-                // Guardar el ID y número del presupuesto en la tarea
-                Job::where('id', $job_id)->update([
-                    'colppy_budget_id' => $idFactura,
-                    'colppy_budget_number' => $nroPresupuestoCompleto
+            // Obtener próximo número de talonario desde Colppy API
+            $resultadoTalonario = $colppyService->obtenerProximoNumeroTalonario('0002', 'FAV-FE');
+            
+            if (!$resultadoTalonario['success']) {
+                Log::error('No se pudo obtener próximo número de talonario para presupuesto', [
+                    'job_id' => $job_id,
+                    'intento' => $intentoActual,
+                    'error' => $resultadoTalonario['mensaje'] ?? 'Error desconocido'
                 ]);
-
-                // Incrementar el contador de presupuestos para el próximo
-                $numeroActual = (int) $numeroPresupuesto;
-                $siguienteNumero = str_pad($numeroActual + 1, 8, '0', STR_PAD_LEFT);
-                Config::where('name', 'colppy_numero_presupuesto')->update(['value' => $siguienteNumero]);
-
-                // Log::info('Presupuesto generado exitosamente en Colppy', [
-                //     'job_id' => $job_id,
-                //     'idFactura' => $idFactura,
-                //     'nroFactura' => $talonario . '-' . $numeroPresupuesto,
-                //     'siguiente_numero' => $siguienteNumero,
-                //     'items_count' => count($items)
-                // ]);
-            } else {
-                // Log::warning('Respuesta OK pero sin idfactura', [
-                //     'job_id' => $job_id,
-                //     'response' => $response
-                // ]);
+                
+                // Si es el último intento, salir
+                if ($intentoActual >= $maxIntentos) {
+                    return;
+                }
+                
+                // Esperar 1 segundo antes de reintentar
+                sleep(1);
+                continue;
             }
-        } else {
-            Log::error('Error al crear presupuesto en Colppy', [
+            
+            $numeroPresupuesto = $resultadoTalonario['proximoNum'];
+            
+            // Preparar datos del presupuesto
+            $datosPresupuesto = [
+                'descripcion' => 'Generado desde la tarea #' . $job_id,
+                'fechaFactura' => $fechaActual,
+                'fechaPago' => $fechaActual,
+                'idCliente' => $job->client->idcolppy,
+                'idCondiciónPago' => 'a 7 Dias',
+                'idEstadoFactura' => 'Borrador',
+                'idEstadoAnterior' => '',
+                'idFactura' => '',
+                'idTipoFactura' => 'X',
+                'idTipoComprobante' => '4',
+                'idMoneda' => '1',
+                'idUsuario' => '',
+                'valorCambio' => '1',
+                'nroFactura1' => $talonario,
+                'nroFactura2' => $numeroPresupuesto,
+                'percepcionIVA' => '0.00',
+                'percepcionIIBB' => '0.00',
+                'orderId' => '',
+                'items' => $items
+            ];
+
+            // Intentar crear el presupuesto en Colppy
+            $response = $colppyService->crearFacturaVenta($datosPresupuesto);
+
+            // Verificar respuesta
+            if (isset($response['success']) && $response['success'] === true) {
+                // Colppy devuelve idfactura en response.idfactura para alta_facturaventa
+                $idFactura = $response['response']['idfactura'] ?? null;
+                
+                if ($idFactura) {
+                    // Construir número de presupuesto completo
+                    $nroPresupuestoCompleto = $talonario . '-' . $numeroPresupuesto;
+                    
+                    // Guardar el ID y número del presupuesto en la tarea
+                    Job::where('id', $job_id)->update([
+                        'colppy_budget_id' => $idFactura,
+                        'colppy_budget_number' => $nroPresupuestoCompleto
+                    ]);
+
+                    $presupuestoCreado = true;
+                    
+                    Log::info('Presupuesto generado exitosamente en Colppy', [
+                        'job_id' => $job_id,
+                        'idFactura' => $idFactura,
+                        'nroFactura' => $nroPresupuestoCompleto,
+                        'intento' => $intentoActual
+                    ]);
+                } else {
+                    Log::warning('Respuesta OK pero sin idfactura', [
+                        'job_id' => $job_id,
+                        'intento' => $intentoActual,
+                        'response' => $response
+                    ]);
+                    break; // Salir del loop, no es un error de número duplicado
+                }
+            } else {
+                // Error al crear presupuesto
+                $mensajeError = $response['mensaje'] ?? $response['result']['mensaje'] ?? 'Error desconocido';
+                
+                // Detectar si es error de número duplicado o similar
+                $esErrorNumeracion = stripos($mensajeError, 'duplicad') !== false 
+                                  || stripos($mensajeError, 'existe') !== false
+                                  || stripos($mensajeError, 'número') !== false
+                                  || stripos($mensajeError, 'ya se encuentra') !== false;
+                
+                if ($esErrorNumeracion && $intentoActual < $maxIntentos) {
+                    // Es un error de numeración, reintentar con nuevo número
+                    Log::warning('Conflicto de numeración detectado, reintentando con nuevo número', [
+                        'job_id' => $job_id,
+                        'intento' => $intentoActual,
+                        'numeroIntentado' => $talonario . '-' . $numeroPresupuesto,
+                        'mensaje_error' => $mensajeError
+                    ]);
+                    
+                    // Esperar 1 segundo antes de consultar nuevo número
+                    sleep(1);
+                    continue;
+                } else {
+                    // Error diferente o se agotaron los reintentos
+                    Log::error('Error al crear presupuesto en Colppy', [
+                        'job_id' => $job_id,
+                        'intento' => $intentoActual,
+                        'mensaje' => $mensajeError,
+                        'response' => $response
+                    ]);
+                    break;
+                }
+            }
+        }
+        
+        if (!$presupuestoCreado && $intentoActual >= $maxIntentos) {
+            Log::error('No se pudo crear presupuesto después de múltiples intentos', [
                 'job_id' => $job_id,
-                'response' => $response
+                'intentos_realizados' => $intentoActual
             ]);
         }
     }
