@@ -55,7 +55,8 @@ class Address {
     if (addressNro != null) parts.add(addressNro!);
     if (addressApartament != null) parts.add('Piso $addressApartament');
     if (city != null) parts.add(city!);
-    if (addressDetail != null) parts.add('($addressDetail)');
+    // ✅ OCULTAR addressDetail (contiene "Domicilio Postal (colppy)")
+    // if (addressDetail != null) parts.add('($addressDetail)');
     return parts.join(', ');
   }
 }

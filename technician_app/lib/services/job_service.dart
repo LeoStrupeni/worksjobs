@@ -934,7 +934,7 @@ class JobService {
   }
 
   // Buscar productos por query
-  Future<List<Product>> searchProducts(String query) async {
+  Future<List<Product>> searchProducts(String query, {String? tipo}) async {
     try {
       final token = await _authService.getToken();
       
@@ -949,8 +949,14 @@ class JobService {
 
       // print('🔍 searchProducts: Buscando productos con query: "$query"');
       
+      // Construir URL con parámetros
+      var url = '${ApiConfig.baseUrl}/jobs/products?search=$query';
+      if (tipo != null && tipo.isNotEmpty) {
+        url += '&tipo=$tipo';
+      }
+      
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/jobs/products?search=$query'),
+        Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
       );
 
@@ -1030,6 +1036,81 @@ class JobService {
       return {
         'success': false,
         'message': 'Error: ${e.toString()}'
+      };
+    }
+  }
+
+  // Obtener lista de clientes
+  Future<Map<String, dynamic>> getClients({String? search}) async {
+    await DebugLogger.instance.info('👥 Obteniendo clientes...', category: 'JOBS');
+    
+    try {
+      final token = await _authService.getToken();
+      
+      if (token == null) {
+        await DebugLogger.instance.error('❌ No hay token de autenticación', category: 'JOBS');
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
+      }
+
+      String url = '${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}';
+      if (search != null && search.isNotEmpty) {
+        url += '?search=$search';
+      }
+
+      final result = await NetworkHelper.getWithRetry(
+        Uri.parse(url),
+        headers: ApiConfig.getHeaders(token: token),
+        maxRetries: 2,
+        logCategory: 'JOBS',
+      );
+
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+      
+      if (data['success'] == true) {
+        final clients = (data['data'] as List)
+            .map((client) => Client.fromJson(client))
+            .toList();
+        
+        await DebugLogger.instance.success(
+          '✅ ${clients.length} clientes obtenidos',
+          category: 'JOBS',
+          data: {'count': clients.length},
+        );
+        
+        return {
+          'success': true,
+          'clients': clients,
+        };
+      }
+      
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': data['message'] ?? 'Error al obtener clientes',
+      };
+    } catch (e, stackTrace) {
+      await DebugLogger.instance.error(
+        '❌ Exception en getClients: $e',
+        category: 'JOBS',
+        data: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
+      );
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error: ${e.toString()}',
       };
     }
   }

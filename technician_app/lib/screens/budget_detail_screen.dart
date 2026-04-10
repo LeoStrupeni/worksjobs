@@ -9,9 +9,11 @@ import '../providers/budget_provider.dart';
 import '../models/budget.dart';
 import '../models/budget_item.dart';
 import 'associate_tasks_to_budget_screen.dart';
+import 'budget_jobs_screen.dart';
+import 'edit_budget_screen.dart';
 
 class BudgetDetailScreen extends StatefulWidget {
-  final int budgetId;
+  final String budgetId;
 
   const BudgetDetailScreen({
     super.key,
@@ -63,7 +65,7 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
       
       // Descargar el PDF
       final result = await budgetProvider.downloadBudgetPdf(
-        int.parse(budget.idFactura ?? '0'),
+        budget.idFactura ?? '',
       );
 
       // Cerrar loading dialog
@@ -110,100 +112,342 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle del Presupuesto'),
-        elevation: 0,
-      ),
-      body: Consumer<BudgetProvider>(
-        builder: (context, budgetProvider, child) {
-          if (budgetProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+  /// Mostrar diálogo para crear tarea desde presupuesto
+  Future<void> _showCreateJobDialog(
+    BuildContext context,
+    Budget budget,
+    BudgetProvider budgetProvider,
+  ) async {
+    DateTime selectedDate = DateTime.now();
+    TimeOfDay selectedTime = TimeOfDay.now();
+    String description = 'Tarea generada desde presupuesto ${budget.nroFactura}';
 
-          if (budgetProvider.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Crear Nueva Tarea'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Descripción
+              const Text(
+                'Descripción:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: TextEditingController(text: description),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Descripción de la tarea',
+                ),
+                maxLines: 2,
+                onChanged: (value) => description = value,
+              ),
+              const SizedBox(height: 16),
+
+              // Fecha de visita
+              const Text(
+                'Fecha y hora de visita:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red,
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: dialogContext,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          selectedDate = picked;
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today, size: 18),
+                      label: Text(DateFormat('dd/MM/yyyy').format(selectedDate)),
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error: ${budgetProvider.errorMessage}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      budgetProvider.clearError();
-                      budgetProvider.fetchBudgetDetail(widget.budgetId);
-                    },
-                    child: const Text('Reintentar'),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showTimePicker(
+                          context: dialogContext,
+                          initialTime: selectedTime,
+                        );
+                        if (picked != null) {
+                          selectedTime = picked;
+                        }
+                      },
+                      icon: const Icon(Icons.access_time, size: 18),
+                      label: Text(selectedTime.format(dialogContext)),
+                    ),
                   ),
                 ],
               ),
-            );
-          }
+              const SizedBox(height: 16),
 
-          final budget = budgetProvider.currentBudget;
-
-          if (budget == null) {
-            return const Center(
-              child: Text('No se encontró el presupuesto'),
-            );
-          }
-
-          return _BudgetDetailContent(budget: budget);
-        },
-      ),
-      bottomNavigationBar: Consumer<BudgetProvider>(
-        builder: (context, budgetProvider, child) {
-          final budget = budgetProvider.currentBudget;
-
-          if (budget == null) return const SizedBox.shrink();
-
-          return Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 1,
-                  blurRadius: 5,
+              // Información del cliente
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  // Botón Compartir PDF
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _shareBudgetPdf(context, budget),
-                      icon: const Icon(Icons.picture_as_pdf, size: 20),
-                      label: const Text('Compartir PDF'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.person, size: 16, color: Colors.blue),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            budget.clientName ?? 'Sin cliente',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
+                      ],
+                    ),
+                    if (budget.clientAddress != null && budget.clientAddress!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              budget.clientAddress!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Combinar fecha y hora
+              final visitDatetime = DateTime(
+                selectedDate.year,
+                selectedDate.month,
+                selectedDate.day,
+                selectedTime.hour,
+                selectedTime.minute,
+              );
+
+              Navigator.pop(dialogContext, {
+                'description': description,
+                'visitDatetime': visitDatetime.toIso8601String(),
+              });
+            },
+            child: const Text('Crear Tarea'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    // Crear la tarea
+    final createResult = await budgetProvider.createJobFromBudget(
+      budgetId: budget.idFactura ?? '',
+      jobDescription: result['description'],
+      visitDatetime: result['visitDatetime'],
+      technicianIds: [],
+    );
+
+    if (mounted) {
+      if (createResult['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(createResult['message'] ?? 'Tarea creada correctamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(createResult['message'] ?? 'Error al crear tarea'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BudgetProvider>(
+      builder: (context, budgetProvider, child) {
+        final budget = budgetProvider.currentBudget;
+        
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Detalle del Presupuesto'),
+            elevation: 0,
+            backgroundColor: const Color(0xFF00274E),  // ✅ Fondo azul oscuro
+            foregroundColor: Colors.white,
+            actions: budget != null && budgetProvider.canCreateBudgets
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditBudgetScreen(budget: budget),
+                          ),
+                        );
+                      },
+                      tooltip: 'Editar presupuesto',
+                    ),
+                  ]
+                : null,
+          ),
+          body: _buildBody(context, budgetProvider, budget),
+          bottomNavigationBar: budget != null
+              ? _buildBottomBar(context, budgetProvider, budget)
+              : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, BudgetProvider budgetProvider, Budget? budget) {
+    if (budgetProvider.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (budgetProvider.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error: ${budgetProvider.errorMessage}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                budgetProvider.clearError();
+                budgetProvider.fetchBudgetDetail(widget.budgetId);
+              },
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (budget == null) {
+      return const Center(
+        child: Text('No se encontró el presupuesto'),
+      );
+    }
+
+    // Capturar errores de render
+    try {
+      return _BudgetDetailContent(budget: budget);
+    } catch (e, stack) {
+      print('❌ ERROR RENDERIZANDO _BudgetDetailContent: $e');
+      print('Stack: $stack');
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Error al mostrar presupuesto',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$e',
+                style: const TextStyle(fontSize: 12, color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildBottomBar(BuildContext context, BudgetProvider budgetProvider, Budget budget) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 5,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Primera fila de botones
+            Row(
+              children: [
+                // Botón Compartir PDF
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _shareBudgetPdf(context, budget),
+                    icon: const Icon(Icons.picture_as_pdf, size: 20),
+                    label: const Text('PDF'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Botón Asociar Tareas
+                ),
+                const SizedBox(width: 8),
+                // Botón Asociar Tareas (requiere poder leer y actualizar tareas)
+                if (budgetProvider.canReadJobs)
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () async {
@@ -223,8 +467,34 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                         }
                       },
                       icon: const Icon(Icons.link, size: 20),
-                      label: const Text('Asociar Tareas'),
+                      label: const Text('Asociar'),
                       style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // Segunda fila: Crear Tarea y Ver Tareas
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                // Botón Crear Tarea desde Presupuesto
+                if (budgetProvider.canCreateJobs)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        // Abrir diálogo para crear tarea con datos requeridos
+                        await _showCreateJobDialog(context, budget, budgetProvider);
+                      },
+                      icon: const Icon(Icons.add_task, size: 20),
+                      label: const Text('Crear Tarea'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -232,11 +502,44 @@ class _BudgetDetailScreenState extends State<BudgetDetailScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
+                if (budgetProvider.canCreateJobs && budgetProvider.canReadJobs)
+                  const SizedBox(width: 8),
+                // Botón Ver Tareas Asociadas
+                if (budgetProvider.canReadJobs)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BudgetJobsScreen(
+                              budget: budget,
+                            ),
+                          ),
+                        );
+                        
+                        // Recargar presupuesto al volver
+                        if (mounted) {
+                          Provider.of<BudgetProvider>(context, listen: false)
+                              .fetchBudgetDetail(widget.budgetId);
+                        }
+                      },
+                      icon: const Icon(Icons.assignment, size: 20),
+                      label: const Text('Ver Tareas'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
@@ -251,6 +554,29 @@ class _BudgetDetailContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
     final dateFormatter = DateFormat('dd/MM/yyyy');
+    
+    // Parsear fecha de forma segura (puede venir en formato DD-MM-YYYY o YYYY-MM-DD)
+    DateTime parseFecha(String fecha) {
+      try {
+        // Intentar formato ISO primero
+        return DateTime.parse(fecha);
+      } catch (e) {
+        try {
+          // Intentar formato DD-MM-YYYY
+          final parts = fecha.split('-');
+          if (parts.length == 3) {
+            return DateTime(
+              int.parse(parts[2]), // year
+              int.parse(parts[1]), // month
+              int.parse(parts[0]), // day
+            );
+          }
+        } catch (e2) {
+          print('Error parseando fecha: $fecha');
+        }
+      }
+      return DateTime.now(); // Fallback
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -321,7 +647,7 @@ class _BudgetDetailContent extends StatelessWidget {
                   _InfoRow(
                     icon: Icons.calendar_today,
                     label: 'Fecha',
-                    value: dateFormatter.format(DateTime.parse(budget.fecha)),
+                    value: dateFormatter.format(parseFecha(budget.fecha)),
                   ),
                   const SizedBox(height: 8),
 
@@ -338,7 +664,7 @@ class _BudgetDetailContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Observaciones
+          // Descripción
           if (budget.observaciones != null && budget.observaciones!.isNotEmpty)
             Card(
               child: Padding(
@@ -348,10 +674,10 @@ class _BudgetDetailContent extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.notes, size: 20, color: Colors.blue),
+                        const Icon(Icons.description, size: 20, color: Colors.blue),
                         const SizedBox(width: 8),
                         Text(
-                          'Observaciones',
+                          'Descripción',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

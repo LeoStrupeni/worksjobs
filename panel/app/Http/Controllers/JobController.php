@@ -884,12 +884,12 @@ class JobController extends Controller
 
                     $presupuestoCreado = true;
                     
-                    Log::info('Presupuesto generado exitosamente en Colppy', [
-                        'job_id' => $job_id,
-                        'idFactura' => $idFactura,
-                        'nroFactura' => $nroPresupuestoCompleto,
-                        'intento' => $intentoActual
-                    ]);
+                    // Log::info('Presupuesto generado exitosamente en Colppy', [
+                    //     'job_id' => $job_id,
+                    //     'idFactura' => $idFactura,
+                    //     'nroFactura' => $nroPresupuestoCompleto,
+                    //     'intento' => $intentoActual
+                    // ]);
                 } else {
                     Log::warning('Respuesta OK pero sin idfactura', [
                         'job_id' => $job_id,

@@ -31,6 +31,8 @@ class _BudgetsListScreenState extends State<BudgetsListScreen> {
       appBar: AppBar(
         title: const Text('Presupuestos'),
         elevation: 0,
+        backgroundColor: const Color(0xFF00274E),  // ✅ Fondo azul oscuro
+        foregroundColor: Colors.white,
       ),
       body: Consumer<BudgetProvider>(
         builder: (context, budgetProvider, child) {
@@ -205,6 +207,25 @@ class _BudgetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final formatter = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
     final dateFormatter = DateFormat('dd/MM/yyyy');
+    
+    // Parsear fecha de forma segura (puede venir en formato DD-MM-YYYY o YYYY-MM-DD)
+    DateTime parseFecha(String fecha) {
+      try {
+        return DateTime.parse(fecha);
+      } catch (e) {
+        try {
+          final parts = fecha.split('-');
+          if (parts.length == 3) {
+            return DateTime(
+              int.parse(parts[2]), // year
+              int.parse(parts[1]), // month
+              int.parse(parts[0]), // day
+            );
+          }
+        } catch (e2) {}
+      }
+      return DateTime.now();
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -214,7 +235,7 @@ class _BudgetCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => BudgetDetailScreen(budgetId: budget.id!),
+              builder: (context) => BudgetDetailScreen(budgetId: budget.idFactura ?? ''),
             ),
           );
         },
@@ -273,24 +294,17 @@ class _BudgetCard extends StatelessWidget {
                   Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    dateFormatter.format(DateTime.parse(budget.fecha)),
+                    dateFormatter.format(parseFecha(budget.fecha)),
                     style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
 
-              // Items count
-              Row(
-                children: [
-                  Icon(Icons.shopping_cart, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${budget.itemCount} ${budget.itemCount == 1 ? 'item' : 'items'}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  ),
-                  const SizedBox(width: 16),
-                  if (budget.createdByName != null) ...[
+              // Creado por (si está disponible)
+              if (budget.createdByName != null)
+                Row(
+                  children: [
                     Icon(Icons.account_circle, size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 4),
                     Expanded(
@@ -302,8 +316,7 @@ class _BudgetCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                ],
-              ),
+                ),
             ],
           ),
         ),

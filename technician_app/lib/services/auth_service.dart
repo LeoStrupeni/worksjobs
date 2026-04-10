@@ -224,12 +224,12 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        final user = User.fromJson(jsonDecode(response.body));
-        await _saveUser(jsonDecode(response.body));
+        final userJson = jsonDecode(response.body);
+        await _saveUser(userJson);
         
         return {
           'success': true,
-          'user': user,
+          'user': userJson,  // Devolver JSON raw, no el objeto parseado
         };
       } else {
         return {

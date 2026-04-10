@@ -46,57 +46,116 @@ class ApiBudgetController extends Controller
     public function index(Request $request)
     {
         try {
-            $start = $request->input('start', 0);
-            $limit = $request->input('limit', 50);
+            $page = $request->input('page', 1);
+            $limit = $request->input('limit', 20);
             $search = $request->input('search', '');
             
             $colppyService = new ColppyService();
             
-            // Filtros para obtener solo presupuestos del talonario 0002
+            // Filtros para obtener solo presupuestos del talonario 0002-
+            // Formato: XXXX-XXXXXXX (ej: 0002-0000001)
             $filtros = [
                 [
-                    'field' => 'nroFactura1',
-                    'comparison' => 'eq',
-                    'value' => '0002'
+                    'field' => 'nroFactura',
+                    'op' => '>=',
+                    'value' => '0002-0000000'
                 ],
                 [
-                    'field' => 'idTipoFactura',
-                    'comparison' => 'eq',
-                    'value' => 'X'  // X = Presupuesto/Cotización
+                    'field' => 'nroFactura',
+                    'op' => '<=',
+                    'value' => '0002-9999999'
                 ]
             ];
             
             // Si hay búsqueda, agregar filtro
             if (!empty($search)) {
                 $filtros[] = [
-                    'field' => 'descripcion',
-                    'comparison' => 'like',
+                    'field' => 'nroFactura',
+                    'op' => 'like',
                     'value' => '%' . $search . '%'
                 ];
             }
             
-            // Orden descendente por fecha
-            $orden = (object)[
-                'field' => ['fechaFactura'],
-                'order' => 'desc'
-            ];
+            // Obtener todos los registros (usamos límite alto)
+            $resultado = $colppyService->listarFacturasVenta(0, 1000, $filtros, null);
             
-            $resultado = $colppyService->listarFacturasVenta($start, $limit, $filtros, $orden);
-            
-            if ($resultado['success']) {
+            if (!$resultado['success']) {
                 return response()->json([
-                    'success' => true,
-                    'data' => $resultado['datos']['facturas'] ?? [],
-                    'total' => $resultado['datos']['total_registros'] ?? 0,
-                    'start' => $start,
-                    'limit' => $limit
-                ]);
+                    'success' => false,
+                    'message' => $resultado['mensaje'] ?? 'Error al obtener presupuestos'
+                ], 500);
             }
             
+            // Procesar datos de respuesta
+            $datos = $resultado['datos'] ?? [];
+            $totalRegistros = count($datos);
+            
+            // Obtener IDs de facturas para verificar asociaciones con tareas
+            $idsFacturas = array_column($datos, 'idFactura');
+            
+            // Consultar jobs que tienen asociación con estos presupuestos
+            $jobsAsociados = DB::table('jobs')
+                ->whereIn('colppy_budget_id', $idsFacturas)
+                ->whereNull('deleted_at')
+                ->select('id', 'colppy_budget_id')
+                ->get()
+                ->groupBy('colppy_budget_id');
+            
+            // Formatear datos para la app
+            $datosFormateados = [];
+            foreach ($datos as $item) {
+                $idFactura = $item['idFactura'] ?? '';
+                
+                // Convertir client_id a int o null (evitar strings vacíos)
+                $clientId = null;
+                if (isset($item['idCliente']) && $item['idCliente'] !== '' && $item['idCliente'] !== null) {
+                    $clientId = (int) $item['idCliente'];
+                }
+                
+                $datosFormateados[] = [
+                    'id' => null, // Budget local (no aplicable desde Colppy)
+                    'id_factura' => (string) $idFactura,
+                    'nro_factura' => (string) ($item['nroFactura'] ?? ''),
+                    'client_id' => $clientId,
+                    'client_name' => !empty($item['RazonSocial']) ? (string) $item['RazonSocial'] : null,
+                    'client_cuit' => null, // TODO: obtener de cliente si es necesario
+                    'fecha' => (string) ($item['fechaFactura'] ?? ''),
+                    'total' => (float) ($item['totalFactura'] ?? 0.0),
+                    'observaciones' => !empty($item['descripcion']) ? (string) $item['descripcion'] : null,
+                    'created_by' => null,
+                    'created_by_name' => null,
+                    'created_at' => null,
+                    'updated_at' => null,
+                    'items' => [] // Vacío en el listado, se obtienen en el detalle
+                ];
+            }
+            
+            // Ordenar por fecha descendente
+            usort($datosFormateados, function($a, $b) {
+                $fechaA = strtotime($a['fecha'] ?? '');
+                $fechaB = strtotime($b['fecha'] ?? '');
+                return $fechaB - $fechaA; // Descendente (más reciente primero)
+            });
+            
+            // Aplicar paginación manual
+            $start = ($page - 1) * $limit;
+            $datosPaginados = array_slice($datosFormateados, $start, $limit);
+            
+            // DEBUG: Loguear EXACTAMENTE qué se está enviando
+            // Log::info('DEBUG ApiBudgetController::index - Datos enviados', [
+            //     'primer_presupuesto' => $datosPaginados[0] ?? null,
+            //     'tipos' => array_map(function($item) {
+            //         return array_map('gettype', $item);
+            //     }, array_slice($datosPaginados, 0, 1))
+            // ]);
+            
             return response()->json([
-                'success' => false,
-                'message' => $resultado['mensaje'] ?? 'Error al listar presupuestos'
-            ], 500);
+                'success' => true,
+                'data' => $datosPaginados,
+                'total' => (int) $totalRegistros,
+                'page' => (int) $page,
+                'limit' => (int) $limit
+            ]);
             
         } catch (\Exception $e) {
             Log::error('Error en ApiBudgetController::index', [
@@ -109,6 +168,123 @@ class ApiBudgetController extends Controller
                 'message' => 'Error al obtener presupuestos: ' . $e->getMessage()
             ], 500);
         }
+    }
+    
+    /**
+     * Formatear datos de Colppy al formato que espera la app
+     */
+    private function formatBudgetForApp($datosColppy)
+    {
+        // CRÍTICO: Buscar cliente LOCAL por colppy_id
+        $clientId = null;
+        $clientName = null;
+        $clientCuit = null;
+        $clientAddressId = null;
+        $clientAddress = null;
+        
+        $idClienteColppy = $datosColppy['idCliente'] ?? null;
+        if ($idClienteColppy) {
+            $client = Client::where('colppy_id', $idClienteColppy)
+                ->where('is_active', 1)
+                ->first();
+            if ($client) {
+                // Usar ID LOCAL del cliente, NO el colppy_id
+                $clientId = $client->id;
+                $clientName = trim($client->first_name . ' ' . ($client->last_name ?? ''));
+                $clientCuit = $client->num_doc;
+                
+                // Buscar domicilio principal
+                $address = DB::table('clients_address')
+                    ->where('client_id', $client->id)
+                    ->whereNull('deleted_at')
+                    ->orderBy('id', 'asc')
+                    ->first();
+                
+                if ($address) {
+                    $clientAddressId = $address->id;
+                    $clientAddress = trim(
+                        ($address->address_detail ?? '') . ' ' . 
+                        ($address->address_street ?? '') . ' ' . 
+                        ($address->address_nro ?? '') . ' ' . 
+                        ($address->city ?? '')
+                    );
+                }
+            }
+        }
+        
+        // Formatear items
+        $items = [];
+        if (isset($datosColppy['items']) && is_array($datosColppy['items'])) {
+            foreach ($datosColppy['items'] as $item) {
+                // Parsear cantidad y precios de forma segura
+                $quantity = floatval($item['Cantidad'] ?? $item['cantidad'] ?? 0);
+                $unitPrice = floatval($item['ImporteUnitario'] ?? $item['precio'] ?? 0);
+                $subtotal = $quantity * $unitPrice;
+                
+                // Aplicar descuento si existe
+                if (isset($item['porcDesc']) && floatval($item['porcDesc']) > 0) {
+                    $descuento = ($subtotal * floatval($item['porcDesc'])) / 100;
+                    $subtotal -= $descuento;
+                }
+                
+                $items[] = [
+                    'id' => null,
+                    'budget_id' => null,
+                    'product_id' => null,
+                    'colppy_id' => (string) ($item['idItem'] ?? ''),  // ← ID de Colppy del producto
+                    'codigo' => (string) ($item['codigo'] ?? ''),
+                    'descripcion' => (string) ($item['Descripcion'] ?? $item['descripcion'] ?? ''),
+                    'tipo_item' => (string) ($item['tipoItem'] ?? 'P'),
+                    'unit_type' => 'Unidad',
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $subtotal
+                ];
+            }
+        }
+        
+        // Número de factura completo
+        $nroFactura = '';
+        if (isset($datosColppy['nroFactura1']) && isset($datosColppy['nroFactura2'])) {
+            $nroFactura = $datosColppy['nroFactura1'] . '-' . $datosColppy['nroFactura2'];
+        } elseif (isset($datosColppy['nroFactura'])) {
+            $nroFactura = $datosColppy['nroFactura'];
+        }
+        
+        return [
+            'id' => null,
+            'id_factura' => (string) ($datosColppy['idFactura'] ?? ''),
+            'nro_factura' => (string) $nroFactura,
+            'client_id' => $clientId,
+            'client_name' => $clientName,
+            'client_cuit' => $clientCuit,
+            'client_address_id' => $clientAddressId,
+            'client_address' => $clientAddress,
+            'fecha' => (string) ($datosColppy['fechaFactura'] ?? ''),
+            'total' => (float) ($datosColppy['totalFactura'] ?? 0.0),
+            'observaciones' => !empty($datosColppy['descripcion']) ? (string) $datosColppy['descripcion'] : null,
+            'created_by' => null,
+            'created_by_name' => null,
+            'created_at' => null,
+            'updated_at' => null,
+            'items' => $items
+        ];
+    }
+    
+    /**
+     * Obtener descripción legible del estado de factura
+     */
+    private function getEstadoDescripcion($idEstado)
+    {
+        $estados = [
+            '1' => 'Borrador',
+            '2' => 'Facturado',
+            '3' => 'Anulado',
+            '4' => 'Pendiente',
+            '5' => 'Pagado',
+        ];
+
+        return $estados[$idEstado] ?? 'Desconocido';
     }
     
     /**
@@ -125,23 +301,46 @@ class ApiBudgetController extends Controller
             $colppyService = new ColppyService();
             $resultado = $colppyService->leerFacturaVenta($idFactura);
             
-            if ($resultado['success']) {
+            if (!$resultado['success']) {
                 return response()->json([
-                    'success' => true,
-                    'data' => $resultado['datos'] ?? [],
-                    'message' => 'Presupuesto obtenido correctamente'
-                ]);
+                    'success' => false,
+                    'message' => $resultado['mensaje'] ?? 'Presupuesto no encontrado'
+                ], 404);
             }
             
+            // leerFacturaVenta devuelve: response->infofactura, response->itemsFactura
+            $infofactura = $resultado['response']['infofactura'] ?? [];
+            $itemsFactura = $resultado['response']['itemsFactura'] ?? [];
+            
+            // DEBUG: VER QUÉ LLEGA DE COLPPY
+            // Log::info('ApiBudgetController::show - Datos de Colppy', [
+            //     'idFactura' => $idFactura,
+            //     'cantidad_items_colppy' => count($itemsFactura),
+            //     'keys_infofactura' => array_keys($infofactura),
+            //     'primer_item' => $itemsFactura[0] ?? 'NO HAY ITEMS'
+            // ]);
+            
+            // Combinar datos para formatear
+            $datosCombinados = array_merge($infofactura, ['items' => $itemsFactura]);
+            
+            // Formatear datos para la app (incluye búsqueda del cliente local)
+            $datosFormateados = $this->formatBudgetForApp($datosCombinados);
+            
+            // Log::info('ApiBudgetController::show - Datos formateados', [
+            //     'cantidad_items_formateados' => count($datosFormateados['items'] ?? [])
+            // ]);
+            
             return response()->json([
-                'success' => false,
-                'message' => $resultado['mensaje'] ?? 'Presupuesto no encontrado'
-            ], 404);
+                'success' => true,
+                'data' => $datosFormateados,
+                'message' => 'Presupuesto obtenido correctamente'
+            ]);
             
         } catch (\Exception $e) {
             Log::error('Error en ApiBudgetController::show', [
                 'idFactura' => $idFactura,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([
@@ -206,7 +405,7 @@ class ApiBudgetController extends Controller
             // Obtener cliente
             $client = Client::find($request->client_id);
             
-            if (!$client->idcolppy) {
+            if (!$client->colppy_id) {  // ✅ CORREGIDO: colppy_id no idcolppy
                 return response()->json([
                     'success' => false,
                     'message' => 'El cliente no está sincronizado con Colppy'
@@ -276,7 +475,7 @@ class ApiBudgetController extends Controller
                     'descripcion' => $request->description ?? 'Presupuesto generado desde app móvil',
                     'fechaFactura' => $fechaActual,
                     'fechaPago' => $fechaActual,
-                    'idCliente' => $client->idcolppy,
+                    'idCliente' => $client->colppy_id,  // ✅ CORREGIDO: colppy_id no idcolppy
                     'idCondicionPago' => 'a 7 Dias',
                     'idEstadoFactura' => 'Borrador',
                     'idEstadoAnterior' => '',
@@ -303,13 +502,27 @@ class ApiBudgetController extends Controller
                     if ($idFactura) {
                         $presupuestoCreado = true;
                         
-                        Log::info('Presupuesto creado desde app móvil', [
-                            'idFactura' => $idFactura,
-                            'nroPresupuesto' => $talonario . '-' . $numeroPresupuesto,
-                            'client_id' => $client->id,
-                            'intento' => $intentoActual
-                        ]);
+                        // Log::info('Presupuesto creado desde app móvil', [
+                        //     'idFactura' => $idFactura,
+                        //     'nroPresupuesto' => $talonario . '-' . $numeroPresupuesto,
+                        //     'client_id' => $client->id,
+                        //     'intento' => $intentoActual
+                        // ]);
                         
+                        // Leer el presupuesto recién creado para devolverlo formateado
+                        $presupuestoCompleto = $colppyService->leerFacturaVenta($idFactura);
+                        
+                        if ($presupuestoCompleto['success']) {
+                            $datosFormateados = $this->formatBudgetForApp($presupuestoCompleto['datos'] ?? []);
+                            
+                            return response()->json([
+                                'success' => true,
+                                'message' => 'Presupuesto creado correctamente',
+                                'data' => $datosFormateados
+                            ], 201);
+                        }
+                        
+                        // Si no se pudo leer, devolver datos básicos
                         return response()->json([
                             'success' => true,
                             'message' => 'Presupuesto creado correctamente',
@@ -395,7 +608,10 @@ class ApiBudgetController extends Controller
                 'client_id' => 'required|integer|exists:clients,id',
                 'description' => 'nullable|string|max:500',
                 'items' => 'required|array|min:1',
-                'items.*.product_id' => 'required|integer|exists:products,id',
+                'items.*.product_id' => 'nullable|integer|exists:products,id',  // Nullable: items existentes no lo tienen
+                'items.*.colppy_id' => 'nullable|string',  // ID del producto en Colppy (items existentes)
+                'items.*.codigo' => 'required|string',  // Código del producto
+                'items.*.descripcion' => 'required|string',  // Descripción del producto
                 'items.*.quantity' => 'required|numeric|min:0.01',
                 'items.*.unit_price' => 'nullable|numeric|min:0',
                 'items.*.discount_percent' => 'nullable|numeric|min:0|max:100'
@@ -403,13 +619,17 @@ class ApiBudgetController extends Controller
                 'client_id.required' => 'El cliente es requerido',
                 'client_id.exists' => 'El cliente no existe',
                 'items.required' => 'Debe agregar al menos un producto o servicio',
-                'items.*.product_id.required' => 'El producto es requerido',
                 'items.*.product_id.exists' => 'El producto no existe',
+                'items.*.codigo.required' => 'El código del producto es requerido',
+                'items.*.descripcion.required' => 'La descripción del producto es requerida',
                 'items.*.quantity.required' => 'La cantidad es requerida',
                 'items.*.quantity.min' => 'La cantidad debe ser mayor a 0'
             ]);
             
             if ($validator->fails()) {
+                Log::error('❌ ApiBudgetController::update - VALIDACIÓN FALLÓ', [
+                    'errors' => $validator->errors()
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Errores de validación',
@@ -420,7 +640,8 @@ class ApiBudgetController extends Controller
             // Obtener cliente
             $client = Client::find($request->client_id);
             
-            if (!$client->idcolppy) {
+            if (!$client->colppy_id) {  // ✅ CORREGIDO: colppy_id no idcolppy
+                Log::error('❌ ApiBudgetController::update - CLIENTE SIN COLPPY_ID');
                 return response()->json([
                     'success' => false,
                     'message' => 'El cliente no está sincronizado con Colppy'
@@ -429,45 +650,98 @@ class ApiBudgetController extends Controller
             
             $colppyService = new ColppyService();
             
-            // Primero leer el presupuesto actual para obtener su número
+            // Leer el presupuesto actual para obtener datos
             $presupuestoActual = $colppyService->leerFacturaVenta($idFactura);
             
             if (!$presupuestoActual['success']) {
+                Log::error('❌ ApiBudgetController::update - NO SE PUDO LEER PRESUPUESTO', [
+                    'mensaje' => $presupuestoActual['mensaje'] ?? 'Error desconocido'
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'No se pudo leer el presupuesto: ' . ($presupuestoActual['mensaje'] ?? 'Error desconocido')
                 ], 404);
             }
             
-            $datosActuales = $presupuestoActual['datos'] ?? [];
+            // Los datos están en response->infofactura
+            $datosActuales = $presupuestoActual['response']['infofactura'] ?? [];
+            
+            // Separar número de factura (puede venir como nroFactura1/nroFactura2 o como nroFactura combinado)
+            $nroFactura1 = '';
+            $nroFactura2 = '';
+            
+            if (!empty($datosActuales['nroFactura1']) && !empty($datosActuales['nroFactura2'])) {
+                // Ya vienen separados
+                $nroFactura1 = $datosActuales['nroFactura1'];
+                $nroFactura2 = $datosActuales['nroFactura2'];
+            } elseif (!empty($datosActuales['nroFactura'])) {
+                // Viene combinado, separar por "-"
+                $partes = explode('-', $datosActuales['nroFactura']);
+                if (count($partes) === 2) {
+                    $nroFactura1 = trim($partes[0]);
+                    $nroFactura2 = trim($partes[1]);
+                }
+            }
             
             // Construir items del presupuesto
             $items = [];
             foreach ($request->items as $itemData) {
-                $product = Product::find($itemData['product_id']);
+                $product = null;
+                $unitPrice = $itemData['unit_price'] ?? 0;
+                $discountPercent = $itemData['discount_percent'] ?? 0;
+                $tipoItem = $itemData['tipo_item'] ?? 'P';
+                $codigo = $itemData['codigo'];
+                $descripcion = $itemData['descripcion'];
+                $idItem = $itemData['colppy_id'] ?? '';  // ← Usa colppy_id si viene del item existente
                 
-                if (!$product || !$product->colppy_id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "El producto '{$product->descripcion}' no está sincronizado con Colppy"
-                    ], 400);
+                // Caso 1: Item NUEVO agregado (tiene product_id)
+                if (isset($itemData['product_id']) && $itemData['product_id'] !== null) {
+                    $product = Product::find($itemData['product_id']);
+                    
+                    if (!$product) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Producto con ID {$itemData['product_id']} no encontrado"
+                        ], 400);
+                    }
+                    
+                    if (!$product->colppy_id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "El producto '{$product->descripcion}' no está sincronizado con Colppy"
+                        ], 400);
+                    }
+                    
+                    // Usar datos del producto de BD
+                    $codigo = $product->codigo;
+                    $descripcion = $product->descripcion;
+                    $idItem = $product->colppy_id;
+                    $tipoItem = $product->tipo_item ?? 'P';
+                    $unitPrice = $itemData['unit_price'] ?? $product->precio_venta ?? 0;
+                }
+                // Caso 2: Item EXISTENTE del presupuesto (sin product_id pero con colppy_id)
+                // Ya tenemos $idItem del itemData['colppy_id']
+                
+                // Caso 3: Item EXISTENTE sin colppy_id (versión vieja) - Buscar por código
+                if (empty($idItem) && !empty($codigo)) {
+                    $product = Product::where('codigo', $codigo)->first();
+                    if ($product && $product->colppy_id) {
+                        $idItem = $product->colppy_id;
+                    }
                 }
                 
-                $unitPrice = $itemData['unit_price'] ?? $product->precio_venta ?? 0;
-                $discountPercent = $itemData['discount_percent'] ?? 0;
-                
                 $items[] = [
-                    'Descripcion' => $product->descripcion,
+                    'Descripcion' => $descripcion,
                     'unidadMedida' => 'U',
                     'Cantidad' => $itemData['quantity'],
                     'ImporteUnitario' => $unitPrice,
                     'porcDesc' => number_format($discountPercent, 2, '.', ''),
                     'IVA' => '21',
-                    'idPlanCuenta' => $product->tipo_item === 'S' ? 'Ingresos Por Servicios' : 'Ventas de mercaderías',
+                    'idPlanCuenta' => $tipoItem === 'S' ? 'Ingresos Por Servicios' : 'Ventas de mercaderías',
                     'Comentario' => '',
-                    'idItem' => $product->colppy_id,
-                    'codigo' => $product->codigo,
-                    'tipoItem' => $product->tipo_item ?? 'P'
+                    'idItem' => $idItem,
+                    'codigo' => $codigo,
+                    'tipoItem' => $tipoItem
                 ];
             }
             
@@ -477,7 +751,7 @@ class ApiBudgetController extends Controller
                 'descripcion' => $request->description ?? 'Presupuesto actualizado desde app móvil',
                 'fechaFactura' => $datosActuales['fechaFactura'] ?? Carbon::now()->format('d-m-Y'),
                 'fechaPago' => $datosActuales['fechaPago'] ?? Carbon::now()->format('d-m-Y'),
-                'idCliente' => $client->idcolppy,
+                'idCliente' => $client->colppy_id,  // ✅ CORREGIDO: colppy_id no idcolppy
                 'idCondicionPago' => $datosActuales['idCondicionPago'] ?? 'a 7 Dias',
                 'idEstadoFactura' => $datosActuales['idEstadoFactura'] ?? 'Borrador',
                 'idEstadoAnterior' => $datosActuales['idEstadoAnterior'] ?? '',
@@ -485,8 +759,8 @@ class ApiBudgetController extends Controller
                 'idTipoComprobante' => '4',
                 'idMoneda' => $datosActuales['idMoneda'] ?? '1',
                 'valorCambio' => $datosActuales['valorCambio'] ?? '1',
-                'nroFactura1' => $datosActuales['nroFactura1'] ?? '0002',
-                'nroFactura2' => $datosActuales['nroFactura2'] ?? '',
+                'nroFactura1' => $nroFactura1,
+                'nroFactura2' => $nroFactura2,
                 'percepcionIVA' => '0.00',
                 'percepcionIIBB' => '0.00',
                 'orderId' => '',
@@ -497,16 +771,30 @@ class ApiBudgetController extends Controller
             $response = $colppyService->editarFacturaVenta($datosActualizacion);
             
             if (isset($response['success']) && $response['success'] === true) {
-                Log::info('Presupuesto actualizado desde app móvil', [
-                    'idFactura' => $idFactura,
-                    'client_id' => $client->id
-                ]);
+                // Leer el presupuesto actualizado para retornar datos completos
+                $resultado = $colppyService->leerFacturaVenta($idFactura);
                 
+                if ($resultado['success']) {
+                    $infofactura = $resultado['response']['infofactura'] ?? [];
+                    $itemsFactura = $resultado['response']['itemsFactura'] ?? [];
+                    
+                    $datosCombinados = array_merge($infofactura, ['items' => $itemsFactura]);
+                    $datosFormateados = $this->formatBudgetForApp($datosCombinados);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Presupuesto actualizado correctamente',
+                        'data' => $datosFormateados
+                    ]);
+                }
+                
+                // Fallback si no se puede leer: retornar solo idFactura
                 return response()->json([
                     'success' => true,
                     'message' => 'Presupuesto actualizado correctamente',
                     'data' => [
-                        'idFactura' => $idFactura
+                        'id_factura' => $idFactura,
+                        'nro_factura' => $datosActuales['nroFactura'] ?? ''
                     ]
                 ]);
             }
@@ -514,9 +802,10 @@ class ApiBudgetController extends Controller
             // Error al actualizar
             $mensajeError = $response['mensaje'] ?? $response['result']['mensaje'] ?? 'Error desconocido';
             
-            Log::error('Error al actualizar presupuesto desde app', [
+            Log::error('❌ ApiBudgetController::update - COLPPY RETORNÓ ERROR', [
                 'idFactura' => $idFactura,
-                'mensaje' => $mensajeError
+                'mensaje' => $mensajeError,
+                'response_completa' => $response
             ]);
             
             return response()->json([
@@ -525,9 +814,11 @@ class ApiBudgetController extends Controller
             ], 500);
             
         } catch (\Exception $e) {
-            Log::error('Excepción en ApiBudgetController::update', [
+            Log::error('💥 ApiBudgetController::update - EXCEPCIÓN CAPTURADA', [
                 'idFactura' => $idFactura,
                 'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -540,6 +831,7 @@ class ApiBudgetController extends Controller
     
     /**
      * Listar productos Y servicios disponibles
+     * CENTRALIZADO: Usa Product::searchProductsAndServices()
      * 
      * GET /api/products-services
      * 
@@ -553,36 +845,8 @@ class ApiBudgetController extends Controller
             $limit = $request->input('limit', 50);
             $tipo = $request->input('tipo', null); // 'P' = Productos, 'S' = Servicios, null = Ambos
             
-            $query = Product::whereNotNull('colppy_id')
-                ->whereNull('deleted_at')
-                ->whereIn('tipo_item', ['P', 'S']);
-            
-            // Filtrar por tipo si se especifica
-            if ($tipo && in_array($tipo, ['P', 'S'])) {
-                $query->where('tipo_item', $tipo);
-            }
-            
-            // Búsqueda por código o descripción
-            if (!empty($search)) {
-                $query->where(function($q) use ($search) {
-                    $q->where('codigo', 'like', '%' . $search . '%')
-                      ->orWhere('descripcion', 'like', '%' . $search . '%');
-                });
-            }
-            
-            $items = $query->select(
-                'id',
-                'codigo',
-                'descripcion',
-                'tipo_item',
-                'colppy_id',
-                'precio_venta',
-                'stock',
-                'stock_minimo'
-            )
-            ->orderBy('descripcion', 'asc')
-            ->limit($limit)
-            ->get();
+            // USAR MÉTODO CENTRALIZADO DEL MODELO
+            $items = Product::searchProductsAndServices($search, $tipo, $limit);
             
             return response()->json([
                 'success' => true,
@@ -631,57 +895,94 @@ class ApiBudgetController extends Controller
     public function createClient(Request $request)
     {
         try {
+            // ========================================
+            // VALIDACIÓN CRÍTICA: Verificar si el cliente YA EXISTE
+            // ========================================
+            if ($request->filled('cuit')) {
+                $clienteExistente = Client::where('num_doc', $request->cuit)
+                    ->where('is_active', 1)
+                    ->whereNull('deleted_at')
+                    ->first();
+                
+                if ($clienteExistente) {
+                    $nombreCompleto = trim($clienteExistente->first_name . ' ' . ($clienteExistente->last_name ?? ''));
+                    
+                    Log::warning('ApiBudgetController::createClient - Cliente ya existe', [
+                        'cuit' => $request->cuit,
+                        'client_id' => $clienteExistente->id,
+                        'nombre' => $nombreCompleto
+                    ]);
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => "El CUIT {$request->cuit} ya está registrado: {$nombreCompleto}",
+                        'error_type' => 'CLIENT_ALREADY_EXISTS',
+                        'existing_client' => [
+                            'id' => $clienteExistente->id,
+                            'name' => $nombreCompleto,
+                            'cuit' => $clienteExistente->num_doc, // ← Frontend espera 'cuit'
+                            'num_doc' => $clienteExistente->num_doc,
+                            'email' => $clienteExistente->email,
+                            'phone' => $clienteExistente->phone1
+                        ]
+                    ], 409); // 409 Conflict
+                }
+            }
+            
             $colppyService = new ColppyService();
             $datosAfip = null;
             $datosCliente = [];
 
             // Si se proporciona CUIT, intentar obtener datos de AFIP
             if ($request->filled('cuit')) {
-                Log::info('ApiBudgetController::createClient - Consultando AFIP', [
-                    'cuit' => $request->cuit
-                ]);
+                // Log::info('ApiBudgetController::createClient - Consultando AFIP', [
+                //     'cuit' => $request->cuit
+                // ]);
 
                 $resultadoAfip = $colppyService->obtenerDatosTerceroDeAfip($request->cuit);
 
-                if ($resultadoAfip['success']) {
-                    $datosAfip = $resultadoAfip['data'];
-                    
-                    Log::info('ApiBudgetController::createClient - Datos AFIP obtenidos', [
-                        'nombre' => $datosAfip['nombre'] ?? 'N/A'
-                    ]);
-
-                    // Preparar datos del cliente desde AFIP
-                    $datosCliente['razon_social'] = $datosAfip['nombre'] ?? '';
-                    $datosCliente['nombre_fantasia'] = $datosAfip['nombre'] ?? '';
-                    $datosCliente['cuit'] = $request->cuit;
-                    $datosCliente['pais'] = $datosAfip['pais'] ?? 'Argentina';
-
-                    // Condición de IVA
-                    if (isset($datosAfip['idCondicionIva'])) {
-                        $datosCliente['id_condicion_iva'] = $datosAfip['idCondicionIva'];
-                    }
-
-                    // Domicilio fiscal
-                    if (isset($datosAfip['domicilioFiscal'])) {
-                        $domicilio = $datosAfip['domicilioFiscal'];
-                        $datosCliente['direccion'] = $domicilio['direccion'] ?? '';
-                        $datosCliente['ciudad'] = $domicilio['localidad'] ?? '';
-                        $datosCliente['provincia'] = $domicilio['provincia'] ?? '';
-                        $datosCliente['codigo_postal'] = $domicilio['codPostal'] ?? '';
-                    }
-
-                } else {
-                    // Si falla la consulta de AFIP, continuar con datos manuales
-                    Log::warning('ApiBudgetController::createClient - No se pudieron obtener datos de AFIP', [
+                if (!$resultadoAfip['success']) {
+                    // Si AFIP falla completamente, retornar error específico
+                    Log::error('ApiBudgetController::createClient - Error en consulta AFIP', [
                         'cuit' => $request->cuit,
                         'mensaje' => $resultadoAfip['mensaje'] ?? 'Error desconocido'
                     ]);
-                }
-            }
 
-            // Si no hay datos de AFIP, usar datos manuales del request
-            if (empty($datosAfip)) {
-                // Validación para datos manuales
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No se pudieron obtener datos de AFIP: ' . ($resultadoAfip['mensaje'] ?? 'Servicio no disponible'),
+                        'error_type' => 'AFIP_ERROR'
+                    ], 400);
+                }
+
+                $datosAfip = $resultadoAfip['data'];
+                
+                // Log::info('ApiBudgetController::createClient - Datos AFIP obtenidos', [
+                //     'nombre' => $datosAfip['nombre'] ?? 'N/A'
+                // ]);
+
+                // Preparar datos del cliente desde AFIP
+                $datosCliente['razon_social'] = $datosAfip['nombre'] ?? '';
+                $datosCliente['nombre_fantasia'] = $datosAfip['nombre'] ?? '';
+                $datosCliente['num_doc'] = preg_replace('/[^0-9]/', '', $request->cuit); // Remover guiones
+                $datosCliente['type_doc'] = 3; // CUIT
+                $datosCliente['pais'] = $datosAfip['pais'] ?? 'Argentina';
+
+                // Condición de IVA
+                if (isset($datosAfip['idCondicionIva'])) {
+                    $datosCliente['id_condicion_iva'] = $datosAfip['idCondicionIva'];
+                }
+
+                // Domicilio fiscal
+                if (isset($datosAfip['domicilioFiscal'])) {
+                    $domicilio = $datosAfip['domicilioFiscal'];
+                    $datosCliente['direccion'] = $domicilio['direccion'] ?? '';
+                    $datosCliente['ciudad'] = $domicilio['localidad'] ?? '';
+                    $datosCliente['provincia'] = $domicilio['provincia'] ?? '';
+                    $datosCliente['codigo_postal'] = $domicilio['codPostal'] ?? '';
+                }
+            } else {
+                // No hay CUIT, validar datos manuales
                 $validator = Validator::make($request->all(), [
                     'first_name' => 'required|string|max:100',
                     'last_name' => 'nullable|string|max:100',
@@ -690,8 +991,7 @@ class ApiBudgetController extends Controller
                     'address' => 'nullable|string|max:255',
                     'city' => 'nullable|string|max:100',
                     'state' => 'nullable|string|max:100',
-                    'postal_code' => 'nullable|string|max:20',
-                    'cuit' => 'nullable|string|max:20'
+                    'postal_code' => 'nullable|string|max:20'
                 ], [
                     'first_name.required' => 'El nombre o razón social es requerido',
                     'email.email' => 'El email no es válido'
@@ -711,7 +1011,6 @@ class ApiBudgetController extends Controller
                 $datosCliente = [
                     'razon_social' => $nombreCompleto,
                     'nombre_fantasia' => $nombreCompleto,
-                    'cuit' => $request->cuit,
                     'email' => $request->email,
                     'telefono' => $request->phone,
                     'direccion' => $request->address,
@@ -723,71 +1022,92 @@ class ApiBudgetController extends Controller
             }
 
             // CREAR CLIENTE EN COLPPY
-            Log::info('ApiBudgetController::createClient - Creando cliente en Colppy', [
-                'razon_social' => $datosCliente['razon_social'] ?? 'N/A'
-            ]);
+            // Log::info('ApiBudgetController::createClient - Creando cliente en Colppy', [
+            //     'razon_social' => $datosCliente['razon_social'] ?? 'N/A'
+            // ]);
 
             $resultadoColppy = $colppyService->crearCliente($datosCliente);
 
             if (!$resultadoColppy['success']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error al crear cliente en Colppy: ' . $resultadoColppy['mensaje'],
-                    'datos_afip' => $datosAfip  // Incluir datos de AFIP para debug
+                    'message' => 'Error al crear cliente en Colppy: ' . ($resultadoColppy['mensaje'] ?? 'Error desconocido'),
+                    'datos_afip' => $datosAfip
                 ], 400);
             }
 
             $idColppy = $resultadoColppy['idCliente'];
 
-            Log::info('ApiBudgetController::createClient - Cliente creado en Colppy', [
-                'idColppy' => $idColppy
-            ]);
+            // Log::info('ApiBudgetController::createClient - Cliente creado en Colppy', [
+            //     'idColppy' => $idColppy
+            // ]);
 
             // CREAR CLIENTE LOCALMENTE
+            // Si vino de AFIP, usar razón social de AFIP como first_name
+            $firstName = $request->first_name ?? $datosCliente['razon_social'] ?? '';
+            $lastName = $request->last_name ?? '';
+            
+            // Preparar num_doc y type_doc
+            $numDoc = 0;
+            $typeDoc = 3; // Default CUIT
+            if ($request->cuit) {
+                $numDoc = preg_replace('/[^0-9]/', '', $request->cuit); // Remover guiones
+                $typeDoc = 3; // CUIT
+            } elseif (isset($datosCliente['num_doc'])) {
+                $numDoc = $datosCliente['num_doc'];
+                $typeDoc = $datosCliente['type_doc'] ?? 3;
+            }
+            
             $clienteLocal = Client::create([
-                'first_name' => $request->first_name ?? $datosCliente['razon_social'] ?? '',
-                'last_name' => $request->last_name ?? '',
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => $request->email ?? $datosCliente['email'] ?? null,
-                'phone' => $request->phone ?? $datosCliente['telefono'] ?? null,
-                'address' => $request->address ?? $datosCliente['direccion'] ?? null,
+                'phone1' => $request->phone ?? $datosCliente['telefono'] ?? null,
+                'address_street' => $request->address ?? $datosCliente['direccion'] ?? null,
                 'city' => $request->city ?? $datosCliente['ciudad'] ?? null,
                 'state' => $request->state ?? $datosCliente['provincia'] ?? null,
-                'postal_code' => $request->postal_code ?? $datosCliente['codigo_postal'] ?? null,
-                'cuit' => $request->cuit ?? $datosCliente['cuit'] ?? null,
-                'idcolppy' => $idColppy,
-                'is_from_colppy' => 1  // Cliente sincronizado con Colppy
+                'cp' => $request->postal_code ?? $datosCliente['codigo_postal'] ?? null,
+                'num_doc' => $numDoc,
+                'type_doc' => $typeDoc,
+                'colppy_id' => $idColppy,
+                'is_from_colppy' => 1
             ]);
 
-            Log::info('ApiBudgetController::createClient - Cliente guardado localmente', [
-                'client_id' => $clienteLocal->id,
-                'idColppy' => $idColppy
-            ]);
+            // Log::info('ApiBudgetController::createClient - Cliente guardado localmente', [
+            //     'client_id' => $clienteLocal->id,
+            //     'idColppy' => $idColppy
+            // ]);
+
+            // Construir nombre completo para respuesta
+            $fullName = trim($firstName . ' ' . $lastName);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Cliente creado correctamente en Colppy y sincronizado localmente',
+                'message' => 'Cliente creado correctamente',
                 'data' => [
                     'id' => $clienteLocal->id,
-                    'idColppy' => $idColppy,
-                    'first_name' => $clienteLocal->first_name,
-                    'last_name' => $clienteLocal->last_name,
-                    'full_name' => trim($clienteLocal->first_name . ' ' . $clienteLocal->last_name),
+                    'name' => $fullName,
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
                     'email' => $clienteLocal->email,
-                    'phone' => $clienteLocal->phone,
-                    'cuit' => $clienteLocal->cuit,
-                    'datos_afip' => $datosAfip  // Incluir datos originales de AFIP para referencia
+                    'phone' => $clienteLocal->phone1,
+                    'cuit' => $clienteLocal->num_doc, // ← Frontend espera 'cuit'
+                    'num_doc' => $clienteLocal->num_doc, // ← Mantener compatibilidad
+                    'idcolppy' => $idColppy
                 ]
-            ], 201);
+            ], 200);
 
         } catch (\Exception $e) {
             Log::error('Error en ApiBudgetController::createClient', [
                 'error' => $e->getMessage(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear cliente: ' . $e->getMessage()
+                'message' => 'Error interno del servidor al crear cliente. Por favor, intenta nuevamente.',
+                'error_detail' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -808,6 +1128,9 @@ class ApiBudgetController extends Controller
             $limit = $request->input('limit', 50);
             
             $query = Job::with(['client:id,first_name,last_name,email', 'technicians:id,name'])
+                ->whereHas('client', function($q) {
+                    $q->where('is_active', 1);
+                })
                 ->whereNull('colppy_budget_id')  // Sin presupuesto asociado
                 ->whereNull('closed_datetime')   // NO cerradas
                 ->whereNull('deleted_at');
@@ -931,12 +1254,12 @@ class ApiBudgetController extends Controller
                     'updated_at' => now()
                 ]);
             
-            Log::info('Tareas asociadas a presupuesto desde app', [
-                'idFactura' => $idFactura,
-                'budget_number' => $budgetNumber,
-                'job_ids' => $jobIds,
-                'updated_count' => $updated
-            ]);
+            // Log::info('Tareas asociadas a presupuesto desde app', [
+            //     'idFactura' => $idFactura,
+            //     'budget_number' => $budgetNumber,
+            //     'job_ids' => $jobIds,
+            //     'updated_count' => $updated
+            // ]);
             
             return response()->json([
                 'success' => true,
@@ -960,6 +1283,239 @@ class ApiBudgetController extends Controller
             ], 500);
         }
     }
+    
+    /**
+     * Listar tareas asociadas a un presupuesto
+     * 
+     * GET /api/budgets/{idFactura}/jobs
+     * 
+     * @param string $idFactura
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAssociatedJobs($idFactura)
+    {
+        try {
+            $jobs = Job::with(['client:id,first_name,last_name,email', 'technicians:id,name'])
+                ->whereHas('client', function($query) {
+                    $query->where('is_active', 1);
+                })
+                ->where('colppy_budget_id', $idFactura)
+                ->whereNull('deleted_at')
+                ->select(
+                    'id',
+                    'client_id',
+                    'job_description',
+                    'visit_datetime',
+                    'arrival_datetime',
+                    'closed_datetime',
+                    'archived',
+                    'colppy_budget_number',
+                    'created_at'
+                )
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Formatear datos
+            $formattedJobs = $jobs->map(function($job) {
+                $status = 'Pendiente';
+                if ($job->archived == 1) {
+                    $status = 'Archivada';
+                } elseif ($job->closed_datetime) {
+                    $status = 'Cerrada';
+                } elseif ($job->arrival_datetime) {
+                    $status = 'En Lugar';
+                }
+                
+                return [
+                    'id' => $job->id,
+                    'job_description' => $job->job_description ?? 'Sin descripción',
+                    'client_name' => $job->client ? trim($job->client->first_name . ' ' . $job->client->last_name) : 'Cliente desconocido',
+                    'client_email' => $job->client ? $job->client->email : null,
+                    'technician_names' => $job->technicians->pluck('name')->join(', '),
+                    'visit_datetime' => $job->visit_datetime,
+                    'arrival_datetime' => $job->arrival_datetime,
+                    'closed_datetime' => $job->closed_datetime,
+                    'archived' => $job->archived == 1,
+                    'status' => $status,
+                    'budget_number' => $job->colppy_budget_number,
+                    'created_at' => $job->created_at->format('Y-m-d H:i:s')
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $formattedJobs,
+                'count' => $formattedJobs->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error en ApiBudgetController::getAssociatedJobs', [
+                'idFactura' => $idFactura,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tareas asociadas: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Crear nueva tarea a partir de un presupuesto
+     * 
+     * POST /api/budgets/{idFactura}/create-job
+     * 
+     * Body: {
+     *   "job_description": "Instalación según presupuesto",
+     *   "visit_datetime": "2026-04-10 14:00:00",
+     *   "technician_ids": [1, 2]
+     * }
+     * 
+     * @param Request $request
+     * @param string $idFactura
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function createJobFromBudget(Request $request, $idFactura)
+    {
+        try {
+            // Validación
+            $validator = Validator::make($request->all(), [
+                'job_description' => 'required|string|max:500',
+                'visit_datetime' => 'required|date|after_or_equal:now',
+                'technician_ids' => 'nullable|array',  // ✅ Ahora es opcional
+                'technician_ids.*' => 'nullable|integer|exists:users,id'
+            ], [
+                'job_description.required' => 'La descripción es requerida',
+                'visit_datetime.required' => 'La fecha de visita es requerida',
+                'visit_datetime.after_or_equal' => 'La fecha debe ser igual o posterior a hoy',
+                'technician_ids.*.exists' => 'Uno o más técnicos no existen'
+            ]);
+            
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Errores de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            // Obtener datos del presupuesto
+            $colppyService = new ColppyService();
+            $resultado = $colppyService->leerFacturaVenta($idFactura);
+            
+            if (!$resultado['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo leer el presupuesto: ' . ($resultado['mensaje'] ?? 'Error desconocido')
+                ], 404);
+            }
+            
+            // IMPORTANTE: leerFacturaVenta devuelve response->infofactura, NO datos
+            $datosPresupuesto = $resultado['response']['infofactura'] ?? [];
+            
+            if (empty($datosPresupuesto)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudieron obtener los datos del presupuesto'
+                ], 400);
+            }
+            
+            // Obtener o crear cliente basado en idCliente de Colppy
+            $idClienteColppy = $datosPresupuesto['idCliente'] ?? null;
+            $client = null;
+            
+            if (!$idClienteColppy) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El presupuesto no tiene un cliente asociado'
+                ], 400);
+            }
+            
+            $client = Client::where('colppy_id', $idClienteColppy)
+                ->where('is_active', 1)
+                ->first();
+            
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se encontró el cliente del presupuesto en el sistema local. El cliente debe estar sincronizado y activo.'
+                ], 400);
+            }
+            
+            // Obtener número de presupuesto
+            $nroPresupuesto = '';
+            if (isset($datosPresupuesto['nroFactura1']) && isset($datosPresupuesto['nroFactura2'])) {
+                $nroPresupuesto = $datosPresupuesto['nroFactura1'] . '-' . $datosPresupuesto['nroFactura2'];
+            } elseif (isset($datosPresupuesto['nroFactura'])) {
+                $nroPresupuesto = $datosPresupuesto['nroFactura'];
+            }
+            
+            // Obtener domicilio principal del cliente
+            $clientAddress = DB::table('clients_address')
+                ->where('client_id', $client->id)
+                ->whereNull('deleted_at')
+                ->orderBy('id', 'asc')
+                ->first();
+            
+            if (!$clientAddress) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El cliente no tiene un domicilio registrado'
+                ], 400);
+            }
+            
+            // Crear la tarea
+            $job = new Job();
+            $job->client_id = $client->id;
+            $job->client_addres_id = $clientAddress->id;
+            $job->job_description = $request->job_description;
+            $job->visit_datetime = $request->visit_datetime;
+            $job->colppy_budget_id = $idFactura;
+            $job->colppy_budget_number = $nroPresupuesto;
+            $job->save();
+            
+            // Asignar técnicos (opcional)
+            $technicianIds = $request->technician_ids ?? [];
+            $job->technicians()->sync($technicianIds);
+            
+            // Log::info('Tarea creada desde presupuesto', [
+            //     'job_id' => $job->id,
+            //     'budget_id' => $idFactura,
+            //     'budget_number' => $nroPresupuesto
+            // ]);
+            
+            // Cargar relaciones para respuesta
+            $job->load(['client:id,first_name,last_name,email', 'technicians:id,name']);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea creada exitosamente',
+                'data' => [
+                    'id' => $job->id,
+                    'job_description' => $job->job_description,
+                    'client_name' => trim($job->client->first_name . ' ' . $job->client->last_name),
+                    'client_email' => $job->client->email,
+                    'technician_names' => $job->technicians->pluck('name')->join(', '),
+                    'visit_datetime' => $job->visit_datetime,
+                    'budget_number' => $job->colppy_budget_number,
+                    'created_at' => $job->created_at->format('Y-m-d H:i:s')
+                ]
+            ], 201);
+            
+        } catch (\Exception $e) {
+            Log::error('Error en ApiBudgetController::createJobFromBudget', [
+                'idFactura' => $idFactura,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear tarea: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /**
      * Descargar PDF del presupuesto generado localmente
@@ -971,9 +1527,9 @@ class ApiBudgetController extends Controller
     public function downloadPdf($idFactura)
     {
         try {
-            Log::info('ApiBudgetController::downloadPdf - Generando PDF desde Colppy', [
-                'id_factura' => $idFactura
-            ]);
+            // Log::info('ApiBudgetController::downloadPdf - Generando PDF desde Colppy', [
+            //     'id_factura' => $idFactura
+            // ]);
 
             // Obtener datos completos del presupuesto desde Colppy
             $colppyService = new ColppyService();
@@ -1019,10 +1575,10 @@ class ApiBudgetController extends Controller
             // Generar nombre del archivo
             $filename = 'presupuesto_' . $data['nroFactura'] . '.pdf';
 
-            Log::info('PDF generado exitosamente', [
-                'id_factura' => $idFactura,
-                'filename' => $filename
-            ]);
+            // Log::info('PDF generado exitosamente', [
+            //     'id_factura' => $idFactura,
+            //     'filename' => $filename
+            // ]);
 
             // Devolver el PDF
             return $pdf->download($filename);
@@ -1172,11 +1728,11 @@ class ApiBudgetController extends Controller
             if ($logoData !== false) {
                 $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
                 
-                Log::info('Logo cargado correctamente', [
-                    'path' => $logoPath,
-                    'size' => strlen($logoData),
-                    'base64_length' => strlen($logoBase64)
-                ]);
+                // Log::info('Logo cargado correctamente', [
+                //     'path' => $logoPath,
+                //     'size' => strlen($logoData),
+                //     'base64_length' => strlen($logoBase64)
+                // ]);
             } else {
                 Log::warning('Error al leer archivo de logo', ['path' => $logoPath]);
             }
@@ -1249,8 +1805,11 @@ class ApiBudgetController extends Controller
         
         // Obtener dirección del cliente
         $clienteDomicilio = ' - ';
-        if ($client && !empty($client->address)) {
-            $clienteDomicilio = $client->address;
+        if ($client && !empty($client->address_street)) {
+            $clienteDomicilio = $client->address_street;
+            if (!empty($client->address_nro)) {
+                $clienteDomicilio .= ' ' . $client->address_nro;
+            }
             if (!empty($client->city)) {
                 $clienteDomicilio .= ', ' . $client->city;
             }

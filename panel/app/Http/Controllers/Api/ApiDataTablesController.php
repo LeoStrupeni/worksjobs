@@ -62,7 +62,7 @@ class ApiDataTablesController extends Controller
      */
     private function getClientsFromLocalOnly(Request $request, $roluser, $permissions, $order, $page, $limit, $search)
     {
-        $totales = Client::count();
+        $totales = Client::where('is_active', 1)->count();
 
         $query = "SELECT C.id, C.colppy_id, C.first_name, C.last_name, C.nombre_fantasia,
             CASE 
@@ -77,6 +77,7 @@ class ApiDataTablesController extends Controller
             C.other_obs, C.is_from_colppy, C.created_at, C.updated_at
             FROM clients C
             WHERE ISNULL(C.deleted_at) 
+            AND C.is_active = 1
             AND (C.is_from_colppy != 1 OR ISNULL(C.is_from_colppy)) ";
 
         if ($search != '' && isset($search)) {
@@ -130,7 +131,7 @@ class ApiDataTablesController extends Controller
      */
     private function getClientsFromColppyOnly(Request $request, $roluser, $permissions, $order, $page, $limit, $search)
     {
-        $totales = Client::where('is_from_colppy', true)->count();
+        $totales = Client::where('is_from_colppy', true)->where('is_active', 1)->count();
 
         $query = "SELECT C.id, C.colppy_id, C.first_name, C.last_name, C.nombre_fantasia,
             CASE 
@@ -145,6 +146,7 @@ class ApiDataTablesController extends Controller
             C.other_obs, C.is_from_colppy, C.created_at, C.updated_at
             FROM clients C
             WHERE ISNULL(C.deleted_at) 
+            AND C.is_active = 1
             AND C.is_from_colppy = 1 ";
 
         if ($search != '' && isset($search)) {
@@ -198,7 +200,7 @@ class ApiDataTablesController extends Controller
      */
     private function getClientsHibrido(Request $request, $roluser, $permissions, $order, $page, $limit, $search)
     {
-        $totales = Client::count();
+        $totales = Client::where('is_active', 1)->count();
 
         $query = "SELECT C.id, C.colppy_id, C.first_name, C.last_name, C.nombre_fantasia,
             CASE 
@@ -212,7 +214,8 @@ class ApiDataTablesController extends Controller
             C.address_nro, C.address_apartament, C.address_detail,
             C.other_obs, C.is_from_colppy, C.created_at, C.updated_at
             FROM clients C
-            WHERE ISNULL(C.deleted_at) ";
+            WHERE ISNULL(C.deleted_at) 
+            AND C.is_active = 1";
 
         if ($search != '' && isset($search)) {
             $query .= " AND (C.first_name LIKE '%$search%' 
@@ -241,8 +244,12 @@ class ApiDataTablesController extends Controller
         $lista = DB::select(DB::raw($query . $querylist));
 
         // Contar clientes por origen
-        $totalesLocales = Client::where('is_from_colppy', false)->orWhereNull('is_from_colppy')->count();
-        $totalesColppy = Client::where('is_from_colppy', true)->count();
+        $totalesLocales = Client::where('is_active', 1)
+            ->where(function($query) {
+                $query->where('is_from_colppy', false)->orWhereNull('is_from_colppy');
+            })
+            ->count();
+        $totalesColppy = Client::where('is_from_colppy', true)->where('is_active', 1)->count();
 
         $respuesta['totales'] = $totales;
         $respuesta['filtrados'] = count($filtrados);

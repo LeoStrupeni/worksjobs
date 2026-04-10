@@ -2,6 +2,7 @@ class BudgetItem {
   final int? id;
   final int? budgetId;
   final int? productId;
+  final String? colppyId;  // ID de Colppy del producto (idItem)
   final String codigo;
   final String descripcion;
   final String? tipoItem; // 'P' = Producto, 'S' = Servicio
@@ -14,6 +15,7 @@ class BudgetItem {
     this.id,
     this.budgetId,
     this.productId,
+    this.colppyId,
     required this.codigo,
     required this.descripcion,
     this.tipoItem,
@@ -25,13 +27,14 @@ class BudgetItem {
 
   factory BudgetItem.fromJson(Map<String, dynamic> json) {
     return BudgetItem(
-      id: json['id'],
-      budgetId: json['budget_id'],
-      productId: json['product_id'],
-      codigo: json['codigo'] ?? '',
-      descripcion: json['descripcion'] ?? '',
-      tipoItem: json['tipo_item'],
-      unitType: json['unit_type'] ?? 'Unidad',
+      id: _parseInt(json['id']),
+      budgetId: _parseInt(json['budget_id']),
+      productId: _parseInt(json['product_id']),
+      colppyId: json['colppy_id']?.toString(),
+      codigo: json['codigo']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString() ?? '',
+      tipoItem: json['tipo_item']?.toString(),
+      unitType: json['unit_type']?.toString() ?? 'Unidad',
       quantity: _parseDouble(json['quantity']),
       unitPrice: _parseDouble(json['unit_price']),
       subtotal: _parseDouble(json['subtotal']),
@@ -42,6 +45,7 @@ class BudgetItem {
     return {
       if (id != null) 'id': id,
       if (budgetId != null) 'budget_id': budgetId,
+      if (colppyId != null) 'colppy_id': colppyId,
       if (productId != null) 'product_id': productId,
       'codigo': codigo,
       'descripcion': descripcion,
@@ -51,6 +55,18 @@ class BudgetItem {
       'unit_price': unitPrice,
       'subtotal': subtotal,
     };
+  }
+
+  // Helper para parsear ints de manera segura
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      if (value.isEmpty) return null;
+      return int.tryParse(value);
+    }
+    if (value is double) return value.toInt();
+    return null;
   }
 
   // Helper para parsear doubles de manera segura
@@ -67,6 +83,7 @@ class BudgetItem {
     int? id,
     int? budgetId,
     int? productId,
+    String? colppyId,
     String? codigo,
     String? descripcion,
     String? tipoItem,
@@ -79,6 +96,7 @@ class BudgetItem {
       id: id ?? this.id,
       budgetId: budgetId ?? this.budgetId,
       productId: productId ?? this.productId,
+      colppyId: colppyId ?? this.colppyId,
       codigo: codigo ?? this.codigo,
       descripcion: descripcion ?? this.descripcion,
       tipoItem: tipoItem ?? this.tipoItem,

@@ -124,7 +124,7 @@ class ApiJobController extends Controller
             $today = Carbon::now()->format('Y-m-d');
             
             // Log del usuario que hace la petición
-            Log::info('📱 getTodayJobs - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
+            // Log::info('📱 getTodayJobs - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
             
             if (!$user) {
                 Log::error('❌ getTodayJobs - Usuario no autenticado');
@@ -150,7 +150,7 @@ class ApiJobController extends Controller
                   ->orderBy('ordervisit', 'ASC');
             
             $jobs = $query->get();
-            Log::info('✅ getTodayJobs - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
+            // Log::info('✅ getTodayJobs - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
             
             foreach ($jobs as $j) {
                 $note = Jobs_Note::where('jobs_id', $j->id)->first();   
@@ -188,7 +188,7 @@ class ApiJobController extends Controller
             $user = $request->user();
             $today = Carbon::now()->format('Y-m-d');
             
-            Log::info('📱 getUpcomingJobs - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
+            // Log::info('📱 getUpcomingJobs - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
             
             if (!$user) {
                 Log::error('❌ getUpcomingJobs - Usuario no autenticado');
@@ -208,7 +208,7 @@ class ApiJobController extends Controller
             $query->orderBy('ordervisit', 'ASC');
             
             $jobs = $query->get();
-            Log::info('✅ getUpcomingJobs - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
+            // Log::info('✅ getUpcomingJobs - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
             
             foreach ($jobs as $j) {
                 $note = Jobs_Note::where('jobs_id', $j->id)->first();   
@@ -247,7 +247,7 @@ class ApiJobController extends Controller
             $start_date = $request->input('start_date');
             $end_date = $request->input('end_date');
             
-            Log::info('📱 getJobsByDateRange - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
+            // Log::info('📱 getJobsByDateRange - Usuario: ' . ($user ? $user->id . ' - ' . $user->email : 'NO AUTENTICADO'));
             
             if (!$user) {
                 Log::error('❌ getJobsByDateRange - Usuario no autenticado');
@@ -274,7 +274,7 @@ class ApiJobController extends Controller
             $query->orderBy('ordervisit', 'ASC');
             
             $jobs = $query->get();
-            Log::info('✅ getJobsByDateRange - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
+            // Log::info('✅ getJobsByDateRange - ' . $jobs->count() . ' trabajos encontrados para ' . $user->email);
             
             foreach ($jobs as $j) {
                 $note = Jobs_Note::where('jobs_id', $j->id)->first();   
@@ -318,7 +318,9 @@ class ApiJobController extends Controller
         // Obtener modo configurado
         $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
         
-        $query = Client::query()->whereNull('deleted_at');
+        $query = Client::query()
+            ->whereNull('deleted_at')
+            ->where('is_active', 1);  // Solo clientes activos
         
         // Aplicar filtro según modo
         switch ($modo) {
@@ -657,26 +659,24 @@ class ApiJobController extends Controller
         }
     }
     
+    /**
+     * Buscar productos/servicios para agregar a tareas
+     * Usado por: App Móvil
+     * CENTRALIZADO: Usa Product::searchProductsAndServices()
+     */
     public function getProducts(Request $request)
     {
         $search = $request->input('search', '');
-        $query = Product::query()
-            ->whereNull('deleted_at')
-            ->where('tipo_item', 'P');  // Solo mostrar productos, no servicios ni kits
-
-        // Aplicar búsqueda si existe
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('codigo', 'LIKE', "%$search%")
-                  ->orWhere('descripcion', 'LIKE', "%$search%");
-            });
-        }
+        $tipo = $request->input('tipo', null); // 'P' = Productos, 'S' = Servicios, null = Ambos
+        $limit = $request->input('limit', 50);
         
-        $products = $query->limit(10)->get(['id', 'codigo', 'descripcion', 'is_from_colppy']);
+        // USAR MÉTODO CENTRALIZADO DEL MODELO
+        $products = Product::searchProductsAndServices($search, $tipo, $limit);
         
         return response()->json([
             'success' => true,
-            'data' => $products
+            'data' => $products,
+            'count' => $products->count()
         ]);
     }
 

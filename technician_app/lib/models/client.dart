@@ -3,12 +3,14 @@ class Client {
   final String name;
   final String? email;
   final String? phone;
+  final String? cuit; // CUIT/CUIL del cliente
 
   Client({
     required this.id,
     required this.name,
     this.email,
     this.phone,
+    this.cuit,
   });
 
   factory Client.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,7 @@ class Client {
       name: clientName,
       email: json['email'] as String?,
       phone: clientPhone as String?,
+      cuit: json['cuit'] as String?,
     );
   }
 
@@ -39,6 +42,7 @@ class Client {
       'name': name,
       'email': email,
       'phone': phone,
+      'cuit': cuit,
     };
   }
 }

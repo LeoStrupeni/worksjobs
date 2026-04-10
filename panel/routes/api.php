@@ -25,6 +25,9 @@ use Illuminate\Support\Facades\Route;
 // Rutas públicas (sin autenticación)
 Route::post('/login', [ApiAuthController::class, 'login']);
 
+// DEBUG TEMPORAL - Ver permisos de usuario
+Route::get('/debug-user-permissions', [ApiAuthController::class, 'debugUserPermissions']);
+
 // API pública para tema Flutter
 Route::get('/flutter/theme', [CmsController::class, 'getActiveTheme']);
 
@@ -51,9 +54,20 @@ Route::prefix('budgets')->group(function () {
 
 // Rutas protegidas (requieren autenticación Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
-    // Usuario autenticado
+    // Usuario autenticado con roles y permisos
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        $user = $request->user();
+        $roles = $user->getRoleNames()->toArray();
+        $permissions = $user->getAllPermissions()->pluck('name')->values()->toArray();
+        
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'imagen' => $user->imagen,
+            'roles' => $roles,
+            'permissions' => $permissions
+        ]);
     });
     Route::post('/logout', [ApiAuthController::class, 'logout']);
     
@@ -124,6 +138,8 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Rutas de PDF (más específicas primero)
         Route::get('/{idFactura}/pdf', [\App\Http\Controllers\Api\ApiBudgetController::class, 'downloadPdf']);
+        Route::get('/{idFactura}/jobs', [\App\Http\Controllers\Api\ApiBudgetController::class, 'getAssociatedJobs']);
+        Route::post('/{idFactura}/create-job', [\App\Http\Controllers\Api\ApiBudgetController::class, 'createJobFromBudget']);
         
         Route::get('/{idFactura}', [\App\Http\Controllers\Api\ApiBudgetController::class, 'show']);
         Route::post('/', [\App\Http\Controllers\Api\ApiBudgetController::class, 'store']);

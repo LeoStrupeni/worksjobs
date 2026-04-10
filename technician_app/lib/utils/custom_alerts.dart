@@ -351,6 +351,83 @@ class CustomAlerts {
     return result ?? false;
   }
 
+  /// Muestra un diálogo de advertencia (warning)
+  static Future<void> showWarningAlert(
+    BuildContext context, {
+    String title = 'Advertencia',
+    String message = '',
+  }) {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icono de advertencia
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    size: 60,
+                    color: Colors.orange.shade600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade600,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text(
+                    'Entendido',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// Muestra un diálogo de información
   static Future<void> showInfoAlert(
     BuildContext context, {
@@ -502,6 +579,59 @@ class CustomAlerts {
 
     return success;
   }
+
+  // ===== MÉTODOS ALIAS PARA COMPATIBILIDAD =====
+  
+  /// Alias de showInfoAlert (acepta 3 argumentos posicionales: context, title, message)
+  static Future<void> showInfo(
+    BuildContext context,
+    String title,
+    String message,
+  ) => showInfoAlert(context, title: title, message: message);
+
+  /// Alias de showSuccessAlert (acepta 3 argumentos posicionales: context, title, message)
+  static Future<void> showSuccess(
+    BuildContext context,
+    String title,
+    String message, {
+    Duration duration = const Duration(seconds: 2),
+    bool autoDismiss = true,
+  }) => showSuccessAlert(
+        context,
+        title: title,
+        message: message,
+        duration: duration,
+        autoDismiss: autoDismiss,
+      );
+
+  /// Alias de showErrorAlert (acepta 3 argumentos posicionales: context, title, message)
+  static Future<void> showError(
+    BuildContext context,
+    String title,
+    String message,
+  ) => showErrorAlert(context, title: title, message: message);
+
+  /// Alias de showWarningAlert (acepta 3 argumentos posicionales: context, title, message)
+  static Future<void> showWarning(
+    BuildContext context,
+    String title,
+    String message,
+  ) => showWarningAlert(context, title: title, message: message);
+
+  /// Alias de showConfirmAlert (acepta argumentos posicionales + named)
+  static Future<bool> showConfirmation(
+    BuildContext context,
+    String title,
+    String message, {
+    String confirmText = 'Sí, confirmar',
+    String cancelText = 'Cancelar',
+  }) => showConfirmAlert(
+        context,
+        title: title,
+        message: message,
+        confirmText: confirmText,
+        cancelText: cancelText,
+      );
 }
 
 /// Mixin para agregar funcionalidad de bloqueo de botones

@@ -17,10 +17,11 @@ class Job extends Model
     public $timestamps = true;
     public $guarded = [];
     
-    // Relación con cliente
+    // Relación con cliente (SOLO clientes ACTIVOS)
     public function client()
     {
-        return $this->belongsTo(Client::class, 'client_id');
+        return $this->belongsTo(Client::class, 'client_id')
+            ->where('is_active', 1);
     }
     
     // Relación con archivos (jobs_files usa job_id)

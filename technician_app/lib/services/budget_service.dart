@@ -10,6 +10,18 @@ import 'auth_service.dart';
 class BudgetService {
   final AuthService _authService = AuthService();
 
+  /// Helper para parsear ints de manera segura
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      if (value.isEmpty) return null;
+      return int.tryParse(value);
+    }
+    if (value is double) return value.toInt();
+    return null;
+  }
+
   /// Obtener lista de presupuestos
   /// 
   /// [page] - Página a obtener (default: 1)
@@ -61,8 +73,26 @@ class BudgetService {
       final data = jsonDecode(response.body);
 
       if (data['success'] == true) {
+        // DEBUG: Imprimir EXACTAMENTE qué está llegando
+        await DebugLogger.instance.info(
+          '📦 Datos RAW recibidos del servidor',
+          category: 'BUDGETS_DEBUG',
+          data: {'response': data['data']},
+        );
+        
         final budgets = (data['data'] as List)
-            .map((budget) => Budget.fromJson(budget))
+            .map((budget) {
+              try {
+                return Budget.fromJson(budget);
+              } catch (e) {
+                // Error parseando budget
+                DebugLogger.instance.error(
+                  '❌ Error parseando budget específico: $e',
+                  category: 'BUDGETS_DEBUG',
+                );
+                rethrow;
+              }
+            })
             .toList();
 
         await DebugLogger.instance.success(
@@ -74,9 +104,9 @@ class BudgetService {
         return {
           'success': true,
           'budgets': budgets,
-          'total': data['total'] ?? 0,
-          'page': data['page'] ?? page,
-          'limit': data['limit'] ?? limit,
+          'total': _parseInt(data['total']) ?? 0,
+          'page': _parseInt(data['page']) ?? page,
+          'limit': _parseInt(data['limit']) ?? limit,
         };
       }
 
@@ -100,9 +130,9 @@ class BudgetService {
   }
 
   /// Obtener detalle de un presupuesto
-  Future<Map<String, dynamic>> getBudgetDetail(int budgetId) async {
+  Future<Map<String, dynamic>> getBudgetDetail(String budgetId) async {
     await DebugLogger.instance.info(
-      '📄 Obteniendo detalle del presupuesto #$budgetId...',
+      '📄 Obteniendo detalle del presupuesto $budgetId...',
       category: 'BUDGETS',
     );
 
@@ -175,7 +205,7 @@ class BudgetService {
     required int clientId,
     required String fecha,
     required List<Map<String, dynamic>> items,
-    String? observaciones,
+    String? description,
   }) async {
     await DebugLogger.instance.info(
       '➕ Creando presupuesto...',
@@ -202,8 +232,8 @@ class BudgetService {
         'client_id': clientId,
         'fecha': fecha,
         'items': items,
-        if (observaciones != null && observaciones.isNotEmpty)
-          'observaciones': observaciones,
+        if (description != null && description.isNotEmpty)
+          'description': description,
       };
 
       await DebugLogger.instance.info(
@@ -275,6 +305,132 @@ class BudgetService {
     }
   }
 
+  /// Actualizar presupuesto existente
+  Future<Map<String, dynamic>> updateBudget({
+    required String idFactura,
+    required int clientId,
+    required List<Map<String, dynamic>> items,
+    String? description,
+  }) async {
+    await DebugLogger.instance.info(
+      '📝 Actualizando presupuesto...',
+      category: 'BUDGETS',
+      data: {
+        'idFactura': idFactura,
+        'clientId': clientId,
+        'itemsCount': items.length,
+      },
+    );
+
+    try {
+      final token = await _authService.getToken();
+
+      if (token == null) {
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
+      }
+
+      final body = {
+        'client_id': clientId,
+        'items': items,
+        if (description != null && description.isNotEmpty)
+          'description': description,
+      };
+
+      await DebugLogger.instance.info(
+        '📤 Enviando actualización del presupuesto...',
+        category: 'BUDGETS',
+        data: {'idFactura': idFactura, 'body': body},
+      );
+
+      final result = await NetworkHelper.putWithRetry(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.budgetsEndpoint}/$idFactura'),
+        headers: ApiConfig.getHeaders(token: token),
+        body: jsonEncode(body),
+        maxRetries: 3,
+        logCategory: 'BUDGETS',
+      );
+
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+
+      await DebugLogger.instance.info(
+        '📥 RESPUESTA DECODIFICADA DEL SERVER',
+        category: 'BUDGETS',
+        data: {
+          'success': data['success'],
+          'message': data['message'],
+          'data_keys': data['data'] != null ? (data['data'] as Map).keys.toList() : 'NULL',
+          'data_completo': data['data'],
+          'response_completo': data
+        },
+      );
+
+      if (data['success'] == true) {
+        await DebugLogger.instance.info(
+          '🔄 Intentando parsear Budget.fromJson...',
+          category: 'BUDGETS',
+        );
+        
+        final budget = Budget.fromJson(data['data']);
+
+        await DebugLogger.instance.success(
+          '✅ Presupuesto actualizado exitosamente',
+          category: 'BUDGETS',
+          data: {
+            'budgetId': budget.id,
+            'nroFactura': budget.nroFactura,
+          },
+        );
+
+        return {
+          'success': true,
+          'budget': budget,
+          'message': data['message'] ?? 'Presupuesto actualizado exitosamente',
+        };
+      }
+
+      await DebugLogger.instance.warning(
+        '⚠️ API retornó success=false',
+        category: 'BUDGETS',
+        data: {'response': data},
+      );
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': data['message'] ?? 'Error al actualizar presupuesto',
+      };
+    } catch (e, stackTrace) {
+      await DebugLogger.instance.error(
+        '❌ EXCEPCIÓN al actualizar presupuesto',
+        category: 'BUDGETS',
+        data: {
+          'error': e.toString(),
+          'stackTrace': stackTrace.toString(),
+          'errorType': e.runtimeType.toString()
+        },
+      );
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error al actualizar presupuesto: ${e.toString()}',
+      };
+    }
+  }
+
   /// Crear un nuevo cliente con datos de AFIP
   Future<Map<String, dynamic>> createClientWithAFIP({
     required String cuit,
@@ -306,6 +462,30 @@ class BudgetService {
       );
 
       if (!result.success) {
+        // ✅ NUEVO: Si hay un response válido, intentar parsear el mensaje del backend
+        if (result.data is http.Response) {
+          try {
+            final response = result.data as http.Response;
+            final data = jsonDecode(response.body);
+            
+            // Si el backend envió un mensaje específico, usarlo
+            if (data['message'] != null) {
+              return {
+                'success': false,
+                'errorCode': result.errorCode,
+                'message': data['message'],  // ✅ Mensaje específico del backend
+              };
+            }
+          } catch (e) {
+            // Si falla el parsing, usar mensaje genérico
+            await DebugLogger.instance.error(
+              '⚠️ No se pudo parsear mensaje de error',
+              category: 'BUDGETS',
+            );
+          }
+        }
+        
+        // Fallback: mensaje genérico
         return {
           'success': false,
           'errorCode': result.errorCode,
@@ -526,12 +706,174 @@ class BudgetService {
     }
   }
   
+  /// Obtener tareas asociadas a un presupuesto
+  Future<Map<String, dynamic>> getAssociatedJobs({
+    required String budgetId,
+  }) async {
+    await DebugLogger.instance.info(
+      '📋 Obteniendo tareas asociadas al presupuesto...',
+      category: 'BUDGETS',
+      data: {'budgetId': budgetId},
+    );
+
+    try {
+      final token = await _authService.getToken();
+
+      if (token == null) {
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
+      }
+
+      final url = '${ApiConfig.baseUrl}${ApiConfig.budgetsEndpoint}/$budgetId/jobs';
+
+      final result = await NetworkHelper.getWithRetry(
+        Uri.parse(url),
+        headers: ApiConfig.getHeaders(token: token),
+        maxRetries: 2,
+        logCategory: 'BUDGETS',
+      );
+
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        final jobs = data['data'] ?? [];
+
+        await DebugLogger.instance.success(
+          '✅ ${jobs.length} tareas asociadas obtenidas',
+          category: 'BUDGETS',
+        );
+
+        return {
+          'success': true,
+          'jobs': jobs,
+          'count': data['count'] ?? 0,
+        };
+      }
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': data['message'] ?? 'Error al obtener tareas',
+      };
+    } catch (e) {
+      await DebugLogger.instance.error(
+        '❌ Error al obtener tareas asociadas',
+        category: 'BUDGETS',
+      );
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error al obtener tareas: $e',
+      };
+    }
+  }
+  
+  /// Crear nueva tarea desde presupuesto
+  Future<Map<String, dynamic>> createJobFromBudget({
+    required String budgetId,
+    required String jobDescription,
+    required String visitDatetime,
+    required List<int> technicianIds,
+  }) async {
+    await DebugLogger.instance.info(
+      '➕ Creando tarea desde presupuesto...',
+      category: 'BUDGETS',
+      data: {
+        'budgetId': budgetId,
+        'description': jobDescription,
+        'technicianIds': technicianIds,
+      },
+    );
+
+    try {
+      final token = await _authService.getToken();
+
+      if (token == null) {
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
+      }
+
+      final url = '${ApiConfig.baseUrl}${ApiConfig.budgetsEndpoint}/$budgetId/create-job';
+
+      final body = {
+        'job_description': jobDescription,
+        'visit_datetime': visitDatetime,
+        'technician_ids': technicianIds,
+      };
+
+      final result = await NetworkHelper.postWithRetry(
+        Uri.parse(url),
+        headers: ApiConfig.getHeaders(token: token),
+        body: jsonEncode(body),
+        maxRetries: 2,
+        logCategory: 'BUDGETS',
+      );
+
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        await DebugLogger.instance.success(
+          '✅ Tarea creada exitosamente',
+          category: 'BUDGETS',
+        );
+
+        return {
+          'success': true,
+          'job': data['data'],
+          'message': data['message'] ?? 'Tarea creada exitosamente',
+        };
+      }
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': data['message'] ?? 'Error al crear tarea',
+      };
+    } catch (e) {
+      await DebugLogger.instance.error(
+        '❌ Error al crear tarea desde presupuesto',
+        category: 'BUDGETS',
+      );
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error al crear tarea: $e',
+      };
+    }
+  }
+
   /// Descargar PDF del presupuesto
   /// 
   /// [budgetId] - ID del presupuesto
   /// Retorna los bytes del PDF
   Future<Map<String, dynamic>> downloadBudgetPdf({
-    required int budgetId,
+    required String budgetId,
   }) async {
     await DebugLogger.instance.info(
       '📄 Descargando PDF del presupuesto...',

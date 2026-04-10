@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1073,6 +1074,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         ),
         title: const Text('Detalle de Cita', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       body: Consumer<JobProvider>(
         builder: (context, jobProvider, child) {
@@ -2063,6 +2065,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
   
   Product? _selectedProduct;
   String _selectedUnitType = 'Unidad';
+  String? _tipoFilter; // null = todos, 'P' = productos, 'S' = servicios
   bool _isSearching = false;
   bool _isLoading = true;
   
@@ -2194,7 +2197,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
     
     try {
       final jobProvider = context.read<JobProvider>();
-      final results = await jobProvider.searchProducts(query);
+      final results = await jobProvider.searchProducts(query, tipo: _tipoFilter);
       
       if (mounted) {
         setState(() {
@@ -2360,11 +2363,57 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                     children: [
                       // Búsqueda de productos
                       const Text(
-                        'Buscar Producto',
+                        'Buscar Producto o Servicio',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Filtro tipo
+                      Row(
+                        children: [
+                          const Text('Mostrar: ', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('Todos', style: TextStyle(fontSize: 12)),
+                            selected: _tipoFilter == null,
+                            onSelected: (selected) {
+                              setState(() {
+                                _tipoFilter = null;
+                                if (_searchController.text.length >= 2) {
+                                  _performSearch(_searchController.text);
+                                }
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          ChoiceChip(
+                            label: const Text('Productos', style: TextStyle(fontSize: 12)),
+                            selected: _tipoFilter == 'P',
+                            onSelected: (selected) {
+                              setState(() {
+                                _tipoFilter = 'P';
+                                if (_searchController.text.length >= 2) {
+                                  _performSearch(_searchController.text);
+                                }
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          ChoiceChip(
+                            label: const Text('Servicios', style: TextStyle(fontSize: 12)),
+                            selected: _tipoFilter == 'S',
+                            onSelected: (selected) {
+                              setState(() {
+                                _tipoFilter = 'S';
+                                if (_searchController.text.length >= 2) {
+                                  _performSearch(_searchController.text);
+                                }
+                              });
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       TextField(

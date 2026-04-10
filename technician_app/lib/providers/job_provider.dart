@@ -615,9 +615,9 @@ class JobProvider with ChangeNotifier {
   }
 
   // Buscar productos
-  Future<List<Product>> searchProducts(String query) async {
+  Future<List<Product>> searchProducts(String query, {String? tipo}) async {
     try {
-      return await _jobService.searchProducts(query);
+      return await _jobService.searchProducts(query, tipo: tipo);
     } catch (e) {
       print('❌ searchProducts (Provider): $e');
       return [];

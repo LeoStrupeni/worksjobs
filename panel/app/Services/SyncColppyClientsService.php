@@ -19,84 +19,72 @@ class SyncColppyClientsService
     /**
      * Sincronizar clientes de Colppy a base de datos local
      * 
+     * IMPORTANTE: La API de Colppy NO devuelve el campo "Activo" correctamente
+     * a menos que se filtre explícitamente. Por eso hacemos DOS consultas:
+     * 1. Clientes ACTIVOS (Activo = 1)
+     * 2. Clientes INACTIVOS (Activo = 0)
+     * 
      * @return array Resultado de la sincronización
      */
     public function syncClients(): array
     {
         try {
-            // Log::info('=== INICIO SINCRONIZACIÓN CLIENTES COLPPY ===');
+            Log::info('=== INICIO SINCRONIZACIÓN CLIENTES COLPPY (CON FILTRO DE ESTADO) ===');
             
             $clientesSincronizados = 0;
             $clientesActualizados = 0;
             $errores = 0;
-            $start = 0;
-            $limit = 100; // Traer de a 100 para no saturar
             $totalProcesados = 0;
 
-            do {
-                // Obtener clientes de Colppy
-                $resultado = $this->colppyService->listarClientes($start, $limit, [], []);
-                
-                if (!$resultado['success']) {
-                    Log::error('Error al obtener clientes de Colppy', ['resultado' => $resultado]);
-                    break;
-                }
+            // ==========================================
+            // PASO 1: Sincronizar CLIENTES ACTIVOS
+            // ==========================================
+            $resultadoActivos = $this->syncClientesPorEstado(1); // Activo = 1
+            
+            $clientesSincronizados += $resultadoActivos['nuevos'];
+            $clientesActualizados += $resultadoActivos['actualizados'];
+            $errores += $resultadoActivos['errores'];
+            $totalProcesados += $resultadoActivos['total'];
 
-                $clientes = $resultado['datos'] ?? [];
-                $total = $resultado['total'] ?? 0;
+            Log::info('Clientes ACTIVOS sincronizados', [
+                'nuevos' => $resultadoActivos['nuevos'],
+                'actualizados' => $resultadoActivos['actualizados'],
+                'total' => $resultadoActivos['total']
+            ]);
 
-                if (empty($clientes)) {
-                    break;
-                }
+            // ==========================================
+            // PASO 2: Sincronizar CLIENTES INACTIVOS
+            // ==========================================
+            $resultadoInactivos = $this->syncClientesPorEstado(0); // Activo = 0
+            
+            $clientesSincronizados += $resultadoInactivos['nuevos'];
+            $clientesActualizados += $resultadoInactivos['actualizados'];
+            $errores += $resultadoInactivos['errores'];
+            $totalProcesados += $resultadoInactivos['total'];
 
-                // IMPORTANTE: Colppy a veces devuelve el primer elemento como array de headers (nombres de columnas)
-                // Necesitamos detectar y saltar ese elemento
-                if (isset($clientes[0]) && is_array($clientes[0])) {
-                    $primerElemento = $clientes[0];
-                    // Si el primer elemento es un array numérico de strings, son los headers
-                    if (isset($primerElemento[0]) && is_string($primerElemento[0]) && $primerElemento[0] === 'idCliente') {
-                        array_shift($clientes); // Remover el primer elemento (headers)
-                    }
-                }
+            Log::info('Clientes INACTIVOS sincronizados', [
+                'nuevos' => $resultadoInactivos['nuevos'],
+                'actualizados' => $resultadoInactivos['actualizados'],
+                'total' => $resultadoInactivos['total']
+            ]);
 
-                // Procesar cada cliente
-                foreach ($clientes as $index => $clienteColppy) {
-                    try {
-                        $resultado = $this->syncCliente($clienteColppy);
-                        
-                        if ($resultado['creado']) {
-                            $clientesSincronizados++;
-                        } elseif ($resultado['actualizado']) {
-                            $clientesActualizados++;
-                        }
-                        
-                        $totalProcesados++;
-                    } catch (\Exception $e) {
-                        $errores++;
-                        Log::error('Error al sincronizar cliente', [
-                            'idCliente' => $clienteColppy['idCliente'] ?? 'desconocido',
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-
-                $start += $limit;
-
-            } while ($totalProcesados < $total);
-
-            // Log::info('=== FIN SINCRONIZACIÓN CLIENTES COLPPY ===', [
-            //     'nuevos' => $clientesSincronizados,
-            //     'actualizados' => $clientesActualizados,
-            //     'errores' => $errores,
-            //     'total' => $totalProcesados
-            // ]);
+            Log::info('=== FIN SINCRONIZACIÓN CLIENTES COLPPY ===', [
+                'nuevos' => $clientesSincronizados,
+                'actualizados' => $clientesActualizados,
+                'errores' => $errores,
+                'total' => $totalProcesados,
+                'activos' => $resultadoActivos['total'],
+                'inactivos' => $resultadoInactivos['total']
+            ]);
 
             return [
                 'success' => true,
                 'nuevos' => $clientesSincronizados,
                 'actualizados' => $clientesActualizados,
                 'errores' => $errores,
-                'total' => $totalProcesados
+                'total' => $totalProcesados,
+                'activos' => $resultadoActivos['total'],
+                'inactivos' => $resultadoInactivos['total']
             ];
 
         } catch (\Exception $e) {
@@ -110,12 +98,99 @@ class SyncColppyClientsService
     }
 
     /**
+     * Sincronizar clientes por estado (activo/inactivo)
+     * 
+     * @param int $estadoActivo 1 = Activo, 0 = Inactivo
+     * @return array Resultado de la sincronización
+     */
+    private function syncClientesPorEstado(int $estadoActivo): array
+    {
+        $clientesSincronizados = 0;
+        $clientesActualizados = 0;
+        $errores = 0;
+        $start = 0;
+        $limit = 100;
+        $totalProcesados = 0;
+
+        // Filtro para obtener solo clientes con estado específico
+        $filtros = [
+            [
+                'field' => 'Activo',
+                'op' => '=',
+                'value' => (string)$estadoActivo
+            ]
+        ];
+
+        do {
+            // Obtener clientes de Colppy con filtro de estado
+            $resultado = $this->colppyService->listarClientes($start, $limit, $filtros, []);
+            
+            if (!$resultado['success']) {
+                Log::error('Error al obtener clientes de Colppy', [
+                    'estado' => $estadoActivo,
+                    'resultado' => $resultado
+                ]);
+                break;
+            }
+
+            $clientes = $resultado['datos'] ?? [];
+            $total = $resultado['total'] ?? 0;
+
+            if (empty($clientes)) {
+                break;
+            }
+
+            // Remover headers si están presentes
+            if (isset($clientes[0]) && is_array($clientes[0])) {
+                $primerElemento = $clientes[0];
+                if (isset($primerElemento[0]) && is_string($primerElemento[0]) && $primerElemento[0] === 'idCliente') {
+                    array_shift($clientes);
+                }
+            }
+
+            // Procesar cada cliente
+            foreach ($clientes as $index => $clienteColppy) {
+                try {
+                    // Pasar el estado explícitamente
+                    $resultado = $this->syncCliente($clienteColppy, $estadoActivo);
+                    
+                    if ($resultado['creado']) {
+                        $clientesSincronizados++;
+                    } elseif ($resultado['actualizado']) {
+                        $clientesActualizados++;
+                    }
+                    
+                    $totalProcesados++;
+                } catch (\Exception $e) {
+                    $errores++;
+                    Log::error('Error al sincronizar cliente', [
+                        'idCliente' => $clienteColppy['idCliente'] ?? 'desconocido',
+                        'estado' => $estadoActivo,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $start += $limit;
+
+        } while ($totalProcesados < $total);
+
+        return [
+            'nuevos' => $clientesSincronizados,
+            'actualizados' => $clientesActualizados,
+            'errores' => $errores,
+            'total' => $totalProcesados
+        ];
+    }
+
+    /**
      * Sincronizar un cliente individual
      * 
      * @param array $clienteColppy Datos del cliente desde Colppy
+     * @param int $estadoActivo Estado del cliente (1 = activo, 0 = inactivo)
      * @return array ['creado' => bool, 'actualizado' => bool, 'client_id' => int]
      */
-    private function syncCliente(array $clienteColppy): array
+    private function syncCliente(array $clienteColppy, int $estadoActivo): array
     {
         $idColppy = $clienteColppy['idCliente'] ?? null;
         
@@ -126,8 +201,8 @@ class SyncColppyClientsService
         // Buscar si ya existe
         $clienteExistente = Client::where('colppy_id', $idColppy)->first();
 
-        // Preparar datos del cliente
-        $datosCliente = $this->transformarDatosColppy($clienteColppy);
+        // Preparar datos del cliente (pasar estado explícitamente)
+        $datosCliente = $this->transformarDatosColppy($clienteColppy, $estadoActivo);
 
         $creado = false;
         $actualizado = false;
@@ -137,13 +212,10 @@ class SyncColppyClientsService
             $fechaColppy = $datosCliente['colppy_updated_at'];
             $fechaLocal = $clienteExistente->colppy_updated_at;
             
-            // Solo actualizar si:
-            // 1. No tenemos fecha local guardada (primera sincronización después de agregar el campo)
-            // 2. La fecha de Colppy es más reciente que la local
-            if (!$fechaLocal || ($fechaColppy && $fechaColppy > $fechaLocal)) {
-                $clienteExistente->update($datosCliente);
-                $actualizado = true;
-            }
+            // IMPORTANTE: Siempre actualizar el estado (is_active)
+            // porque la API de Colppy no lo devuelve en consultas normales
+            $clienteExistente->update($datosCliente);
+            $actualizado = true;
             
             $clienteId = $clienteExistente->id;
         } else {
@@ -167,9 +239,10 @@ class SyncColppyClientsService
      * Transformar datos de Colppy a formato local
      * 
      * @param array $cliente Datos del cliente desde Colppy
+     * @param int $estadoActivo Estado del cliente (1 = activo, 0 = inactivo)
      * @return array Datos transformados
      */
-    private function transformarDatosColppy(array $cliente): array
+    private function transformarDatosColppy(array $cliente, int $estadoActivo): array
     {
         // Determinar tipo de documento
         $typeDoc = 3; // Por defecto CUIT
@@ -205,6 +278,7 @@ class SyncColppyClientsService
             'address_detail' => null,
             'other_obs' => null,
             'is_from_colppy' => true,
+            'is_active' => $estadoActivo, // Usar el estado pasado explícitamente
             'colppy_updated_at' => !empty($cliente['record_update_ts']) ? $cliente['record_update_ts'] : null,
         ];
     }

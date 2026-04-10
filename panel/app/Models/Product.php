@@ -75,4 +75,38 @@ class Product extends Model
     {
         $this->attributes['colppy_id'] = $value;
     }
+
+    /**
+     * MÉTODO CENTRALIZADO para buscar productos y/o servicios
+     * Usado por ApiJobController y ApiBudgetController
+     * 
+     * @param string|null $search Texto a buscar en código o descripción
+     * @param string|null $tipo 'P' para productos, 'S' para servicios, null para ambos
+     * @param int $limit Límite de resultados
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function searchProductsAndServices($search = null, $tipo = null, $limit = 50)
+    {
+        $query = self::query()
+            ->whereNull('deleted_at');
+
+        // Filtrar por tipo si se especifica, sino mostrar productos Y servicios
+        if ($tipo && in_array($tipo, ['P', 'S'])) {
+            $query->where('tipo_item', $tipo);
+        } else {
+            // Mostrar productos Y servicios (no kits ni otros)
+            $query->whereIn('tipo_item', ['P', 'S']);
+        }
+
+        // Búsqueda por código o descripción
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('codigo', 'LIKE', "%$search%")
+                  ->orWhere('descripcion', 'LIKE', "%$search%");
+            });
+        }
+        
+        return $query->limit($limit)
+            ->get(['id', 'codigo', 'descripcion', 'tipo_item', 'is_from_colppy']);
+    }
 }

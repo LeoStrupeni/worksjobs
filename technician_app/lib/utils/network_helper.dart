@@ -14,6 +14,7 @@ class ApiErrorCode {
   static const String FORBIDDEN = 'FORBIDDEN';
   static const String UNAUTHORIZED = 'UNAUTHORIZED';
   static const String BAD_REQUEST = 'BAD_REQUEST';
+  static const String CONFLICT = 'CONFLICT';  // ✅ NUEVO: Para cliente duplicado
   static const String UNKNOWN = 'UNKNOWN';
 
   /// Obtener mensaje user-friendly para cada código de error
@@ -37,6 +38,8 @@ class ApiErrorCode {
         return 'No autorizado. Por favor, inicia sesión nuevamente.';
       case BAD_REQUEST:
         return 'Petición inválida. Verifica los datos e intenta de nuevo.';
+      case CONFLICT:
+        return 'El recurso ya existe.';  // ✅ NUEVO
       default:
         return 'Error desconocido. Intenta de nuevo.';
     }
@@ -331,6 +334,8 @@ class NetworkHelper {
         return ApiErrorCode.FORBIDDEN;
       case 404:
         return ApiErrorCode.NOT_FOUND;
+      case 409:
+        return ApiErrorCode.CONFLICT;  // ✅ NUEVO: Cliente duplicado
       case 500:
       case 502:
       case 503:
@@ -343,11 +348,12 @@ class NetworkHelper {
 
   /// Determinar si NO se debe reintentar para este código de error
   static bool _shouldNotRetry(String errorCode) {
-    // No reintentar errores de autenticación/autorización, bad request, not found
+    // No reintentar errores de autenticación/autorización, bad request, not found, conflict
     return errorCode == ApiErrorCode.UNAUTHORIZED ||
         errorCode == ApiErrorCode.FORBIDDEN ||
         errorCode == ApiErrorCode.BAD_REQUEST ||
-        errorCode == ApiErrorCode.NOT_FOUND;
+        errorCode == ApiErrorCode.NOT_FOUND ||
+        errorCode == ApiErrorCode.CONFLICT;  // ✅ NUEVO: No reintentar conflictos
   }
 
   /// Verificar si hay conexión a internet

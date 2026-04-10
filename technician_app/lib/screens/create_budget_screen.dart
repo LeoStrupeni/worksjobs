@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/budget_provider.dart';
+import '../providers/job_provider.dart';
 import '../services/product_service.dart';
 import '../services/budget_service.dart';
-import '../services/job_service.dart';
 import '../models/product.dart';
 import '../models/client.dart';
 import '../models/budget_item.dart';
@@ -22,28 +22,30 @@ class CreateBudgetScreen extends StatefulWidget {
 class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   final ProductService _productService = ProductService();
   final BudgetService _budgetService = BudgetService();
-  final JobService _jobService = JobService();
   
   // Form controllers
-  final _searchController = TextEditingController();
+  final _clientSearchController = TextEditingController();
   final _cuitController = TextEditingController();
-  final _observacionesController = TextEditingController();
+  final _productSearchController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   // Estado
   Client? _selectedClient;
-  DateTime _selectedDate = DateTime.now();
   List<BudgetItem> _items = [];
-  List<Product> _searchResults = [];
-  bool _isSearching = false;
+  List<Product> _productSearchResults = [];
+  List<Client> _clientSearchResults = [];
+  bool _isSearchingProducts = false;
+  bool _isSearchingClients = false;
   bool _isCreatingClient = false;
   bool _showProductSearch = false;
   String? _tipoFilter; // null = todos, 'P' = productos, 'S' = servicios
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _clientSearchController.dispose();
     _cuitController.dispose();
-    _observacionesController.dispose();
+    _productSearchController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -52,14 +54,42 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     return _items.fold(0.0, (sum, item) => sum + item.subtotal);
   }
 
-  // Buscar productos/servicios
-  Future<void> _searchProductsServices(String query) async {
-    if (query.isEmpty) {
-      setState(() => _searchResults = []);
+  // Buscar clientes (IGUAL QUE EN CREATE_JOB)
+  Future<void> _searchClients(String query) async {
+    if (query.length < 2) {
+      setState(() => _clientSearchResults = []);
       return;
     }
 
-    setState(() => _isSearching = true);
+    setState(() => _isSearchingClients = true);
+
+    final jobProvider = context.read<JobProvider>();
+    final results = await jobProvider.searchClients(query);
+
+    setState(() {
+      _clientSearchResults = results;
+      _isSearchingClients = false;
+    });
+
+    if (results.isEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se encontraron clientes con "$query"'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // Buscar productos/servicios
+  Future<void> _searchProductsServices(String query) async {
+    if (query.isEmpty) {
+      setState(() => _productSearchResults = []);
+      return;
+    }
+
+    setState(() => _isSearchingProducts = true);
 
     final result = await _productService.searchProductsAndServices(
       search: query,
@@ -68,11 +98,11 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     );
 
     setState(() {
-      _isSearching = false;
+      _isSearchingProducts = false;
       if (result['success'] == true) {
-        _searchResults = result['products'] ?? [];
+        _productSearchResults = result['products'] ?? [];
       } else {
-        _searchResults = [];
+        _productSearchResults = [];
       }
     });
   }
@@ -98,8 +128,8 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
 
           setState(() {
             _items.add(item);
-            _searchResults = [];
-            _searchController.clear();
+            _productSearchResults = [];
+            _productSearchController.clear();
             _showProductSearch = false;
           });
         },
@@ -112,41 +142,13 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     setState(() => _items.removeAt(index));
   }
 
-  // Seleccionar cliente existente
-  Future<void> _selectClient() async {
-    final result = await _jobService.getClients();
-
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      final clients = result['clients'] as List<Client>;
-
-      if (clients.isEmpty) {
-        CustomAlerts.showInfo(
-          context,
-          'No hay clientes',
-          'Crea un cliente nuevo con su CUIT.',
-        );
-        return;
-      }
-
-      showDialog(
-        context: context,
-        builder: (context) => _ClientListDialog(
-          clients: clients,
-          onSelect: (client) {
-            setState(() => _selectedClient = client);
-          },
-        ),
-      );
-    } else {
-      if (!mounted) return;
-      CustomAlerts.showError(
-        context,
-        'Error',
-        result['message'] ?? 'Error al cargar clientes',
-      );
-    }
+  // Seleccionar cliente de la búsqueda
+  void _selectClient(Client client) {
+    setState(() {
+      _selectedClient = client;
+      _clientSearchResults = [];
+      _clientSearchController.clear();
+    });
   }
 
   // Crear cliente con AFIP
@@ -157,7 +159,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       CustomAlerts.showWarning(
         context,
         'CUIT requerido',
-        'Ingresa el CUIT del cliente para obtener sus datos.',
+        'Ingresa el CUIT del cliente para obtener sus datos de AFIP.',
       );
       return;
     }
@@ -166,7 +168,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       CustomAlerts.showWarning(
         context,
         'CUIT inválido',
-        'El CUIT debe tener 11 dígitos sin guiones.',
+        'El CUIT debe tener 11 dígitos sin guiones. Ejemplo: 20123456789',
       );
       return;
     }
@@ -187,30 +189,15 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
 
       CustomAlerts.showSuccess(
         context,
-        'Cliente creado',
-        'Cliente agregado exitosamente',
+        '✅ Cliente creado',
+        'Sus datos se obtuvieron desde AFIP automáticamente',
       );
     } else {
       CustomAlerts.showError(
         context,
-        'Error',
-        result['message'] ?? 'Error al crear cliente',
+        'Error al crear cliente',
+        result['message'] ?? 'No se pudieron obtener datos desde AFIP',
       );
-    }
-  }
-
-  // Seleccionar fecha
-  Future<void> _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      locale: const Locale('es', 'ES'),
-    );
-
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
     }
   }
 
@@ -235,13 +222,13 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       return;
     }
 
-    // Confirmar creación
+    // Confirmación simple
     final confirm = await CustomAlerts.showConfirmation(
       context,
       '¿Crear presupuesto?',
-      'Total: ${NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(_total)}\n'
       'Cliente: ${_selectedClient!.name}\n'
-      '${_items.length} ${_items.length == 1 ? 'item' : 'items'}',
+      '${_items.length} ${_items.length == 1 ? 'item' : 'items'}\n'
+      'Total: ${NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(_total)}',
     );
 
     if (confirm != true) return;
@@ -260,24 +247,30 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       };
     }).toList();
 
-    // Crear presupuesto
+    // Crear presupuesto (fecha automática: hoy)
     final provider = Provider.of<BudgetProvider>(context, listen: false);
+
+    // ✅ AGREGAR: Mostrar loading mientras se crea
+    CustomAlerts.showLoadingAlert(context, title: 'Creando presupuesto...');
 
     final result = await provider.createBudget(
       clientId: _selectedClient!.id!,
-      fecha: DateFormat('yyyy-MM-dd').format(_selectedDate),
+      fecha: DateFormat('yyyy-MM-dd').format(DateTime.now()), // Fecha automática
       items: itemsData,
-      observaciones: _observacionesController.text.trim().isEmpty
-          ? null
-          : _observacionesController.text.trim(),
+      description: _descriptionController.text.trim().isEmpty 
+          ? null 
+          : _descriptionController.text.trim(),
     );
+
+    // ✅ AGREGAR: Cerrar loading
+    if (mounted) Navigator.pop(context);
 
     if (!mounted) return;
 
     if (result['success'] == true) {
       CustomAlerts.showSuccess(
         context,
-        '¡Presupuesto creado!',
+        '✅ Presupuesto creado!',
         'Nro: ${result['budget'].nroFactura}',
       );
 
@@ -293,8 +286,8 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     } else {
       CustomAlerts.showError(
         context,
-        'Error',
-        result['message'] ?? 'Error al crear presupuesto',
+        'Error al crear presupuesto',
+        result['message'] ?? 'Error desconocido',
       );
     }
   }
@@ -307,6 +300,8 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       appBar: AppBar(
         title: const Text('Nuevo Presupuesto'),
         elevation: 0,
+        backgroundColor: const Color(0xFF00274E),  // ✅ Fondo azul oscuro
+        foregroundColor: Colors.white,
         actions: [
           TextButton.icon(
             onPressed: _items.isNotEmpty && _selectedClient != null
@@ -315,7 +310,10 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
             icon: const Icon(Icons.check, color: Colors.white),
             label: const Text(
               'CREAR',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -385,23 +383,73 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                       )
                     else
                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _selectClient,
-                              icon: const Icon(Icons.search),
-                              label: const Text('Buscar Cliente Existente'),
+                          // Búsqueda de cliente
+                          TextField(
+                            controller: _clientSearchController,
+                            decoration: InputDecoration(
+                              labelText: 'Buscar Cliente',
+                              hintText: 'Nombre o CUIT...',
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: _clientSearchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        _clientSearchController.clear();
+                                        setState(() => _clientSearchResults = []);
+                                      },
+                                    )
+                                  : null,
+                              border: const OutlineInputBorder(),
                             ),
+                            onChanged: _searchClients,
                           ),
                           const SizedBox(height: 8),
+
+                          // Resultados de búsqueda de clientes
+                          if (_isSearchingClients)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          else if (_clientSearchResults.isNotEmpty)
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 200),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _clientSearchResults.length,
+                                itemBuilder: (context, index) {
+                                  final client = _clientSearchResults[index];
+                                  return ListTile(
+                                    leading: const Icon(Icons.person, size: 20),
+                                    title: Text(client.name ?? ''),
+                                    subtitle: client.cuit != null
+                                        ? Text('CUIT: ${client.cuit}')
+                                        : null,
+                                    onTap: () => _selectClient(client),
+                                  );
+                                },
+                              ),
+                            ),
+                          
+                          const SizedBox(height: 12),
                           const Divider(),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
+                          
+                          // Crear nuevo con AFIP
                           Text(
-                            'O crear nuevo con CUIT',
+                            'O crear nuevo cliente con CUIT de AFIP',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -428,6 +476,12 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                                 onPressed: _isCreatingClient
                                     ? null
                                     : _createClientWithAFIP,
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                ),
                                 child: _isCreatingClient
                                     ? const SizedBox(
                                         width: 20,
@@ -436,7 +490,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Text('Alta AFIP'),
+                                    : const Text('Alta\nAFIP', textAlign: TextAlign.center),
                               ),
                             ],
                           ),
@@ -448,16 +502,34 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Fecha
+            // Descripción del presupuesto
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_today, color: Colors.blue),
-                title: const Text('Fecha'),
-                subtitle: Text(
-                  DateFormat('dd/MM/yyyy').format(_selectedDate),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Descripción (opcional)',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _descriptionController,
+                      decoration: const InputDecoration(
+                        hintText: 'Ej: Presupuesto para reparación...',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.all(12),
+                      ),
+                      maxLines: 2,
+                      maxLength: 500,
+                    ),
+                  ],
                 ),
-                trailing: const Icon(Icons.edit),
-                onTap: _selectDate,
               ),
             ),
             const SizedBox(height: 16),
@@ -494,45 +566,45 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                       // Filtro tipo
                       Row(
                         children: [
-                          const Text('Mostrar: '),
+                          const Text('Mostrar: ', style: TextStyle(fontSize: 12)),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('Todos'),
+                            label: const Text('Todos', style: TextStyle(fontSize: 12)),
                             selected: _tipoFilter == null,
                             onSelected: (selected) {
                               setState(() {
                                 _tipoFilter = null;
-                                if (_searchController.text.isNotEmpty) {
+                                if (_productSearchController.text.isNotEmpty) {
                                   _searchProductsServices(
-                                      _searchController.text);
+                                      _productSearchController.text);
                                 }
                               });
                             },
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
-                            label: const Text('Productos'),
+                            label: const Text('Productos', style: TextStyle(fontSize: 12)),
                             selected: _tipoFilter == 'P',
                             onSelected: (selected) {
                               setState(() {
                                 _tipoFilter = 'P';
-                                if (_searchController.text.isNotEmpty) {
+                                if (_productSearchController.text.isNotEmpty) {
                                   _searchProductsServices(
-                                      _searchController.text);
+                                      _productSearchController.text);
                                 }
                               });
                             },
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
-                            label: const Text('Servicios'),
+                            label: const Text('Servicios', style: TextStyle(fontSize: 12)),
                             selected: _tipoFilter == 'S',
                             onSelected: (selected) {
                               setState(() {
                                 _tipoFilter = 'S';
-                                if (_searchController.text.isNotEmpty) {
+                                if (_productSearchController.text.isNotEmpty) {
                                   _searchProductsServices(
-                                      _searchController.text);
+                                      _productSearchController.text);
                                 }
                               });
                             },
@@ -542,17 +614,17 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                       const SizedBox(height: 8),
                       // Búsqueda
                       TextField(
-                        controller: _searchController,
+                        controller: _productSearchController,
                         decoration: InputDecoration(
                           labelText: 'Buscar producto o servicio',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchController.text.isNotEmpty
+                          suffixIcon: _productSearchController.text.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.close),
                                   onPressed: () {
-                                    _searchController.clear();
+                                    _productSearchController.clear();
                                     setState(() {
-                                      _searchResults = [];
+                                      _productSearchResults = [];
                                       _showProductSearch = false;
                                     });
                                   },
@@ -567,21 +639,21 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                       const SizedBox(height: 8),
 
                       // Resultados de búsqueda
-                      if (_isSearching)
+                      if (_isSearchingProducts)
                         const Center(
                           child: Padding(
                             padding: EdgeInsets.all(16),
                             child: CircularProgressIndicator(),
                           ),
                         )
-                      else if (_searchResults.isNotEmpty)
+                      else if (_productSearchResults.isNotEmpty)
                         Container(
                           constraints: const BoxConstraints(maxHeight: 300),
                           child: ListView.builder(
                             shrinkWrap: true,
-                            itemCount: _searchResults.length,
+                            itemCount: _productSearchResults.length,
                             itemBuilder: (context, index) {
-                              final product = _searchResults[index];
+                              final product = _productSearchResults[index];
                               return ListTile(
                                 leading: Icon(
                                   product.tipoItem == 'S'
@@ -668,23 +740,6 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Observaciones
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: TextField(
-                  controller: _observacionesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Observaciones (opcional)',
-                    hintText: 'Notas adicionales sobre el presupuesto...',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // Total
             if (_items.isNotEmpty)
               Card(
@@ -716,108 +771,6 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
               ),
 
             const SizedBox(height: 80),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Dialog para seleccionar cliente existente
-class _ClientListDialog extends StatefulWidget {
-  final List<Client> clients;
-  final Function(Client) onSelect;
-
-  const _ClientListDialog({
-    required this.clients,
-    required this.onSelect,
-  });
-
-  @override
-  State<_ClientListDialog> createState() => _ClientListDialogState();
-}
-
-class _ClientListDialogState extends State<_ClientListDialog> {
-  final _searchController = TextEditingController();
-  List<Client> _filteredClients = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredClients = widget.clients;
-  }
-
-  void _filterClients(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredClients = widget.clients;
-      } else {
-        _filteredClients = widget.clients.where((client) {
-          final name = client.name?.toLowerCase() ?? '';
-          final cuit = client.cuit ?? '';
-          final search = query.toLowerCase();
-          return name.contains(search) || cuit.contains(search);
-        }).toList();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Seleccionar Cliente',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                labelText: 'Buscar',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: _filterClients,
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _filteredClients.length,
-                itemBuilder: (context, index) {
-                  final client = _filteredClients[index];
-                  return ListTile(
-                    leading: const Icon(Icons.person),
-                    title: Text(client.name ?? ''),
-                    subtitle: client.cuit != null
-                        ? Text('CUIT: ${client.cuit}')
-                        : null,
-                    onTap: () {
-                      widget.onSelect(client);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-            ),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/job_provider.dart';
@@ -7,6 +8,7 @@ import 'today_jobs_screen.dart';
 import 'upcoming_jobs_screen.dart';
 import 'calendar_screen.dart';
 import 'create_job_screen.dart';
+import 'budgets_list_screen.dart';
 import 'debug_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -154,20 +156,21 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         // START_DEBUG_FEATURE
         // Logo con gesto secreto de debug (5 taps para abrir pantalla de logs)
-        leading: GestureDetector(
-          onTap: _handleDebugTap,
-          child: const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Icon(
-              Icons.electrical_services,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-        ),
+        // leading: GestureDetector(
+        // onTap: _handleDebugTap,
+        // child: const Padding(
+        // padding: EdgeInsets.all(8.0),
+        // child: Icon(
+        // Icons.electrical_services,
+        // color: Colors.white,
+        // size: 32,
+        // ),
+        // ),
+        // ),
         // END_DEBUG_FEATURE
         title: Text(_getTitleForIndex(_selectedIndex), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         actions: [
           // Botón crear tarea - Solo si tiene permiso
           if (authProvider.user?.permissions.contains('create jobs') ?? false)
@@ -191,6 +194,13 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 _handleLogout();
+              } else if (value == 'budgets') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BudgetsListScreen(),
+                  ),
+                );
               }
             },
             itemBuilder: (context) => [
@@ -204,6 +214,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              // Opción de Presupuestos - Solo si tiene permiso
+              if (authProvider.user?.canReadBudgets ?? false)
+                const PopupMenuItem(
+                  value: 'budgets',
+                  child: Row(
+                    children: [
+                      Icon(Icons.description_outlined),
+                      SizedBox(width: 8),
+                      Text('Presupuestos'),
+                    ],
+                  ),
+                ),
               const PopupMenuDivider(),
               const PopupMenuItem(
                 value: 'logout',

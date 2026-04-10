@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
@@ -41,6 +42,7 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
   String _selectedUnitType = 'Unidad';
   List<SelectedProduct> _selectedProducts = [];
   bool _isSearchingProducts = false;
+  String? _tipoFilter; // null = todos, 'P' = productos, 'S' = servicios
 
   @override
   void initState() {
@@ -229,7 +231,7 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
 
     // print('🔍 Buscando productos: "$query"');
     final jobProvider = context.read<JobProvider>();
-    final results = await jobProvider.searchProducts(query);
+    final results = await jobProvider.searchProducts(query, tipo: _tipoFilter);  // ✅ Pasar filtro tipo
     // print('📦 Productos encontrados: ${results.length}');
 
     setState(() {
@@ -624,6 +626,7 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
         ),
         title: const Text('Editar Tarea', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         actions: [
           IconButton(
             icon: const Icon(Icons.check, color: Colors.white),
@@ -985,11 +988,58 @@ class _EditJobScreenState extends State<EditJobScreen> with ButtonLockMixin {
                     ),
                     const SizedBox(height: 12),
                     
+                    // Filtro tipo
+                    Row(
+                      children: [
+                        const Text('Mostrar: ', style: TextStyle(fontSize: 12)),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('Todos', style: TextStyle(fontSize: 12)),
+                          selected: _tipoFilter == null,
+                          onSelected: (selected) {
+                            setState(() {
+                              _tipoFilter = null;
+                              if (_productSearchController.text.length >= 2) {
+                                _searchProducts(_productSearchController.text);
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        ChoiceChip(
+                          label: const Text('Productos', style: TextStyle(fontSize: 12)),
+                          selected: _tipoFilter == 'P',
+                          onSelected: (selected) {
+                            setState(() {
+                              _tipoFilter = 'P';
+                              if (_productSearchController.text.length >= 2) {
+                                _searchProducts(_productSearchController.text);
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 4),
+                        ChoiceChip(
+                          label: const Text('Servicios', style: TextStyle(fontSize: 12)),
+                          selected: _tipoFilter == 'S',
+                          onSelected: (selected) {
+                            setState(() {
+                              _tipoFilter = 'S';
+                              if (_productSearchController.text.length >= 2) {
+                                _searchProducts(_productSearchController.text);
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    
                     // Buscar producto
                     TextField(
                       controller: _productSearchController,
                       decoration: const InputDecoration(
-                        labelText: 'Buscar producto',
+                        labelText: 'Buscar producto o servicio',
                         hintText: 'Escribe el código o nombre...',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(),

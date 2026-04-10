@@ -24,6 +24,7 @@ class ApiSearchVarController extends Controller
                 case 'api':
                     $respuesta = Client::wherenull('deleted_at')
                             ->where('is_from_colppy', 1)
+                            ->where('is_active', 1)
                             ->where(function($query) use ($search) {
                                 $query->where('first_name','LIKE',"%$search%")
                                 ->orwhere('last_name','LIKE',"%$search%")
@@ -33,15 +34,20 @@ class ApiSearchVarController extends Controller
                             ->limit(10)->get();
                     break;
                 case 'hibrido':
-                    $respuesta = Client::where('first_name','LIKE',"%$search%")
-                            ->orwhere('last_name','LIKE',"%$search%")
-                            ->orwhere('num_doc','LIKE',"%$search%")
-                            ->orwhere('id','LIKE',"%$search%")
+                    $respuesta = Client::wherenull('deleted_at')
+                            ->where('is_active', 1)
+                            ->where(function($query) use ($search) {
+                                $query->where('first_name','LIKE',"%$search%")
+                                ->orwhere('last_name','LIKE',"%$search%")
+                                ->orwhere('num_doc','LIKE',"%$search%")
+                                ->orwhere('id','LIKE',"%$search%");
+                            })
                             ->limit(10)
                             ->get();
                     break;
                 default:
                     $respuesta = Client::wherenull('deleted_at')
+                        ->where('is_active', 1)
                         ->where(function($query) {
                             $query->where('is_from_colppy', '!=', 1)
                                   ->orWhereNull('is_from_colppy');
@@ -90,6 +96,7 @@ class ApiSearchVarController extends Controller
             }
             
             $client = Client::where('colppy_id', $colppyId)
+                ->where('is_active', 1)
                 ->whereNull('deleted_at')
                 ->first();
             

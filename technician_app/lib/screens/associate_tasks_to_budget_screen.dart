@@ -67,7 +67,7 @@ class _AssociateTasksToBudgetScreenState
     final budgetProvider = Provider.of<BudgetProvider>(context, listen: false);
 
     final result = await budgetProvider.associateJobsToBudget(
-      budgetId: int.parse(widget.budget.idFactura ?? '0'),
+      budgetId: widget.budget.idFactura ?? '',
       budgetNumber: widget.budget.nroFactura,
       jobIds: _selectedJobIds.toList(),
     );
@@ -102,6 +102,8 @@ class _AssociateTasksToBudgetScreenState
       appBar: AppBar(
         title: const Text('Asociar Tareas'),
         elevation: 0,
+        backgroundColor: const Color(0xFF00274E),  // ✅ Fondo azul oscuro
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [

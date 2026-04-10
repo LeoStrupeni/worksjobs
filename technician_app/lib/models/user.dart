@@ -49,4 +49,10 @@ class User {
   bool get canCreateBudgets => permissions.contains('create budgets');
   bool get canReadBudgets => permissions.contains('read budgets');
   bool get canCreateClients => permissions.contains('create clients');
+  
+  // Permisos de tareas (jobs)
+  bool get canCreateJobs => permissions.contains('create jobs');
+  bool get canReadJobs => permissions.contains('read jobs');
+  bool get canUpdateJobs => permissions.contains('update jobs');
+  bool get canDeleteJobs => permissions.contains('delete jobs');
 }

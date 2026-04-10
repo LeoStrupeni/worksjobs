@@ -106,10 +106,9 @@ class ProductService {
       };
     } catch (e, stackTrace) {
       await DebugLogger.instance.error(
-        '❌ Error al buscar productos/servicios',
+        '❌ Error al buscar productos/servicios: $e',
         category: 'PRODUCTS',
-        error: e,
-        stackTrace: stackTrace,
+        data: {'stackTrace': stackTrace.toString()},
       );
 
       return {

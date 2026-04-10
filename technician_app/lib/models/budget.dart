@@ -7,6 +7,8 @@ class Budget {
   final int? clientId;
   final String? clientName;
   final String? clientCuit;
+  final int? clientAddressId;
+  final String? clientAddress;
   final String fecha; // Fecha del presupuesto
   final double total;
   final String? observaciones;
@@ -23,6 +25,8 @@ class Budget {
     this.clientId,
     this.clientName,
     this.clientCuit,
+    this.clientAddressId,
+    this.clientAddress,
     required this.fecha,
     required this.total,
     this.observaciones,
@@ -37,27 +41,40 @@ class Budget {
     // Parsear items si existen
     List<BudgetItem> itemsList = [];
     if (json['items'] != null && json['items'] is List) {
-      itemsList = (json['items'] as List)
-          .map((item) => BudgetItem.fromJson(item))
-          .toList();
+      for (var item in json['items']) {
+        try {
+          itemsList.add(BudgetItem.fromJson(item));
+        } catch (e) {
+          print('❌ ERROR parseando item: $e');
+          print('Item que falló: $item');
+          // Continuar con los demás items
+        }
+      }
+      print('   - Items parseados exitosamente: ${itemsList.length}');
+    } else {
+      print('   - NO HAY ITEMS o no es lista');
     }
 
-    return Budget(
-      id: json['id'],
-      idFactura: json['id_factura'],
-      nroFactura: json['nro_factura'] ?? '',
-      clientId: json['client_id'],
-      clientName: json['client_name'],
-      clientCuit: json['client_cuit'],
-      fecha: json['fecha'] ?? '',
+    final budget = Budget(
+      id: _parseInt(json['id']),
+      idFactura: json['id_factura']?.toString(),
+      nroFactura: json['nro_factura']?.toString() ?? '',
+      clientId: _parseInt(json['client_id']),
+      clientName: json['client_name']?.toString(),
+      clientCuit: json['client_cuit']?.toString(),
+      clientAddressId: _parseInt(json['client_address_id']),
+      clientAddress: json['client_address']?.toString(),
+      fecha: json['fecha']?.toString() ?? '',
       total: _parseDouble(json['total']),
-      observaciones: json['observaciones'],
-      createdBy: json['created_by'],
-      createdByName: json['created_by_name'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      observaciones: json['observaciones']?.toString(),
+      createdBy: _parseInt(json['created_by']),
+      createdByName: json['created_by_name']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
       items: itemsList,
     );
+    
+    return budget;
   }
 
   Map<String, dynamic> toJson() {
@@ -68,12 +85,26 @@ class Budget {
       if (clientId != null) 'client_id': clientId,
       if (clientName != null) 'client_name': clientName,
       if (clientCuit != null) 'client_cuit': clientCuit,
+      if (clientAddressId != null) 'client_address_id': clientAddressId,
+      if (clientAddress != null) 'client_address': clientAddress,
       'fecha': fecha,
       'total': total,
       if (observaciones != null) 'observaciones': observaciones,
       if (createdBy != null) 'created_by': createdBy,
       'items': items.map((item) => item.toJson()).toList(),
     };
+  }
+
+  // Helper para parsear ints de manera segura
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      if (value.isEmpty) return null;
+      return int.tryParse(value);
+    }
+    if (value is double) return value.toInt();
+    return null;
   }
 
   // Helper para parsear doubles de manera segura
