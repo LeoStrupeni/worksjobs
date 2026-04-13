@@ -107,6 +107,6 @@ class Product extends Model
         }
         
         return $query->limit($limit)
-            ->get(['id', 'codigo', 'descripcion', 'tipo_item', 'is_from_colppy']);
+            ->get(['id', 'codigo', 'descripcion', 'tipo_item', 'is_from_colppy', 'precio_venta']);
     }
 }

@@ -91,24 +91,28 @@ def toggle_debug_feature(enable=True):
     for line in lines:
         if 'START_DEBUG_FEATURE' in line:
             in_debug_block = True
-            if enable:
-                new_lines.append(line.lstrip('// ') if line.strip().startswith('//') else line)
-            else:
-                new_lines.append(f"        // {line.lstrip()}" if not line.strip().startswith('//') else line)
+            new_lines.append(line)  # Mantener markers como están
         elif 'END_DEBUG_FEATURE' in line:
-            if enable:
-                new_lines.append(line.lstrip('// ') if line.strip().startswith('//') else line)
-            else:
-                new_lines.append(f"        // {line.lstrip()}" if not line.strip().startswith('//') else line)
+            new_lines.append(line)  # Mantener markers como están
             in_debug_block = False
         elif in_debug_block:
             if enable:
-                # Descomentar
-                new_lines.append(line.replace('        // ', '        ', 1) if line.strip().startswith('//') else line)
+                # Descomentar: quitar '// ' del inicio (después de espacios)
+                stripped = line.lstrip()
+                if stripped.startswith('// '):
+                    indent = len(line) - len(stripped)
+                    new_lines.append(' ' * indent + stripped[3:])
+                elif stripped.startswith('//'):
+                    indent = len(line) - len(stripped)
+                    new_lines.append(' ' * indent + stripped[2:])
+                else:
+                    new_lines.append(line)
             else:
-                # Comentar
-                if not line.strip().startswith('//') and line.strip():
-                    new_lines.append(f"        // {line.lstrip()}")
+                # Comentar: agregar '// ' al inicio (preservando indentación)
+                stripped = line.lstrip()
+                if stripped and not stripped.startswith('//'):
+                    indent = len(line) - len(stripped)
+                    new_lines.append(' ' * indent + '// ' + stripped)
                 else:
                     new_lines.append(line)
         else:
@@ -263,7 +267,8 @@ def main():
         update_pubspec_version(debug_version, new_build)
         print_success(f"Versión actualizada a {debug_version}+{new_build}")
         
-        # El debug ya está activado (restauramos el archivo)
+        # ✅ Activar debug explícitamente
+        toggle_debug_feature(enable=True)
         print_success("Debug activado (gesto secreto 5 taps)")
         
         # Limpiar y compilar

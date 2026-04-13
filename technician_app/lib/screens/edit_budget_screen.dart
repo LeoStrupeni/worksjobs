@@ -34,6 +34,7 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
   List<BudgetItem> _items = [];
   List<Product> _productSearchResults = [];
   bool _isSearchingProducts = false;
+  bool _isUpdating = false; // ✅ Prevenir múltiples presiones en botón guardar
   bool _showProductSearch = false;
   String? _tipoFilter; // null = todos, 'P' = productos, 'S' = servicios
 
@@ -159,6 +160,12 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
 
   // Actualizar presupuesto
   Future<void> _updateBudget() async {
+    // ✅ Prevenir múltiples presiones
+    if (_isUpdating) {
+      debugPrint('⚠️ Ya se está actualizando un presupuesto');
+      return;
+    }
+
     // Validaciones
     if (_items.isEmpty) {
       CustomAlerts.showWarning(
@@ -179,26 +186,32 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
 
     if (confirm != true) return;
 
-    // Preparar items para envío
-    final itemsData = _items.map((item) {
-      return {
-        'product_id': item.productId,
-        'codigo': item.codigo,
-        'descripcion': item.descripcion,
-        'tipo_item': item.tipoItem,
-        'unit_type': item.unitType,
-        'quantity': item.quantity,
-        'unit_price': item.unitPrice,
-        'subtotal': item.subtotal,
-      };
-    }).toList();
+    // ✅ Marcar como actualizando y actualizar UI
+    setState(() {
+      _isUpdating = true;
+    });
 
-    final provider = Provider.of<BudgetProvider>(context, listen: false);
+    try {
+      // Preparar items para envío
+      final itemsData = _items.map((item) {
+        return {
+          'product_id': item.productId,
+          'codigo': item.codigo,
+          'descripcion': item.descripcion,
+          'tipo_item': item.tipoItem,
+          'unit_type': item.unitType,
+          'quantity': item.quantity,
+          'unit_price': item.unitPrice,
+          'subtotal': item.subtotal,
+        };
+      }).toList();
 
-    // Mostrar loading
-    CustomAlerts.showLoadingAlert(context, title: 'Actualizando presupuesto...');
+      final provider = Provider.of<BudgetProvider>(context, listen: false);
 
-    final result = await provider.updateBudget(
+      // Mostrar loading
+      CustomAlerts.showLoadingAlert(context, title: 'Actualizando presupuesto...');
+
+      final result = await provider.updateBudget(
       idFactura: widget.budget.idFactura ?? '',
       clientId: widget.budget.clientId ?? 0,
       items: itemsData,
@@ -213,20 +226,33 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      CustomAlerts.showSuccess(
+      // Mostrar mensaje de éxito y esperar a que se cierre automáticamente
+      await CustomAlerts.showSuccess(
         context,
         '✅ Presupuesto actualizado',
         'Los cambios se guardaron correctamente',
       );
 
-      // Volver al listado (pop hasta llegar al listado)
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Volver a la lista de presupuestos (después de que se cierra el mensaje)
+      if (mounted) {
+        Navigator.of(context)..pop()..pop();
+      }
+      
+      // La lista se actualiza automáticamente en background (ver BudgetProvider.updateBudget)
     } else {
       CustomAlerts.showError(
         context,
         'Error al actualizar',
         result['message'] ?? 'Error desconocido',
       );
+    }
+    } finally {
+      // ✅ SIEMPRE resetear flag, incluso si hay error
+      if (mounted) {
+        setState(() {
+          _isUpdating = false;
+        });
+      }
     }
   }
 
@@ -242,11 +268,20 @@ class _EditBudgetScreenState extends State<EditBudgetScreen> {
         foregroundColor: Colors.white,
         actions: [
           TextButton.icon(
-            onPressed: _items.isNotEmpty ? _updateBudget : null,
-            icon: const Icon(Icons.check, color: Colors.white),
-            label: const Text(
-              'GUARDAR',
-              style: TextStyle(
+            onPressed: _items.isNotEmpty && !_isUpdating ? _updateBudget : null,
+            icon: _isUpdating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.check, color: Colors.white),
+            label: Text(
+              _isUpdating ? 'GUARDANDO...' : 'GUARDAR',
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),

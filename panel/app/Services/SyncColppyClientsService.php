@@ -29,7 +29,7 @@ class SyncColppyClientsService
     public function syncClients(): array
     {
         try {
-            Log::info('=== INICIO SINCRONIZACIÓN CLIENTES COLPPY (CON FILTRO DE ESTADO) ===');
+            // Log::info('=== INICIO SINCRONIZACIÓN CLIENTES COLPPY (CON FILTRO DE ESTADO) ===');
             
             $clientesSincronizados = 0;
             $clientesActualizados = 0;
@@ -46,11 +46,11 @@ class SyncColppyClientsService
             $errores += $resultadoActivos['errores'];
             $totalProcesados += $resultadoActivos['total'];
 
-            Log::info('Clientes ACTIVOS sincronizados', [
-                'nuevos' => $resultadoActivos['nuevos'],
-                'actualizados' => $resultadoActivos['actualizados'],
-                'total' => $resultadoActivos['total']
-            ]);
+            // Log::info('Clientes ACTIVOS sincronizados', [
+            //     'nuevos' => $resultadoActivos['nuevos'],
+            //     'actualizados' => $resultadoActivos['actualizados'],
+            //     'total' => $resultadoActivos['total']
+            // ]);
 
             // ==========================================
             // PASO 2: Sincronizar CLIENTES INACTIVOS
@@ -62,20 +62,20 @@ class SyncColppyClientsService
             $errores += $resultadoInactivos['errores'];
             $totalProcesados += $resultadoInactivos['total'];
 
-            Log::info('Clientes INACTIVOS sincronizados', [
-                'nuevos' => $resultadoInactivos['nuevos'],
-                'actualizados' => $resultadoInactivos['actualizados'],
-                'total' => $resultadoInactivos['total']
-            ]);
+            // Log::info('Clientes INACTIVOS sincronizados', [
+            //     'nuevos' => $resultadoInactivos['nuevos'],
+            //     'actualizados' => $resultadoInactivos['actualizados'],
+            //     'total' => $resultadoInactivos['total']
+            // ]);
 
-            Log::info('=== FIN SINCRONIZACIÓN CLIENTES COLPPY ===', [
-                'nuevos' => $clientesSincronizados,
-                'actualizados' => $clientesActualizados,
-                'errores' => $errores,
-                'total' => $totalProcesados,
-                'activos' => $resultadoActivos['total'],
-                'inactivos' => $resultadoInactivos['total']
-            ]);
+            // Log::info('=== FIN SINCRONIZACIÓN CLIENTES COLPPY ===', [
+            //     'nuevos' => $clientesSincronizados,
+            //     'actualizados' => $clientesActualizados,
+            //     'errores' => $errores,
+            //     'total' => $totalProcesados,
+            //     'activos' => $resultadoActivos['total'],
+            //     'inactivos' => $resultadoInactivos['total']
+            // ]);
 
             return [
                 'success' => true,

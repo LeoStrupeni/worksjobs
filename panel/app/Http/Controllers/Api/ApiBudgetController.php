@@ -423,6 +423,13 @@ class ApiBudgetController extends Controller
             while ($intentoActual < $maxIntentos && !$presupuestoCreado) {
                 $intentoActual++;
                 
+                Log::info('🔄 ApiBudgetController::store - Intento de crear presupuesto', [
+                    'intento' => $intentoActual,
+                    'maxIntentos' => $maxIntentos,
+                    'client_id' => $client->id,
+                    'items_count' => count($request->items)
+                ]);
+                
                 // Obtener próximo número de talonario
                 $resultadoTalonario = $colppyService->obtenerProximoNumeroTalonario('0002', 'FAV-FE');
                 
@@ -476,7 +483,7 @@ class ApiBudgetController extends Controller
                     'fechaFactura' => $fechaActual,
                     'fechaPago' => $fechaActual,
                     'idCliente' => $client->colppy_id,  // ✅ CORREGIDO: colppy_id no idcolppy
-                    'idCondicionPago' => 'a 7 Dias',
+                    'idCondicionPago' => 'Contado',  // Valor válido según Colppy
                     'idEstadoFactura' => 'Borrador',
                     'idEstadoAnterior' => '',
                     'idFactura' => '',
@@ -496,11 +503,25 @@ class ApiBudgetController extends Controller
                 // Intentar crear el presupuesto
                 $response = $colppyService->crearFacturaVenta($datosPresupuesto);
                 
+                Log::info('📥 ApiBudgetController::store - Respuesta de Colppy crearFacturaVenta', [
+                    'intento' => $intentoActual,
+                    'success' => $response['success'] ?? 'NO DEFINIDO',
+                    'response_keys' => array_keys($response),
+                    'response_completo' => $response['response'] ?? 'NO HAY RESPONSE',
+                    'idfactura_minuscula' => $response['response']['idfactura'] ?? 'NO VIENE',
+                    'idFactura_mayuscula' => $response['response']['idFactura'] ?? 'NO VIENE'
+                ]);
+                
                 if (isset($response['success']) && $response['success'] === true) {
                     $idFactura = $response['response']['idfactura'] ?? null;
                     
                     if ($idFactura) {
                         $presupuestoCreado = true;
+                        
+                        Log::info('✅ ApiBudgetController::store - Presupuesto creado exitosamente', [
+                            'idFactura' => $idFactura,
+                            'nroPresupuesto' => $talonario . '-' . $numeroPresupuesto
+                        ]);
                         
                         // Log::info('Presupuesto creado desde app móvil', [
                         //     'idFactura' => $idFactura,
@@ -533,6 +554,12 @@ class ApiBudgetController extends Controller
                                 'numero' => $numeroPresupuesto
                             ]
                         ], 201);
+                    Log::error('❌ ApiBudgetController::store - crearFacturaVenta retornó error', [
+                        'intento' => $intentoActual,
+                        'mensaje' => $mensajeError,
+                        'response_completa' => $response
+                    ]);
+                    
                     }
                 } else {
                     // Error al crear presupuesto
@@ -848,10 +875,22 @@ class ApiBudgetController extends Controller
             // USAR MÉTODO CENTRALIZADO DEL MODELO
             $items = Product::searchProductsAndServices($search, $tipo, $limit);
             
+            // Mapear precio_venta a precio para Flutter
+            $itemsFormateados = $items->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'codigo' => $item->codigo,
+                    'descripcion' => $item->descripcion,
+                    'tipo_item' => $item->tipo_item,
+                    'is_from_colppy' => $item->is_from_colppy,
+                    'precio' => $item->precio_venta ?? 0.0  // Mapear precio_venta a precio
+                ];
+            });
+            
             return response()->json([
                 'success' => true,
-                'data' => $items,
-                'count' => $items->count()
+                'data' => $itemsFormateados,
+                'count' => $itemsFormateados->count()
             ]);
             
         } catch (\Exception $e) {

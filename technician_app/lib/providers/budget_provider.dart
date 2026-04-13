@@ -260,8 +260,17 @@ class BudgetProvider with ChangeNotifier {
           category: 'BUDGET_PROVIDER',
         );
 
-        // Recargar lista
-        await fetchBudgets(page: 1);
+        // ⚠️ TEMPORAL: No recargar lista inmediatamente para evitar error
+        // Si falla fetchBudgets, el createBudget devuelve error aunque creó exitosamente
+        // await fetchBudgets(page: 1);
+
+        // Recargar lista en background sin esperar
+        fetchBudgets(page: 1).catchError((e) {
+          DebugLogger.instance.warning(
+            '⚠️ No se pudo recargar lista después de crear (no crítico)',
+            category: 'BUDGET_PROVIDER',
+          );
+        });
 
         return {
           'success': true,
@@ -344,8 +353,14 @@ class BudgetProvider with ChangeNotifier {
           category: 'BUDGET_PROVIDER',
         );
 
-        // Recargar lista
-        await fetchBudgets(page: 1);
+        // ⚠️ TEMPORAL: No recargar lista inmediatamente para evitar error
+        // Recargar lista en background sin esperar
+        fetchBudgets(page: 1).catchError((e) {
+          DebugLogger.instance.warning(
+            '⚠️ No se pudo recargar lista después de actualizar (no crítico)',
+            category: 'BUDGET_PROVIDER',
+          );
+        });
 
         return {
           'success': true,

@@ -170,12 +170,14 @@ class ColppyService
             if ($response->successful()) {
                 $data = $response->json();
                 
-                // Log de respuesta completa para debugging
-                // Log::info('Respuesta completa de Colppy', [
-                //     'provision' => $payload['service']['provision'] ?? 'unknown',
-                //     'operacion' => $payload['service']['operacion'] ?? 'unknown',
-                //     'response' => $data
-                // ]);
+                // Log TEMPORAL para debugging (eliminar después)
+                Log::info('🔍 ColppyService::hacerLlamada - $data completo', [
+                    'provision' => $payload['service']['provision'] ?? 'unknown',
+                    'operacion' => $payload['service']['operacion'] ?? 'unknown',
+                    'data_completo' => $data,
+                    'exito' => $data['exito'] ?? 'NO EXISTE',
+                    'response_success' => $data['response']['success'] ?? 'NO EXISTE'
+                ]);
 
                 $esExito = ($data['exito'] ?? false)
                     || (isset($data['result']['estado']) && (int) $data['result']['estado'] === 0)
@@ -502,7 +504,7 @@ class ColppyService
         $defaults = [
             'idTipoFactura' => '7',  // 7 = Presupuesto/Cotización (tipo X)
             'idEstadoFactura' => '1',  // 1 = Borrador
-            'idCondiciónPago' => 'a 15 dias',  // Texto según aparece en Colppy
+            'idCondicionPago' => 'a 15 Dias',  // Sin tilde, Dias con mayúscula
             'idTipoComprobante' => '4',
             'idMoneda' => '1',  // Pesos argentinos
             'valorCambio' => '1',
@@ -650,7 +652,7 @@ class ColppyService
                 'fechaFactura' => $data['fechaFactura'],
                 'fechaPago' => $data['fechaPago'] ?? $data['fechaFactura'],
                 'idCliente' => $data['idCliente'],
-                'idCondicionPago' => $data['idCondiciónPago'],  // Sin tilde según API Colppy
+                'idCondicionPago' => $data['idCondicionPago'],  // SIN tilde (consistente)
                 'idEmpresa' => $this->idEmpresa,
                 'idEstadoAnterior' => $data['idEstadoAnterior'],
                 'idEstadoFactura' => $data['idEstadoFactura'],

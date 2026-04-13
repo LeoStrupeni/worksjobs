@@ -37,6 +37,7 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
   bool _isSearchingProducts = false;
   bool _isSearchingClients = false;
   bool _isCreatingClient = false;
+  bool _isCreating = false; // ✅ Prevenir múltiples presiones en botón crear
   bool _showProductSearch = false;
   String? _tipoFilter; // null = todos, 'P' = productos, 'S' = servicios
 
@@ -203,6 +204,12 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
 
   // Crear presupuesto
   Future<void> _createBudget() async {
+    // ✅ Prevenir múltiples presiones
+    if (_isCreating) {
+      debugPrint('⚠️ Ya se está creando un presupuesto');
+      return;
+    }
+
     // Validaciones
     if (_selectedClient == null) {
       CustomAlerts.showWarning(
@@ -228,32 +235,39 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
       '¿Crear presupuesto?',
       'Cliente: ${_selectedClient!.name}\n'
       '${_items.length} ${_items.length == 1 ? 'item' : 'items'}\n'
-      'Total: ${NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(_total)}',
+      'Total: ${NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(_total)}\n'
+      '+ Impuestos',
     );
 
     if (confirm != true) return;
 
-    // Preparar items para envío
-    final itemsData = _items.map((item) {
-      return {
-        'product_id': item.productId,
-        'codigo': item.codigo,
-        'descripcion': item.descripcion,
-        'tipo_item': item.tipoItem,
-        'unit_type': item.unitType,
-        'quantity': item.quantity,
-        'unit_price': item.unitPrice,
-        'subtotal': item.subtotal,
-      };
-    }).toList();
+    // ✅ Marcar como creando y actualizar UI
+    setState(() {
+      _isCreating = true;
+    });
 
-    // Crear presupuesto (fecha automática: hoy)
-    final provider = Provider.of<BudgetProvider>(context, listen: false);
+    try {
+      // Preparar items para envío
+      final itemsData = _items.map((item) {
+        return {
+          'product_id': item.productId,
+          'codigo': item.codigo,
+          'descripcion': item.descripcion,
+          'tipo_item': item.tipoItem,
+          'unit_type': item.unitType,
+          'quantity': item.quantity,
+          'unit_price': item.unitPrice,
+          'subtotal': item.subtotal,
+        };
+      }).toList();
 
-    // ✅ AGREGAR: Mostrar loading mientras se crea
-    CustomAlerts.showLoadingAlert(context, title: 'Creando presupuesto...');
+      // Crear presupuesto (fecha automática: hoy)
+      final provider = Provider.of<BudgetProvider>(context, listen: false);
 
-    final result = await provider.createBudget(
+      // ✅ AGREGAR: Mostrar loading mientras se crea
+      CustomAlerts.showLoadingAlert(context, title: 'Creando presupuesto...');
+
+      final result = await provider.createBudget(
       clientId: _selectedClient!.id!,
       fecha: DateFormat('yyyy-MM-dd').format(DateTime.now()), // Fecha automática
       items: itemsData,
@@ -268,27 +282,31 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      CustomAlerts.showSuccess(
+      // Mostrar mensaje de éxito y esperar a que se cierre automáticamente
+      await CustomAlerts.showSuccess(
         context,
         '✅ Presupuesto creado!',
         'Nro: ${result['budget'].nroFactura}',
       );
 
-      // Navegar al detalle
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BudgetDetailScreen(
-            budgetId: result['budget'].id,
-          ),
-        ),
-      );
+      // Volver a la lista de presupuestos (después de que se cierra el mensaje)
+      if (mounted) Navigator.pop(context);
+      
+      // La lista se actualiza automáticamente en background (ver BudgetProvider.createBudget)
     } else {
       CustomAlerts.showError(
         context,
         'Error al crear presupuesto',
         result['message'] ?? 'Error desconocido',
       );
+    }
+    } finally {
+      // ✅ SIEMPRE resetear flag, incluso si hay error
+      if (mounted) {
+        setState(() {
+          _isCreating = false;
+        });
+      }
     }
   }
 
@@ -304,13 +322,22 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
         foregroundColor: Colors.white,
         actions: [
           TextButton.icon(
-            onPressed: _items.isNotEmpty && _selectedClient != null
+            onPressed: _items.isNotEmpty && _selectedClient != null && !_isCreating
                 ? _createBudget
                 : null,
-            icon: const Icon(Icons.check, color: Colors.white),
-            label: const Text(
-              'CREAR',
-              style: TextStyle(
+            icon: _isCreating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.check, color: Colors.white),
+            label: Text(
+              _isCreating ? 'CREANDO...' : 'CREAR',
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -757,13 +784,26 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text(
-                        formatter.format(_total),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green[700],
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            formatter.format(_total),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                          Text(
+                            '+ Impuestos',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
