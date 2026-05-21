@@ -35,12 +35,79 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Set<int> _selectedImageIds = {}; // Para tracking de imágenes seleccionadas
   bool _isSelectionMode = false; // Modo selección múltiple
 
+  String _sanitizePdfFilenamePart(String? value) {
+    final raw = (value ?? '').trim();
+    if (raw.isEmpty) return '';
+
+    final sanitized = raw
+        .replaceAll(RegExp(r'[\\/:*?"<>|]+'), '')
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+
+    return sanitized;
+  }
+
+  String _formatVisitDateForPdfFilename(String? visitDatetime) {
+    if (visitDatetime == null || visitDatetime.trim().isEmpty) {
+      return '';
+    }
+
+    final raw = visitDatetime.trim();
+    DateTime? parsedDate;
+
+    parsedDate = DateTime.tryParse(raw);
+
+    if (parsedDate == null) {
+      final localFormat = RegExp(r'^(\d{2})\/(\d{2})\/(\d{2,4})');
+      final match = localFormat.firstMatch(raw);
+      if (match != null) {
+        final day = int.tryParse(match.group(1)!);
+        final month = int.tryParse(match.group(2)!);
+        var year = int.tryParse(match.group(3)!);
+        if (day != null && month != null && year != null) {
+          if (year < 100) {
+            year += 2000;
+          }
+          parsedDate = DateTime(year, month, day);
+        }
+      }
+    }
+
+    if (parsedDate == null) {
+      return '';
+    }
+
+    return DateFormat('dd-MM-yy').format(parsedDate);
+  }
+
+  String _buildPdfFileName(Job job) {
+    final clientName = _sanitizePdfFilenamePart(job.clientName) == ''
+        ? 'cliente'
+        : _sanitizePdfFilenamePart(job.clientName);
+    final orderNumber = _sanitizePdfFilenamePart(job.id?.toString()) == ''
+        ? 'sin_orden'
+        : _sanitizePdfFilenamePart(job.id?.toString());
+    final visitDate = _sanitizePdfFilenamePart(
+      _formatVisitDateForPdfFilename(job.visitDatetime),
+    );
+
+    final parts = <String>[clientName, orderNumber];
+    if (visitDate.isNotEmpty) {
+      parts.add(visitDate);
+    }
+
+    return '${parts.join('_')}.pdf';
+  }
+
   @override
   void initState() {
     super.initState();
     _loadTechnicians();
     Future.microtask(() {
       context.read<JobProvider>().fetchJobDetail(widget.jobId);
+      context.read<JobProvider>().refreshPendingUploadsState();
+      context.read<JobProvider>().retryPendingUploadsForJob(widget.jobId);
     });
   }
 
@@ -75,7 +142,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.add_photo_alternate, color: Color(0xFF00274E)),
+              leading: const Icon(Icons.add_photo_alternate,
+                  color: Color(0xFF00274E)),
               title: const Text('Agregar Foto'),
               onTap: () {
                 Navigator.pop(context);
@@ -90,7 +158,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _showAddPhotoDialog() async {
     final ImagePicker picker = ImagePicker();
-    
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -115,7 +183,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Color(0xFF00274E)),
+              leading:
+                  const Icon(Icons.photo_library, color: Color(0xFF00274E)),
               title: const Text('Seleccionar de Galería (Múltiple)'),
               onTap: () async {
                 Navigator.pop(context);
@@ -142,12 +211,13 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   void _showImageViewer(int initialIndex, List files) {
-    final PageController pageController = PageController(initialPage: initialIndex);
+    final PageController pageController =
+        PageController(initialPage: initialIndex);
     int currentPage = initialIndex;
-    
+
     // Obtener usuario para verificar permisos
     final user = Provider.of<AuthProvider>(context, listen: false).user;
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -166,7 +236,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 },
                 itemBuilder: (context, index) {
                   final file = files[index];
-                  final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                  final imageUrl =
+                      'https://tecnicos.strupeni.com.ar/storage/${file.name}';
                   return InteractiveViewer(
                     child: Center(
                       child: Image.network(
@@ -177,7 +248,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.error, color: Colors.white, size: 64),
+                                Icon(Icons.error,
+                                    color: Colors.white, size: 64),
                                 SizedBox(height: 16),
                                 Text(
                                   'Error al cargar imagen',
@@ -192,7 +264,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           return Center(
                             child: CircularProgressIndicator(
                               value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
                                   : null,
                               color: Colors.white,
                             ),
@@ -217,7 +290,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       Row(
                         children: [
                           IconButton(
-                            icon: Icon(Icons.download, color: Colors.white, size: 28),
+                            icon: Icon(Icons.download,
+                                color: Colors.white, size: 28),
                             onPressed: () => _downloadImage(files[currentPage]),
                             tooltip: 'Descargar',
                           ),
@@ -225,7 +299,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           if (user?.canShare == true) ...[
                             SizedBox(width: 8),
                             IconButton(
-                              icon: Icon(Icons.share, color: Colors.white, size: 28),
+                              icon: Icon(Icons.share,
+                                  color: Colors.white, size: 28),
                               onPressed: () => _shareImage(files[currentPage]),
                               tooltip: 'Compartir',
                             ),
@@ -249,7 +324,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   right: 0,
                   child: Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(20),
@@ -270,7 +346,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _uploadPhoto(String filePath) async {
     final jobProvider = context.read<JobProvider>();
-    
+
     // Mostrar indicador de carga
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -294,16 +370,26 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       );
     }
 
-    final success = await jobProvider.uploadFiles(widget.jobId, [filePath]);
-    
+    final result = await jobProvider.uploadFiles(widget.jobId, [filePath]);
+    final success = result['success'] == true;
+    final queued = result['queued'] == true;
+
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success ? '✅ Foto subida exitosamente' : '❌ Error al subir foto',
+            success
+                ? '✅ Foto subida exitosamente'
+                : queued
+                    ? '⏳ Sin señal estable: foto en cola para reintento automático'
+                    : '❌ Error al subir foto',
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: success
+              ? Colors.green
+              : queued
+                  ? Colors.orange
+                  : Colors.red,
         ),
       );
     }
@@ -312,7 +398,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Future<void> _uploadPhotos(List<String> filePaths) async {
     final jobProvider = context.read<JobProvider>();
     final count = filePaths.length;
-    
+
     // Mostrar indicador de carga
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -336,18 +422,26 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       );
     }
 
-    final success = await jobProvider.uploadFiles(widget.jobId, filePaths);
-    
+    final result = await jobProvider.uploadFiles(widget.jobId, filePaths);
+    final success = result['success'] == true;
+    final queued = result['queued'] == true;
+
     if (mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            success 
-              ? '✅ $count foto${count != 1 ? 's' : ''} subida${count != 1 ? 's' : ''} exitosamente' 
-              : '❌ Error al subir fotos',
+            success
+                ? '✅ $count foto${count != 1 ? 's' : ''} subida${count != 1 ? 's' : ''} exitosamente'
+                : queued
+                    ? '⏳ $count foto${count != 1 ? 's' : ''} en cola para reintento automático'
+                    : '❌ Error al subir fotos',
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: success
+              ? Colors.green
+              : queued
+                  ? Colors.orange
+                  : Colors.red,
         ),
       );
     }
@@ -367,20 +461,24 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     final success = await CustomAlerts.executeWithLoading(
       context,
       operation: () async {
-        return await context.read<JobProvider>().deleteFile(widget.jobId, file.id);
+        return await context
+            .read<JobProvider>()
+            .deleteFile(widget.jobId, file.id);
       },
       loadingMessage: 'Eliminando imagen...',
       successTitle: 'Imagen eliminada',
       successMessage: 'La imagen se eliminó correctamente',
       errorTitle: 'Error al eliminar imagen',
-      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo eliminar la imagen',
+      getErrorMessage: () =>
+          context.read<JobProvider>().errorMessage ??
+          'No se pudo eliminar la imagen',
     );
   }
 
   Future<void> _downloadImage(dynamic file) async {
     try {
       final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -405,23 +503,23 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
       // Descargar la imagen
       final response = await http.get(Uri.parse(imageUrl));
-      
+
       if (response.statusCode == 200) {
         // Guardar temporalmente
         final dir = await getTemporaryDirectory();
         final filePath = '${dir.path}/${file.originalName ?? file.name}';
         final tempFile = File(filePath);
         await tempFile.writeAsBytes(response.bodyBytes);
-        
+
         // Guardar en la galería
         await Gal.putImage(filePath, album: 'Strupeni');
-        
+
         // Limpiar archivo temporal
         await tempFile.delete();
 
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ Imagen guardada en la galería'),
@@ -449,7 +547,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Future<void> _shareImage(dynamic file) async {
     try {
       final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -474,11 +572,12 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
       // Descargar la imagen
       final response = await http.get(Uri.parse(imageUrl));
-      
+
       if (response.statusCode == 200) {
         // Guardar temporalmente
         final tempDir = await getTemporaryDirectory();
-        final fileName = file.originalName ?? 'imagen_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final fileName = file.originalName ??
+            'imagen_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final filePath = '${tempDir.path}/$fileName';
         final tempFile = File(filePath);
         await tempFile.writeAsBytes(response.bodyBytes);
@@ -521,10 +620,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Future<void> _shareSelectedImages() async {
     final jobProvider = context.read<JobProvider>();
     final files = jobProvider.files;
-    
+
     // Filtrar solo las imágenes seleccionadas
-    final selectedFiles = files.where((file) => _selectedImageIds.contains(file.id)).toList();
-    
+    final selectedFiles =
+        files.where((file) => _selectedImageIds.contains(file.id)).toList();
+
     if (selectedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -550,7 +650,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Text('Preparando ${selectedFiles.length} imagen${selectedFiles.length > 1 ? 'es' : ''}...'),
+                Text(
+                    'Preparando ${selectedFiles.length} imagen${selectedFiles.length > 1 ? 'es' : ''}...'),
               ],
             ),
             duration: const Duration(seconds: 10),
@@ -563,11 +664,13 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       final List<XFile> xFiles = [];
 
       for (var file in selectedFiles) {
-        final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+        final imageUrl =
+            'https://tecnicos.strupeni.com.ar/storage/${file.name}';
         final response = await http.get(Uri.parse(imageUrl));
-        
+
         if (response.statusCode == 200) {
-          final fileName = file.originalName ?? 'imagen_${DateTime.now().millisecondsSinceEpoch}_${file.id}.jpg';
+          final fileName = file.originalName ??
+              'imagen_${DateTime.now().millisecondsSinceEpoch}_${file.id}.jpg';
           final filePath = '${tempDir.path}/$fileName';
           final tempFile = File(filePath);
           await tempFile.writeAsBytes(response.bodyBytes);
@@ -593,7 +696,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✅ ${xFiles.length} imagen${xFiles.length > 1 ? 'es' : ''} compartida${xFiles.length > 1 ? 's' : ''} exitosamente'),
+              content: Text(
+                  '✅ ${xFiles.length} imagen${xFiles.length > 1 ? 'es' : ''} compartida${xFiles.length > 1 ? 's' : ''} exitosamente'),
               backgroundColor: Colors.green,
             ),
           );
@@ -617,7 +721,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _showAddNoteDialog() async {
     _noteController.clear();
-    
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -639,21 +743,23 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             onPressed: () async {
               if (_noteController.text.trim().isNotEmpty) {
                 Navigator.pop(context);
-                
+
                 if (mounted) {
                   await CustomAlerts.executeWithLoading(
                     context,
                     operation: () async {
                       return await context.read<JobProvider>().addNote(
-                        widget.jobId,
-                        _noteController.text.trim(),
-                      );
+                            widget.jobId,
+                            _noteController.text.trim(),
+                          );
                     },
                     loadingMessage: 'Agregando nota...',
                     successTitle: 'Nota agregada',
                     successMessage: 'La nota se agregó correctamente',
                     errorTitle: 'Error al agregar nota',
-                    getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo agregar la nota',
+                    getErrorMessage: () =>
+                        context.read<JobProvider>().errorMessage ??
+                        'No se pudo agregar la nota',
                   );
                 }
               }
@@ -668,16 +774,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Future<void> _showEditTechniciansDialog() async {
     final job = context.read<JobProvider>().selectedJob;
     if (job == null) return;
-    
+
     List<int> selectedIds = [];
-    
+
     // Pre-seleccionar técnicos ya asignados
     if (job.technicians != null) {
-      selectedIds = job.technicians!
-        .map((t) => t['id'] as int)
-        .toList();
+      selectedIds = job.technicians!.map((t) => t['id'] as int).toList();
     }
-    
+
     return showDialog(
       context: context,
       barrierDismissible: true,
@@ -734,7 +838,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                               }
                             });
                           },
-                          selectedColor: const Color(0xFF00274E).withOpacity(0.2),
+                          selectedColor:
+                              const Color(0xFF00274E).withOpacity(0.2),
                           checkmarkColor: const Color(0xFF00274E),
                         );
                       }).toList(),
@@ -751,7 +856,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             ElevatedButton(
               onPressed: () async {
                 final jobProvider = context.read<JobProvider>();
-                
+
                 try {
                   final success = await CustomAlerts.executeWithLoading(
                     context,
@@ -763,11 +868,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     },
                     loadingMessage: 'Actualizando técnicos...',
                     successTitle: 'Técnicos actualizados',
-                    successMessage: 'Los técnicos se actualizaron correctamente',
+                    successMessage:
+                        'Los técnicos se actualizaron correctamente',
                     errorTitle: 'Error',
-                    getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo actualizar los técnicos',
+                    getErrorMessage: () =>
+                        jobProvider.errorMessage ??
+                        'No se pudo actualizar los técnicos',
                   );
-                  
+
                   // Cerrar el modal DESPUÉS de que termine la operación
                   if (mounted && success) {
                     Navigator.pop(context);
@@ -797,12 +905,12 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Future<void> _navigateToEditProducts() async {
     final job = context.read<JobProvider>().selectedJob;
     if (job == null) return;
-    
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => _ProductsDialog(job: job),
     );
-    
+
     // Si se guardaron cambios, recargar el detalle
     if (result == true && mounted) {
       context.read<JobProvider>().fetchJobDetail(widget.jobId);
@@ -833,7 +941,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
     if (confirmed == true && mounted) {
       final success = await context.read<JobProvider>().closeJob(widget.jobId);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -867,8 +975,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final success = await context.read<JobProvider>().markArrival(widget.jobId);
-      
+      final success =
+          await context.read<JobProvider>().markArrival(widget.jobId);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -887,7 +996,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Volver a Pendiente'),
-        content: const Text('¿Deseas revertir el arribo y volver la tarea a estado pendiente?'),
+        content: const Text(
+            '¿Deseas revertir el arribo y volver la tarea a estado pendiente?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -905,13 +1015,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     );
 
     if (confirmed == true && mounted) {
-      final success = await context.read<JobProvider>().revertArrival(widget.jobId);
-      
+      final success =
+          await context.read<JobProvider>().revertArrival(widget.jobId);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success ? 'Tarea devuelta a pendiente' : 'Error al revertir arribo',
+              success
+                  ? 'Tarea devuelta a pendiente'
+                  : 'Error al revertir arribo',
             ),
             backgroundColor: success ? Colors.orange : Colors.red,
           ),
@@ -974,10 +1087,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         if (result['success'] == true) {
           // Decodificar el PDF de base64
           final pdfBytes = base64Decode(result['pdf']);
-          
+
           // Guardar el archivo temporalmente
           final tempDir = await getTemporaryDirectory();
-          final fileName = result['filename'] ?? 'Trabajo_${job.id}.pdf';
+          final fileName = _buildPdfFileName(job);
           final filePath = '${tempDir.path}/$fileName';
           final pdfFile = File(filePath);
           await pdfFile.writeAsBytes(pdfBytes);
@@ -1010,14 +1123,15 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   ElevatedButton(
                     onPressed: () async {
                       Navigator.pop(context);
-                      
+
                       // Compartir el PDF
                       final result = await Share.shareXFiles(
                         [XFile(filePath)],
                         text: 'Trabajo realizado - Tarea #${job.id}',
                       );
 
-                      if (mounted && result.status == ShareResultStatus.success) {
+                      if (mounted &&
+                          result.status == ShareResultStatus.success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('✅ PDF compartido exitosamente'),
@@ -1039,7 +1153,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('❌ Error: ${result['message'] ?? 'No se pudo generar el PDF'}'),
+              content: Text(
+                  '❌ Error: ${result['message'] ?? 'No se pudo generar el PDF'}'),
               backgroundColor: Colors.red,
             ),
           );
@@ -1072,7 +1187,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             ),
           ),
         ),
-        title: const Text('Detalle de Cita', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Detalle de Cita',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
@@ -1092,7 +1208,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Error al cargar la cita',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Padding(
@@ -1121,13 +1238,17 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           }
 
           final job = jobProvider.selectedJob;
-          
+          final pendingCount = job != null
+              ? jobProvider.getPendingUploadsForJob(job.id ?? -1)
+              : 0;
+
           if (job == null) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.info_outline, color: Colors.orange, size: 64),
+                  const Icon(Icons.info_outline,
+                      color: Colors.orange, size: 64),
                   const SizedBox(height: 16),
                   const Text('Cita no encontrada'),
                   const SizedBox(height: 16),
@@ -1146,7 +1267,46 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               children: [
                 // Estado de la cita
                 _buildStatusBanner(job),
-                
+
+                if (pendingCount > 0)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    color: Colors.orange.withOpacity(0.15),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.cloud_upload, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Hay $pendingCount imagen${pendingCount > 1 ? 'es' : ''} pendiente${pendingCount > 1 ? 's' : ''} de envío. La app seguirá reintentando.',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final result = await jobProvider
+                                .retryPendingUploadsForJob(widget.jobId);
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(result['message']?.toString() ??
+                                    'Reintento ejecutado'),
+                                backgroundColor: (result['sent'] ?? 0) > 0
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            );
+                          },
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Información del cliente
                 _buildSection(
                   'Cliente',
@@ -1158,7 +1318,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       _buildInfoRow(Icons.phone, job.clientPhone!),
                   ],
                 ),
-                
+
                 // Dirección
                 if (job.fullAddress != null)
                   _buildSection(
@@ -1167,7 +1327,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       _buildInfoRow(Icons.location_on, job.fullAddress!),
                     ],
                   ),
-                
+
                 // Información de la cita
                 _buildSection(
                   'Detalles de la Cita',
@@ -1177,7 +1337,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         Icons.calendar_today,
                         _formatDateTime(job.visitDatetime!),
                       ),
-                    if (job.jobDescription != null && job.jobDescription!.isNotEmpty)
+                    if (job.jobDescription != null &&
+                        job.jobDescription!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Column(
@@ -1197,7 +1358,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                       ),
                   ],
                 ),
-                
+
                 // Historial
                 if (job.arrivalDatetime != null || job.closedDatetime != null)
                   _buildSection(
@@ -1213,7 +1374,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           Icons.done_all,
                           'Cerrado: ${_formatDateTime(job.closedDatetime!)}',
                         ),
-                      if (job.closedJobObservation != null && 
+                      if (job.closedJobObservation != null &&
                           job.closedJobObservation!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1234,20 +1395,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         ),
                     ],
                   ),
-                
+
                 // Técnicos asignados
                 _buildTechniciansSection(job),
-                
+
                 // Productos
                 _buildProductsSection(job),
-                
+
                 // Notas
                 _buildNotesSection(jobProvider.notes),
-                
+
                 // Imágenes/Archivos
                 _buildImagesSection(jobProvider.files),
-                
-                const SizedBox(height: 80), // Espacio para los botones flotantes
+
+                const SizedBox(
+                    height: 80), // Espacio para los botones flotantes
               ],
             ),
           );
@@ -1257,7 +1419,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         builder: (context, jobProvider, child) {
           final job = jobProvider.selectedJob;
           if (job == null) return const SizedBox.shrink();
-          
+
           return _buildActionButtons(job);
         },
       ),
@@ -1266,9 +1428,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           final job = jobProvider.selectedJob;
           final permissions = jobProvider.permissions;
           final user = Provider.of<AuthProvider>(context, listen: false).user;
-          
+
           // Si hay imágenes seleccionadas, mostrar botón de compartir
-          if (_isSelectionMode && _selectedImageIds.isNotEmpty && user?.canShare == true) {
+          if (_isSelectionMode &&
+              _selectedImageIds.isNotEmpty &&
+              user?.canShare == true) {
             return FloatingActionButton.extended(
               onPressed: _shareSelectedImages,
               icon: const Icon(Icons.share, color: Colors.white),
@@ -1280,12 +1444,15 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               foregroundColor: Colors.white,
             );
           }
-          
+
           // No mostrar botón si la cita está cerrada o no hay permisos
-          if (job == null || job.isClosed || permissions == null || !permissions.canAddNote) {
+          if (job == null ||
+              job.isClosed ||
+              permissions == null ||
+              !permissions.canAddNote) {
             return const SizedBox.shrink();
           }
-          
+
           return FloatingActionButton(
             onPressed: _showOptionsDialog,
             child: const Icon(Icons.add),
@@ -1298,7 +1465,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Widget _buildStatusBanner(Job job) {
     Color color;
     IconData icon;
-    
+
     if (job.isClosed) {
       color = Colors.grey;
       icon = Icons.done_all;
@@ -1445,7 +1612,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     // Obtener usuario para verificar permiso de compartir
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     final canShare = user?.canShare == true;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1542,7 +1709,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.info_outline, color: Color(0xFF00274E), size: 20),
+                    const Icon(Icons.info_outline,
+                        color: Color(0xFF00274E), size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Seleccionadas: ${_selectedImageIds.length}',
@@ -1564,7 +1732,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           }
                         });
                       },
-                      child: const Text('Todas', style: TextStyle(color: Color(0xFF00274E))),
+                      child: const Text('Todas',
+                          style: TextStyle(color: Color(0xFF00274E))),
                     ),
                     TextButton(
                       onPressed: () {
@@ -1572,7 +1741,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           _selectedImageIds.clear();
                         });
                       },
-                      child: const Text('Ninguna', style: TextStyle(color: Color(0xFF00274E))),
+                      child: const Text('Ninguna',
+                          style: TextStyle(color: Color(0xFF00274E))),
                     ),
                     TextButton(
                       onPressed: () {
@@ -1581,7 +1751,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           _selectedImageIds.clear();
                         });
                       },
-                      child: const Text('Cancelar', style: TextStyle(color: Colors.red)),
+                      child: const Text('Cancelar',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -1596,7 +1767,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             child: Center(
               child: Column(
                 children: [
-                  Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey[400]),
+                  Icon(Icons.add_photo_alternate,
+                      size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 8),
                   Text(
                     'No hay imágenes',
@@ -1621,9 +1793,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 itemCount: files.length,
                 itemBuilder: (context, index) {
                   final file = files[index];
-                  final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                  final imageUrl =
+                      'https://tecnicos.strupeni.com.ar/storage/${file.name}';
                   final isSelected = _selectedImageIds.contains(file.id);
-                  
+
                   return GestureDetector(
                     onTap: () {
                       if (_isSelectionMode) {
@@ -1645,7 +1818,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF00274E) : Colors.grey[300]!,
+                          color: isSelected
+                              ? const Color(0xFF00274E)
+                              : Colors.grey[300]!,
                           width: isSelected ? 3 : 1,
                         ),
                       ),
@@ -1662,13 +1837,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                 return Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.image, size: 40, color: Colors.grey[400]),
+                                    Icon(Icons.image,
+                                        size: 40, color: Colors.grey[400]),
                                     const SizedBox(height: 4),
                                     Padding(
                                       padding: const EdgeInsets.all(4),
                                       child: Text(
                                         file.originalName ?? 'Imagen',
-                                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                        style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey[600]),
                                         textAlign: TextAlign.center,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -1677,12 +1855,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                   ],
                                 );
                               },
-                              loadingBuilder: (context, child, loadingProgress) {
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
                                 if (loadingProgress == null) return child;
                                 return Center(
                                   child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
                                         : null,
                                   ),
                                 );
@@ -1704,14 +1886,23 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                   ),
                                 ),
                                 child: Icon(
-                                  isSelected ? Icons.check_circle : Icons.circle_outlined,
-                                  color: isSelected ? const Color(0xFF00274E) : Colors.grey,
+                                  isSelected
+                                      ? Icons.check_circle
+                                      : Icons.circle_outlined,
+                                  color: isSelected
+                                      ? const Color(0xFF00274E)
+                                      : Colors.grey,
                                   size: 24,
                                 ),
                               ),
                             ),
                           // Botón de eliminar - solo si tiene permiso y no está en modo selección
-                          if (!_isSelectionMode && (context.read<JobProvider>().permissions?.delete ?? false))
+                          if (!_isSelectionMode &&
+                              (context
+                                      .read<JobProvider>()
+                                      .permissions
+                                      ?.delete ??
+                                  false))
                             Positioned(
                               top: 4,
                               right: 4,
@@ -1721,7 +1912,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 16),
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 16),
                                   color: Colors.white,
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
@@ -1745,8 +1937,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   }
 
   Widget _buildTechniciansSection(Job job) {
-    final hasTechnicians = job.technicians != null && job.technicians!.isNotEmpty;
-    
+    final hasTechnicians =
+        job.technicians != null && job.technicians!.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1805,7 +1998,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
               : Center(
                   child: Column(
                     children: [
-                      Icon(Icons.engineering_outlined, size: 48, color: Colors.grey[400]),
+                      Icon(Icons.engineering_outlined,
+                          size: 48, color: Colors.grey[400]),
                       const SizedBox(height: 8),
                       Text(
                         'No hay técnicos asignados',
@@ -1829,7 +2023,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Widget _buildProductsSection(Job job) {
     final hasProducts = job.products != null && job.products!.isNotEmpty;
-    
+
     return Card(
       margin: const EdgeInsets.all(12),
       elevation: 2,
@@ -1900,7 +2094,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 : Center(
                     child: Column(
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[400]),
+                        Icon(Icons.inventory_2_outlined,
+                            size: 48, color: Colors.grey[400]),
                         const SizedBox(height: 8),
                         Text(
                           'No hay productos asociados',
@@ -1927,7 +2122,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     return Consumer<JobProvider>(
       builder: (context, jobProvider, child) {
         final permissions = jobProvider.permissions;
-        
+
         // Si no hay permisos, no mostrar botones
         if (permissions == null) {
           return const SizedBox.shrink();
@@ -1997,9 +2192,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                     ),
                   ),
                 ),
-              
+
               // Botón "Volver a Pendiente" - solo si ha arribado pero no cerrado
-              if (job.isInPlace && !job.isClosed && permissions.canMarkArrival) ...[
+              if (job.isInPlace &&
+                  !job.isClosed &&
+                  permissions.canMarkArrival) ...[
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _handleRevertArrival,
@@ -2013,9 +2210,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 ),
                 const SizedBox(width: 8),
               ],
-              
+
               // Botón "Cerrar Cita" - solo si tiene permiso de update
-              if (job.isInPlace && !job.isClosed && permissions.canCloseJob) ...[
+              if (job.isInPlace &&
+                  !job.isClosed &&
+                  permissions.canCloseJob) ...[
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _showCloseJobDialog,
@@ -2058,17 +2257,17 @@ class _ProductsDialog extends StatefulWidget {
 class _ProductsDialogState extends State<_ProductsDialog> {
   final _searchController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
-  
+
   List<Product> _searchResults = [];
   List<Product> _initialProducts = [];
   List<SelectedProduct> _selectedProducts = [];
-  
+
   Product? _selectedProduct;
   String _selectedUnitType = 'Unidad';
   String? _tipoFilter; // null = todos, 'P' = productos, 'S' = servicios
   bool _isSearching = false;
   bool _isLoading = true;
-  
+
   // Guardar el job completo con address_id
   Job? _fullJob;
 
@@ -2088,18 +2287,18 @@ class _ProductsDialogState extends State<_ProductsDialog> {
 
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // print('🟢 MODAL DETALLE: Iniciando carga de productos...');
       // print('🟢 MODAL DETALLE: widget.job.products = ${widget.job.products}');
-      
+
       // Cargar productos iniciales desde AuthService
       final authService = AuthService();
       final productsData = await authService.getProducts();
-      
+
       // Convertir Map a Product
       final products = productsData.map((p) => Product.fromJson(p)).toList();
-      
+
       // Si no hay productos en el job, cargar el detalle completo (por si acaso)
       List<dynamic> currentProductsData;
       if (widget.job.products == null) {
@@ -2115,14 +2314,14 @@ class _ProductsDialogState extends State<_ProductsDialog> {
         currentProductsData = widget.job.products!;
         _fullJob = widget.job; // Usar el job original si ya tiene productos
       }
-      
+
       // print('🟢 MODAL DETALLE: currentProductsData length = ${currentProductsData.length}');
       // print('🟢 MODAL DETALLE: currentProductsData = $currentProductsData');
-      
+
       setState(() {
         _initialProducts = products;
         _searchResults = products;
-        
+
         // Convertir los Map de productos del backend a SelectedProduct
         _selectedProducts = currentProductsData.map((pData) {
           // Convertir quantity de manera segura (puede venir como String o num)
@@ -2133,7 +2332,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
           } else if (quantityValue is String) {
             parsedQuantity = double.tryParse(quantityValue) ?? 1.0;
           }
-          
+
           // Convertir product_id de manera segura
           int productId;
           final productIdValue = pData['product_id'];
@@ -2144,20 +2343,23 @@ class _ProductsDialogState extends State<_ProductsDialog> {
           } else {
             productId = 0;
           }
-          
+
           return SelectedProduct(
             product: Product(
               id: productId,
               codigo: pData['codigo'] as String,
               descripcion: pData['descripcion'] as String,
-              isFromColppy: pData['is_from_colppy'] == 1 || pData['is_from_colppy'] == '1' || pData['is_from_colppy'] == true,
+              isFromColppy: pData['is_from_colppy'] == 1 ||
+                  pData['is_from_colppy'] == '1' ||
+                  pData['is_from_colppy'] == true,
             ),
             unitType: pData['unit_type'] as String? ?? 'Unidad',
             quantity: parsedQuantity,
-            uniqueId: pData['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            uniqueId: pData['id']?.toString() ??
+                DateTime.now().millisecondsSinceEpoch.toString(),
           );
         }).toList();
-        
+
         _isLoading = false;
       });
     } catch (e) {
@@ -2172,7 +2374,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
 
   void _onSearchChanged() {
     final query = _searchController.text.trim();
-    
+
     if (query.isEmpty) {
       setState(() {
         _searchResults = _initialProducts;
@@ -2180,7 +2382,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       });
       return;
     }
-    
+
     if (query.length < 2) {
       setState(() {
         _searchResults = [];
@@ -2188,17 +2390,18 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       });
       return;
     }
-    
+
     _performSearch(query);
   }
 
   Future<void> _performSearch(String query) async {
     setState(() => _isSearching = true);
-    
+
     try {
       final jobProvider = context.read<JobProvider>();
-      final results = await jobProvider.searchProducts(query, tipo: _tipoFilter);
-      
+      final results =
+          await jobProvider.searchProducts(query, tipo: _tipoFilter);
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -2222,7 +2425,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       );
       return;
     }
-    
+
     final quantity = double.tryParse(_quantityController.text) ?? 1.0;
     if (quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2230,14 +2433,14 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       );
       return;
     }
-    
+
     final newProduct = SelectedProduct(
       product: _selectedProduct!,
       unitType: _selectedUnitType,
       quantity: quantity,
       uniqueId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
-    
+
     setState(() {
       _selectedProducts.add(newProduct);
       _selectedProduct = null;
@@ -2257,16 +2460,17 @@ class _ProductsDialogState extends State<_ProductsDialog> {
   Future<void> _saveProducts() async {
     // Usar el job completo que tiene todos los datos necesarios
     final jobToUse = _fullJob ?? widget.job;
-    
+
     if (jobToUse.addressId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: La tarea no tiene dirección asignada')),
+          const SnackBar(
+              content: Text('Error: La tarea no tiene dirección asignada')),
         );
       }
       return;
     }
-    
+
     // Parsear visitDatetime que viene como String
     DateTime visitDateTime;
     try {
@@ -2279,31 +2483,34 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       }
       return;
     }
-    
+
     // Extraer IDs de técnicos
-    final technicianIds = jobToUse.technicians?.map((t) => t['id'] as int).toList();
-    
+    final technicianIds =
+        jobToUse.technicians?.map((t) => t['id'] as int).toList();
+
     final success = await CustomAlerts.executeWithLoading(
       context,
       operation: () async {
         return await context.read<JobProvider>().updateJob(
-          jobId: jobToUse.id!,
-          addressId: jobToUse.addressId!,
-          visitDateTime: visitDateTime,
-          description: jobToUse.jobDescription ?? '',
-          latitude: jobToUse.visitLatitud,
-          longitude: jobToUse.visitLongitud,
-          technicianIds: technicianIds,
-          products: _selectedProducts,
-        );
+              jobId: jobToUse.id!,
+              addressId: jobToUse.addressId!,
+              visitDateTime: visitDateTime,
+              description: jobToUse.jobDescription ?? '',
+              latitude: jobToUse.visitLatitud,
+              longitude: jobToUse.visitLongitud,
+              technicianIds: technicianIds,
+              products: _selectedProducts,
+            );
       },
       loadingMessage: 'Guardando productos...',
       successTitle: 'Productos actualizados',
       successMessage: 'Los productos se actualizaron correctamente',
       errorTitle: 'Error al actualizar productos',
-      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudieron actualizar los productos',
+      getErrorMessage: () =>
+          context.read<JobProvider>().errorMessage ??
+          'No se pudieron actualizar los productos',
     );
-    
+
     if (success && mounted) {
       Navigator.pop(context, true);
     }
@@ -2349,7 +2556,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                 ],
               ),
             ),
-            
+
             if (_isLoading)
               const Expanded(
                 child: Center(child: CircularProgressIndicator()),
@@ -2373,10 +2580,12 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                       // Filtro tipo
                       Row(
                         children: [
-                          const Text('Mostrar: ', style: TextStyle(fontSize: 12)),
+                          const Text('Mostrar: ',
+                              style: TextStyle(fontSize: 12)),
                           const SizedBox(width: 8),
                           ChoiceChip(
-                            label: const Text('Todos', style: TextStyle(fontSize: 12)),
+                            label: const Text('Todos',
+                                style: TextStyle(fontSize: 12)),
                             selected: _tipoFilter == null,
                             onSelected: (selected) {
                               setState(() {
@@ -2389,7 +2598,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
-                            label: const Text('Productos', style: TextStyle(fontSize: 12)),
+                            label: const Text('Productos',
+                                style: TextStyle(fontSize: 12)),
                             selected: _tipoFilter == 'P',
                             onSelected: (selected) {
                               setState(() {
@@ -2402,7 +2612,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           ),
                           const SizedBox(width: 4),
                           ChoiceChip(
-                            label: const Text('Servicios', style: TextStyle(fontSize: 12)),
+                            label: const Text('Servicios',
+                                style: TextStyle(fontSize: 12)),
                             selected: _tipoFilter == 'S',
                             onSelected: (selected) {
                               setState(() {
@@ -2427,7 +2638,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
                                 )
                               : null,
@@ -2436,7 +2648,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           ),
                         ),
                       ),
-                      
+
                       // Resultados de búsqueda
                       if (_searchResults.isNotEmpty && !_isSearching)
                         Container(
@@ -2444,7 +2656,9 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           margin: const EdgeInsets.only(top: 8),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            border: Border.all(color: const Color(0xFF00274E).withOpacity(0.3), width: 2),
+                            border: Border.all(
+                                color: const Color(0xFF00274E).withOpacity(0.3),
+                                width: 2),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -2459,9 +2673,11 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF00274E).withOpacity(0.1),
+                                  color:
+                                      const Color(0xFF00274E).withOpacity(0.1),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(10),
                                     topRight: Radius.circular(10),
@@ -2469,7 +2685,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.inventory_2, size: 16, color: Color(0xFF00274E)),
+                                    const Icon(Icons.inventory_2,
+                                        size: 16, color: Color(0xFF00274E)),
                                     const SizedBox(width: 8),
                                     Text(
                                       '${_searchResults.length} producto${_searchResults.length != 1 ? 's' : ''} encontrado${_searchResults.length != 1 ? 's' : ''}',
@@ -2486,45 +2703,59 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                 child: ListView.separated(
                                   shrinkWrap: true,
                                   itemCount: _searchResults.length,
-                                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade300),
+                                  separatorBuilder: (context, index) => Divider(
+                                      height: 1, color: Colors.grey.shade300),
                                   itemBuilder: (context, index) {
                                     final product = _searchResults[index];
-                                    final isSelected = _selectedProduct?.id == product.id;
+                                    final isSelected =
+                                        _selectedProduct?.id == product.id;
                                     return InkWell(
                                       onTap: () {
                                         setState(() {
                                           _selectedProduct = product;
-                                          _searchController.text = product.displayName;
+                                          _searchController.text =
+                                              product.displayName;
                                           _searchResults = [];
                                         });
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                        color: isSelected ? const Color(0xFF00274E).withOpacity(0.1) : null,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 10),
+                                        color: isSelected
+                                            ? const Color(0xFF00274E)
+                                                .withOpacity(0.1)
+                                            : null,
                                         child: Row(
                                           children: [
                                             CircleAvatar(
                                               radius: 16,
-                                              backgroundColor: isSelected 
-                                                ? const Color(0xFF00274E) 
-                                                : Colors.grey.shade300,
+                                              backgroundColor: isSelected
+                                                  ? const Color(0xFF00274E)
+                                                  : Colors.grey.shade300,
                                               child: Icon(
                                                 Icons.inventory_2,
                                                 size: 16,
-                                                color: isSelected ? Colors.white : Colors.grey.shade600,
+                                                color: isSelected
+                                                    ? Colors.white
+                                                    : Colors.grey.shade600,
                                               ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     product.codigo,
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 13,
-                                                      color: isSelected ? const Color(0xFF00274E) : Colors.black87,
+                                                      color: isSelected
+                                                          ? const Color(
+                                                              0xFF00274E)
+                                                          : Colors.black87,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 2),
@@ -2532,10 +2763,12 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                                     product.descripcion,
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey.shade700,
+                                                      color:
+                                                          Colors.grey.shade700,
                                                     ),
                                                     maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ],
                                               ),
@@ -2556,7 +2789,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                             ],
                           ),
                         ),
-                      
+
                       if (_selectedProduct != null) ...[
                         const SizedBox(height: 16),
                         const Text(
@@ -2573,7 +2806,9 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                               flex: 2,
                               child: TextField(
                                 controller: _quantityController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                                 decoration: const InputDecoration(
                                   labelText: 'Cantidad',
                                   border: OutlineInputBorder(),
@@ -2590,9 +2825,12 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                   border: OutlineInputBorder(),
                                 ),
                                 items: const [
-                                  DropdownMenuItem(value: 'Unidad', child: Text('Unidad')),
-                                  DropdownMenuItem(value: 'Rollo', child: Text('Rollo')),
-                                  DropdownMenuItem(value: 'Metros', child: Text('Metros')),
+                                  DropdownMenuItem(
+                                      value: 'Unidad', child: Text('Unidad')),
+                                  DropdownMenuItem(
+                                      value: 'Rollo', child: Text('Rollo')),
+                                  DropdownMenuItem(
+                                      value: 'Metros', child: Text('Metros')),
                                 ],
                                 onChanged: (value) {
                                   if (value != null) {
@@ -2618,9 +2856,9 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           ),
                         ),
                       ],
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Lista de productos agregados
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2642,7 +2880,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      
+
                       if (_selectedProducts.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(24),
@@ -2654,7 +2892,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+                                Icon(Icons.inventory_2_outlined,
+                                    size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
                                 Text(
                                   'No hay productos agregados',
@@ -2676,11 +2915,13 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                               child: ListTile(
                                 leading: const CircleAvatar(
                                   backgroundColor: Color(0xFF00274E),
-                                  child: Icon(Icons.inventory_2, color: Colors.white, size: 20),
+                                  child: Icon(Icons.inventory_2,
+                                      color: Colors.white, size: 20),
                                 ),
                                 title: Text(
                                   selectedProduct.product.codigo,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text(
                                   '${selectedProduct.product.descripcion}\n${selectedProduct.quantity} ${selectedProduct.unitType}',
@@ -2689,7 +2930,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                 ),
                                 isThreeLine: true,
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
                                   onPressed: () => _removeProduct(index),
                                 ),
                               ),
@@ -2700,7 +2942,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                   ),
                 ),
               ),
-            
+
             // Footer con botones
             Container(
               padding: const EdgeInsets.all(16),

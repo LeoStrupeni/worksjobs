@@ -29,7 +29,7 @@ if errorlevel 1 (
 )
 
 :: Ejecutar el script Python
-python BUILD_RELEASE.py
+python BUILD_RELEASE.py %*
 
 :: Mantener la ventana abierta si hay error
 if errorlevel 1 (

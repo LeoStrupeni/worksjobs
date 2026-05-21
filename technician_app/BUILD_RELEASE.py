@@ -16,6 +16,7 @@ import re
 import sys
 import subprocess
 import shutil
+import argparse
 from datetime import datetime
 
 # Colores ANSI para terminal
@@ -27,6 +28,12 @@ class Colors:
     CYAN = '\033[96m'
     BOLD = '\033[1m'
     END = '\033[0m'
+
+FLAVOR_TARGETS = {
+    'dev': 'lib/main_dev.dart',
+    'qa': 'lib/main_qa.dart',
+    'prod': 'lib/main_prod.dart',
+}
 
 def print_header(text):
     print(f"\n{Colors.BOLD}{Colors.CYAN}{'='*75}")
@@ -44,6 +51,18 @@ def print_error(text):
 
 def print_warning(text):
     print(f"{Colors.YELLOW}⚠️  {text}{Colors.END}")
+
+def build_arg_parser():
+    parser = argparse.ArgumentParser(
+        description='Compilación y ejecución automatizada para Strupeni Técnicos',
+    )
+    parser.add_argument(
+        '--mode',
+        choices=['release', 'run-dev', 'run-qa', 'run-prod', 'build-prod'],
+        default='release',
+        help='release (default) mantiene el flujo interactivo de 2 APKs',
+    )
+    return parser
 
 def read_current_version():
     """Lee la versión actual del pubspec.yaml"""
@@ -121,21 +140,71 @@ def toggle_debug_feature(enable=True):
     with open(filepath, 'w', encoding='utf-8') as f:
         f.writelines(new_lines)
 
-def run_flutter_build():
-    """Ejecuta flutter build apk"""
-    print(f"{Colors.YELLOW}    🏗️  Compilando APK (esto puede tardar varios minutos)...{Colors.END}")
-    
-    result = subprocess.run('flutter build apk --release', 
-                          shell=True, capture_output=True, text=True)
-    
+def run_command(cmd, error_message):
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
-        print_error("Falló la compilación")
+        print_error(error_message)
         print(result.stderr)
         return False
-    
+
     return True
 
+def run_flutter_build(flavor='prod'):
+    """Ejecuta flutter build apk por flavor"""
+    target = FLAVOR_TARGETS[flavor]
+    print(f"{Colors.YELLOW}    Compilando APK ({flavor})...{Colors.END}")
+    cmd = f'flutter build apk --flavor {flavor} -t {target} --release'
+    return run_command(cmd, 'Falló la compilación')
+
+def archive_prod_build():
+    """Copia el APK prod generado a nombres finales legibles."""
+    current = read_current_version()
+    version = f"{current['major']}.{current['minor']}.{current['patch']}"
+    src_apk = 'build/app/outputs/flutter-apk/app-prod-release.apk'
+
+    if not os.path.exists(src_apk):
+        print_error(f"No se encontró el APK generado: {src_apk}")
+        return False
+
+    filename = f'strupeni-tecnicos-v{version}.apk'
+    dst_apk_build = f'build/app/outputs/flutter-apk/{filename}'
+
+    os.makedirs('VersionApk', exist_ok=True)
+    dst_apk_version = f'VersionApk/{filename}'
+
+    shutil.copy2(src_apk, dst_apk_build)
+    shutil.copy2(src_apk, dst_apk_version)
+
+    print_success('APK prod archivado correctamente')
+    print(f"       📍 build/app/outputs/flutter-apk/{filename}")
+    print(f"       📍 VersionApk/{filename}\n")
+    return True
+
+def run_flutter_app(flavor):
+    """Ejecuta flutter run por flavor"""
+    target = FLAVOR_TARGETS[flavor]
+    print_header(f"RUN {flavor.upper()} - Strupeni Técnicos")
+    print(f"Ejecutando: flutter run --flavor {flavor} -t {target}\n")
+    cmd = f'flutter run --flavor {flavor} -t {target}'
+    return run_command(cmd, f'Falló la ejecución para flavor {flavor}')
+
+def run_non_release_mode(mode):
+    if mode == 'run-dev':
+        return run_flutter_app('dev')
+    if mode == 'run-qa':
+        return run_flutter_app('qa')
+    if mode == 'run-prod':
+        return run_flutter_app('prod')
+    if mode == 'build-prod':
+        print_header('BUILD PROD - Strupeni Técnicos')
+        if not run_flutter_build('prod'):
+            return False
+        return archive_prod_build()
+    return False
+
 def main():
+    args = build_arg_parser().parse_args()
+
     # Verificar que estamos en el directorio correcto
     if not os.path.exists('pubspec.yaml'):
         print_error("No se encontró pubspec.yaml")
@@ -148,6 +217,12 @@ def main():
     except:
         print_error("Flutter no está instalado o no está en el PATH")
         sys.exit(1)
+
+    if args.mode != 'release':
+        ok = run_non_release_mode(args.mode)
+        if not ok:
+            sys.exit(1)
+        return
     
     print_header("BUILD RELEASE - Strupeni Técnicos App")
     print("Compilación Automática con Versionado\n")
@@ -240,7 +315,7 @@ def main():
             raise Exception("Falló la compilación de versión usuario")
         
         # Copiar APK a ubicaciones finales
-        src_apk = 'build/app/outputs/flutter-apk/app-release.apk'
+        src_apk = 'build/app/outputs/flutter-apk/app-prod-release.apk'
         filename_usuario = f'strupeni-tecnicos-v{new_version}.apk'
         dst_apk_build = f'build/app/outputs/flutter-apk/{filename_usuario}'
         
@@ -282,7 +357,7 @@ def main():
             raise Exception("Falló la compilación de versión debug")
         
         # Copiar APK a ubicaciones finales
-        src_apk = 'build/app/outputs/flutter-apk/app-release.apk'
+        src_apk = 'build/app/outputs/flutter-apk/app-prod-release.apk'
         filename_debug = f'strupeni-tecnicos-v{debug_version}-DEBUG.apk'
         dst_apk_build = f'build/app/outputs/flutter-apk/{filename_debug}'
         

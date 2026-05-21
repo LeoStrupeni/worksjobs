@@ -2131,6 +2131,78 @@ function toggleAllImages() {
  * Genera el PDF con la configuración seleccionada
  * @param {string} action - 'view' para abrir en nueva pestaña, 'download' para descargar
  */
+function sanitizePdfFilenamePart(value) {
+    return String(value || '')
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function formatPdfVisitDateForFilename(dateValue) {
+    if (!dateValue) {
+        return '';
+    }
+
+    var rawDate = String(dateValue).trim();
+    var normalized = rawDate.split('T')[0].split(' ')[0];
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+        var partsIso = normalized.split('-');
+        return partsIso[0].slice(-2) + '-' + partsIso[1] + '-' + partsIso[2];
+    }
+
+    if (/^\d{2}\/\d{2}\/\d{2,4}$/.test(normalized)) {
+        var partsLocal = normalized.split('/');
+        var day = partsLocal[0].padStart(2, '0');
+        var month = partsLocal[1].padStart(2, '0');
+        var year = partsLocal[2].length === 4 ? partsLocal[2].slice(-2) : partsLocal[2];
+        return year + '-' + month + '-' + day;
+    }
+
+    var parsedDate = new Date(rawDate);
+    if (!isNaN(parsedDate.getTime())) {
+        var yy = String(parsedDate.getFullYear()).slice(-2);
+        var mm = String(parsedDate.getMonth() + 1).padStart(2, '0');
+        var dd = String(parsedDate.getDate()).padStart(2, '0');
+        return dd + '-' + mm + '-' + yy;
+    }
+
+    return normalized;
+}
+
+function buildPdfFileName(jobData, jobId) {
+    var clientName = jobData.client_name ||
+        (jobData.job && jobData.job.client_name) ||
+        (jobData.client && [jobData.client.first_name, jobData.client.last_name].filter(Boolean).join(' ')) ||
+        'cliente';
+
+    var orderNumber = jobData.colppy_budget_number ||
+        jobData.order_number ||
+        jobData.job_number ||
+        jobData.nro_orden ||
+        (jobData.job && (jobData.job.colppy_budget_number || jobData.job.order_number || jobData.job.job_number)) ||
+        jobId;
+
+    var visitDate = formatPdfVisitDateForFilename(
+        jobData.visit_datetime ||
+        (jobData.job && jobData.job.visit_datetime) ||
+        jobData.visit ||
+        (jobData.job && jobData.job.visit)
+    );
+
+    var fileNameParts = [
+        sanitizePdfFilenamePart(clientName),
+        sanitizePdfFilenamePart(orderNumber),
+        sanitizePdfFilenamePart(visitDate)
+    ].filter(function(part) {
+        return part !== '';
+    });
+
+    return fileNameParts.join('_') + '.pdf';
+}
+
 function generatePDF(action) {
     action = action || 'view'; // Por defecto abrir en pestaña
     
@@ -2208,8 +2280,8 @@ function generatePDF(action) {
         },
         success: function(response) {
             if (response.success && response.pdf) {
-                // Generar nombre de archivo
-                const fileName = `trabajo_${jobId}_${new Date().getTime()}.pdf`;
+                // Generar nombre de archivo con cliente, orden y fecha de visita
+                const fileName = buildPdfFileName(currentJobDataForPdf || {}, jobId);
                 
                 // Ejecutar acción según el parámetro
                 if (action === 'download') {

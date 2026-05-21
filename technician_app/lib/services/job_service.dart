@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/job.dart';
 import '../models/note.dart';
@@ -13,16 +15,19 @@ import 'auth_service.dart';
 
 class JobService {
   final AuthService _authService = AuthService();
+  static const String _pendingUploadsKey = 'pending_job_uploads_v1';
 
   // Obtener citas del día
   Future<Map<String, dynamic>> getTodayJobs() async {
-    await DebugLogger.instance.info('📅 Obteniendo citas de hoy...', category: 'JOBS');
-    
+    await DebugLogger.instance
+        .info('📅 Obteniendo citas de hoy...', category: 'JOBS');
+
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
-        await DebugLogger.instance.error('❌ No hay token de autenticación', category: 'JOBS');
+        await DebugLogger.instance
+            .error('❌ No hay token de autenticación', category: 'JOBS');
         return {
           'success': false,
           'errorCode': ApiErrorCode.NO_TOKEN,
@@ -48,18 +53,17 @@ class JobService {
 
       final response = result.data as http.Response;
       final data = jsonDecode(response.body);
-      
+
       if (data['success'] == true) {
-        final jobs = (data['data'] as List)
-            .map((job) => Job.fromJson(job))
-            .toList();
-        
+        final jobs =
+            (data['data'] as List).map((job) => Job.fromJson(job)).toList();
+
         await DebugLogger.instance.success(
           '✅ ${jobs.length} citas de hoy obtenidas',
           category: 'JOBS',
           data: {'count': jobs.length},
         );
-        
+
         return {
           'success': true,
           'jobs': jobs,
@@ -73,7 +77,7 @@ class JobService {
           data: {'message': data['message']},
         );
       }
-      
+
       return {
         'success': false,
         'errorCode': ApiErrorCode.UNKNOWN,
@@ -95,13 +99,15 @@ class JobService {
 
   // Obtener próximas citas
   Future<Map<String, dynamic>> getUpcomingJobs({int limit = 50}) async {
-    await DebugLogger.instance.info('📅 Obteniendo próximas citas...', category: 'JOBS');
-    
+    await DebugLogger.instance
+        .info('📅 Obteniendo próximas citas...', category: 'JOBS');
+
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
-        await DebugLogger.instance.error('❌ No hay token de autenticación', category: 'JOBS');
+        await DebugLogger.instance
+            .error('❌ No hay token de autenticación', category: 'JOBS');
         return {
           'success': false,
           'errorCode': ApiErrorCode.NO_TOKEN,
@@ -111,7 +117,8 @@ class JobService {
 
       // Usar NetworkHelper con retry automático
       final result = await NetworkHelper.getWithRetry(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.upcomingJobsEndpoint}?limit=$limit'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.upcomingJobsEndpoint}?limit=$limit'),
         headers: ApiConfig.getHeaders(token: token),
         maxRetries: 2,
         logCategory: 'JOBS',
@@ -127,18 +134,17 @@ class JobService {
 
       final response = result.data as http.Response;
       final data = jsonDecode(response.body);
-      
+
       if (data['success'] == true) {
-        final jobs = (data['data'] as List)
-            .map((job) => Job.fromJson(job))
-            .toList();
-        
+        final jobs =
+            (data['data'] as List).map((job) => Job.fromJson(job)).toList();
+
         await DebugLogger.instance.success(
           '✅ ${jobs.length} próximas citas obtenidas',
           category: 'JOBS',
           data: {'count': jobs.length, 'limit': limit},
         );
-        
+
         return {
           'success': true,
           'jobs': jobs,
@@ -146,7 +152,7 @@ class JobService {
           'permissions': data['permissions'],
         };
       }
-      
+
       return {
         'success': false,
         'errorCode': ApiErrorCode.UNKNOWN,
@@ -167,16 +173,18 @@ class JobService {
   }
 
   // Obtener citas por rango de fechas
-  Future<Map<String, dynamic>> getJobsByDateRange(String startDate, String endDate) async {
+  Future<Map<String, dynamic>> getJobsByDateRange(
+      String startDate, String endDate) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ getJobsByDateRange: No autenticado');
         return {'success': false, 'message': 'No autenticado'};
       }
 
-      final url = '${ApiConfig.baseUrl}${ApiConfig.calendarJobsEndpoint}?start_date=$startDate&end_date=$endDate';
+      final url =
+          '${ApiConfig.baseUrl}${ApiConfig.calendarJobsEndpoint}?start_date=$startDate&end_date=$endDate';
       // print('📡 getJobsByDateRange: $url');
       final response = await http.get(
         Uri.parse(url),
@@ -187,22 +195,23 @@ class JobService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         // print('📄 getJobsByDateRange: ${data['count']} citas');
-        
+
         if (data['success'] == true) {
-          final jobs = (data['data'] as List)
-              .map((job) => Job.fromJson(job))
-              .toList();
-          
+          final jobs =
+              (data['data'] as List).map((job) => Job.fromJson(job)).toList();
+
           return {
             'success': true,
             'jobs': jobs,
-            'count': data['count'] ?? 0,            'permissions': data['permissions'],          };
+            'count': data['count'] ?? 0,
+            'permissions': data['permissions'],
+          };
         }
       } else {
         print('❌ getJobsByDateRange: Error HTTP ${response.statusCode}');
         // print('📄 getJobsByDateRange: ${response.body}');
       }
-      
+
       return {'success': false, 'message': 'Error al obtener citas'};
     } catch (e) {
       print('❌ getJobsByDateRange: Exception: $e');
@@ -214,7 +223,7 @@ class JobService {
   Future<Map<String, dynamic>> getJobDetail(int jobId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ getJobDetail: No autenticado');
         return {'success': false, 'message': 'No autenticado'};
@@ -231,14 +240,14 @@ class JobService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['success'] == true && data['job'] != null) {
           // El backend devuelve 'job' no 'data'
           if (data['job'] is! Map) {
             // print('⚠️ getJobDetail: data["job"] no es un Map');
             return {'success': false, 'message': 'Formato de datos incorrecto'};
           }
-          
+
           final job = Job.fromJson(data['job']);
           final notes = data['notes'] != null
               ? (data['notes'] as List).map((n) => Note.fromJson(n)).toList()
@@ -246,7 +255,7 @@ class JobService {
           final files = data['files'] != null
               ? (data['files'] as List).map((f) => JobFile.fromJson(f)).toList()
               : <JobFile>[];
-          
+
           // print('✅ getJobDetail: Job obtenido - ${job.clientName}');
           return {
             'success': true,
@@ -256,13 +265,19 @@ class JobService {
           };
         } else {
           // print('⚠️ getJobDetail: success=false o job es null');
-          return {'success': false, 'message': data['message'] ?? 'Error desconocido'};
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Error desconocido'
+          };
         }
       }
-      
+
       print('❌ getJobDetail: Status code no es 200');
       final errorData = jsonDecode(response.body);
-      return {'success': false, 'message': errorData['message'] ?? 'Error al obtener detalle'};
+      return {
+        'success': false,
+        'message': errorData['message'] ?? 'Error al obtener detalle'
+      };
     } catch (e, stackTrace) {
       print('❌ getJobDetail: Exception: $e');
       // print('📚 getJobDetail: StackTrace: $stackTrace');
@@ -271,16 +286,18 @@ class JobService {
   }
 
   // Marcar llegada
-  Future<Map<String, dynamic>> markArrival(int jobId, {double? lat, double? lng}) async {
+  Future<Map<String, dynamic>> markArrival(int jobId,
+      {double? lat, double? lng}) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/arrival'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/arrival'),
         headers: ApiConfig.getHeaders(token: token),
         body: jsonEncode({
           'latitud': lat,
@@ -299,13 +316,14 @@ class JobService {
   Future<Map<String, dynamic>> revertArrival(int jobId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/back-to-pending'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/back-to-pending'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
@@ -317,21 +335,23 @@ class JobService {
   }
 
   // Cerrar cita
-  Future<Map<String, dynamic>> closeJob(int jobId, {double? lat, double? lng}) async {
+  Future<Map<String, dynamic>> closeJob(int jobId,
+      {double? lat, double? lng}) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final Map<String, dynamic> bodyData = {};
-      
+
       if (lat != null) bodyData['latitud'] = lat;
       if (lng != null) bodyData['longitud'] = lng;
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/close'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/close'),
         headers: ApiConfig.getHeaders(token: token),
         body: jsonEncode(bodyData),
       );
@@ -347,13 +367,14 @@ class JobService {
   Future<Map<String, dynamic>> addNote(int jobId, String note) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/notes'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/notes'),
         headers: ApiConfig.getHeaders(token: token),
         body: jsonEncode({
           'note': note,
@@ -371,31 +392,32 @@ class JobService {
   Future<Map<String, dynamic>> getNotes(int jobId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/notes'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/notes'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['success'] == true) {
           final notes = (data['data'] as List)
               .map((note) => Note.fromJson(note))
               .toList();
-          
+
           return {
             'success': true,
             'notes': notes,
           };
         }
       }
-      
+
       return {'success': false, 'message': 'Error al obtener notas'};
     } catch (e) {
       return {'success': false, 'message': 'Error: ${e.toString()}'};
@@ -406,31 +428,32 @@ class JobService {
   Future<Map<String, dynamic>> getFiles(int jobId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['success'] == true) {
           final files = (data['data'] as List)
               .map((file) => JobFile.fromJson(file))
               .toList();
-          
+
           return {
             'success': true,
             'files': files,
           };
         }
       }
-      
+
       return {'success': false, 'message': 'Error al obtener archivos'};
     } catch (e) {
       return {'success': false, 'message': 'Error: ${e.toString()}'};
@@ -441,13 +464,14 @@ class JobService {
   Future<Map<String, dynamic>> deleteNote(int noteId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/notes/$noteId/delete'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/notes/$noteId/delete'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
@@ -462,13 +486,14 @@ class JobService {
   Future<Map<String, dynamic>> deleteFile(int fileId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/files/$fileId/delete'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/files/$fileId/delete'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
@@ -483,13 +508,14 @@ class JobService {
   Future<bool> backToPending(int jobId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return false;
       }
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/back-to-pending'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/back-to-pending'),
         headers: ApiConfig.getHeaders(token: token),
       );
 
@@ -497,7 +523,7 @@ class JobService {
         final data = jsonDecode(response.body);
         return data['success'] == true;
       }
-      
+
       return false;
     } catch (e) {
       print('❌ backToPending: Exception: $e');
@@ -509,7 +535,7 @@ class JobService {
   Future<bool> deleteJob(int jobId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return false;
       }
@@ -523,7 +549,7 @@ class JobService {
         final data = jsonDecode(response.body);
         return data['success'] == true;
       }
-      
+
       return false;
     } catch (e) {
       print('❌ deleteJob: Exception: $e');
@@ -532,60 +558,355 @@ class JobService {
   }
 
   // Subir archivos/imágenes
-  Future<bool> uploadFiles(int jobId, List<String> filePaths) async {
+  Future<Map<String, dynamic>> uploadFiles(
+    int jobId,
+    List<String> filePaths, {
+    String? capturedAt,
+    double? capturedLatitude,
+    double? capturedLongitude,
+    String uploadSource = 'mobile_app',
+    bool clientCompressed = true,
+    bool queueOnFailure = false,
+    String? appQueueId,
+  }) async {
+    if (filePaths.isEmpty) {
+      return {
+        'success': false,
+        'queued': false,
+        'message': 'No hay archivos para subir',
+      };
+    }
+
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ uploadFiles: No hay token');
-        return false;
+        if (queueOnFailure) {
+          final queuedCount = await enqueuePendingUploads(
+            jobId,
+            filePaths,
+            capturedAt: capturedAt,
+            capturedLatitude: capturedLatitude,
+            capturedLongitude: capturedLongitude,
+            uploadSource: uploadSource,
+          );
+          return {
+            'success': false,
+            'queued': true,
+            'queued_count': queuedCount,
+            'message': 'Sin token, archivos guardados en cola',
+          };
+        }
+        return {
+          'success': false,
+          'queued': false,
+          'message': 'No hay token',
+        };
       }
 
-      final url = '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files';
-      // print('📡 uploadFiles: URL = $url');
-      // print('📂 uploadFiles: ${filePaths.length} archivo(s) a subir');
-      
-      var request = http.MultipartRequest('POST', Uri.parse(url));
-      request.headers.addAll(ApiConfig.getHeaders(token: token));
+      final result = await _uploadFilesRequest(
+        token: token,
+        jobId: jobId,
+        filePaths: filePaths,
+        capturedAt: capturedAt,
+        capturedLatitude: capturedLatitude,
+        capturedLongitude: capturedLongitude,
+        uploadSource: uploadSource,
+        clientCompressed: clientCompressed,
+        appQueueId: appQueueId,
+      );
 
-      // Agregar archivos usando 'images[]' para coincidir con el backend
-      for (var filePath in filePaths) {
-        // print('📎 uploadFiles: Agregando archivo: $filePath');
-        request.files.add(await http.MultipartFile.fromPath('images[]', filePath));
+      if (result['success'] == true) {
+        return {
+          'success': true,
+          'queued': false,
+          'uploaded_count': filePaths.length,
+          'message': result['message'] ?? 'Archivos subidos correctamente',
+        };
       }
 
-      // print('🚀 uploadFiles: Enviando petición...');
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      if (queueOnFailure) {
+        final queuedCount = await enqueuePendingUploads(
+          jobId,
+          filePaths,
+          capturedAt: capturedAt,
+          capturedLatitude: capturedLatitude,
+          capturedLongitude: capturedLongitude,
+          uploadSource: uploadSource,
+        );
 
-      // print('📥 uploadFiles: Status ${response.statusCode}');
-      // print('📄 uploadFiles: Response: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // print('✅ uploadFiles: Success = ${data['success']}');
-        return data;
+        return {
+          'success': false,
+          'queued': true,
+          'queued_count': queuedCount,
+          'message':
+              'La subida falló, se guardó en cola para reintento automático',
+        };
       }
-      
-      // print('⚠️ uploadFiles: Error - Status ${response.statusCode}');
-      return false;
+
+      return {
+        'success': false,
+        'queued': false,
+        'message': result['message'] ?? 'Error al subir archivos',
+      };
     } catch (e) {
       print('❌ uploadFiles: Exception: $e');
-      return false;
+      if (queueOnFailure) {
+        final queuedCount = await enqueuePendingUploads(
+          jobId,
+          filePaths,
+          capturedAt: capturedAt,
+          capturedLatitude: capturedLatitude,
+          capturedLongitude: capturedLongitude,
+          uploadSource: uploadSource,
+        );
+        return {
+          'success': false,
+          'queued': true,
+          'queued_count': queuedCount,
+          'message': 'Error de red, archivos en cola para reintento',
+        };
+      }
+      return {
+        'success': false,
+        'queued': false,
+        'message': 'Error al subir archivos: $e',
+      };
     }
+  }
+
+  Future<Map<String, dynamic>> _uploadFilesRequest({
+    required String token,
+    required int jobId,
+    required List<String> filePaths,
+    String? capturedAt,
+    double? capturedLatitude,
+    double? capturedLongitude,
+    required String uploadSource,
+    required bool clientCompressed,
+    String? appQueueId,
+  }) async {
+    final url =
+        '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/files';
+    final request = http.MultipartRequest('POST', Uri.parse(url));
+    request.headers.addAll(ApiConfig.getHeaders(token: token));
+
+    request.fields['upload_source'] = uploadSource;
+    request.fields['client_compressed'] = clientCompressed ? '1' : '0';
+
+    if (capturedAt != null && capturedAt.trim().isNotEmpty) {
+      request.fields['captured_at'] = capturedAt;
+    }
+    if (capturedLatitude != null) {
+      request.fields['captured_latitude'] = capturedLatitude.toString();
+    }
+    if (capturedLongitude != null) {
+      request.fields['captured_longitude'] = capturedLongitude.toString();
+    }
+    if (appQueueId != null && appQueueId.trim().isNotEmpty) {
+      request.fields['app_queue_id'] = appQueueId;
+    }
+
+    for (final filePath in filePaths) {
+      request.files
+          .add(await http.MultipartFile.fromPath('images[]', filePath));
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final success = data is Map<String, dynamic>
+          ? (data['success'] == true || data['success'] == 1)
+          : false;
+
+      return {
+        'success': success,
+        'message': data is Map<String, dynamic>
+            ? (data['message'] ?? 'Operación completada')
+            : 'Respuesta válida del servidor',
+      };
+    }
+
+    return {
+      'success': false,
+      'message': 'Error HTTP ${response.statusCode}',
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> _loadPendingUploads() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_pendingUploadsKey);
+    if (raw == null || raw.isEmpty) {
+      return [];
+    }
+
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      return decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _savePendingUploads(List<Map<String, dynamic>> queue) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pendingUploadsKey, jsonEncode(queue));
+  }
+
+  Future<int> enqueuePendingUploads(
+    int jobId,
+    List<String> filePaths, {
+    String? capturedAt,
+    double? capturedLatitude,
+    double? capturedLongitude,
+    String uploadSource = 'mobile_app',
+  }) async {
+    final queue = await _loadPendingUploads();
+    final now = DateTime.now().toIso8601String();
+    var created = 0;
+
+    for (final filePath in filePaths) {
+      final alreadyQueued = queue.any((item) =>
+          item['job_id'] == jobId &&
+          item['file_path'] == filePath &&
+          item['status'] != 'sent');
+
+      if (alreadyQueued) {
+        continue;
+      }
+
+      queue.add({
+        'id': '${DateTime.now().microsecondsSinceEpoch}_$jobId',
+        'job_id': jobId,
+        'file_path': filePath,
+        'captured_at': capturedAt ?? now,
+        'captured_latitude': capturedLatitude,
+        'captured_longitude': capturedLongitude,
+        'upload_source': uploadSource,
+        'created_at': now,
+        'attempts': 0,
+        'status': 'pending',
+        'last_error': null,
+      });
+      created++;
+    }
+
+    await _savePendingUploads(queue);
+    return created;
+  }
+
+  Future<int> getPendingUploadsCountForJob(int jobId) async {
+    final queue = await _loadPendingUploads();
+    return queue
+        .where((item) => item['job_id'] == jobId && item['status'] != 'sent')
+        .length;
+  }
+
+  Future<Map<int, int>> getPendingUploadsCountMap() async {
+    final queue = await _loadPendingUploads();
+    final counts = <int, int>{};
+
+    for (final item in queue) {
+      if (item['status'] == 'sent') continue;
+      final jobId = item['job_id'] as int?;
+      if (jobId == null) continue;
+      counts[jobId] = (counts[jobId] ?? 0) + 1;
+    }
+
+    return counts;
+  }
+
+  Future<Map<String, dynamic>> processPendingUploads({
+    int? jobId,
+    int maxBatch = 5,
+  }) async {
+    final token = await _authService.getToken();
+    if (token == null) {
+      return {
+        'success': false,
+        'processed': 0,
+        'sent': 0,
+        'message': 'Sin token para procesar cola',
+      };
+    }
+
+    final queue = await _loadPendingUploads();
+    var processed = 0;
+    var sent = 0;
+
+    for (final item in queue) {
+      if (processed >= maxBatch) break;
+      if (item['status'] == 'sent') continue;
+      if (jobId != null && item['job_id'] != jobId) continue;
+
+      final filePath = item['file_path']?.toString();
+      if (filePath == null || filePath.isEmpty) continue;
+
+      final file = File(filePath);
+      if (!await file.exists()) {
+        item['status'] = 'failed';
+        item['last_error'] = 'Archivo local no encontrado';
+        item['attempts'] = (item['attempts'] ?? 0) + 1;
+        processed++;
+        continue;
+      }
+
+      final result = await _uploadFilesRequest(
+        token: token,
+        jobId: item['job_id'] as int,
+        filePaths: [filePath],
+        capturedAt: item['captured_at']?.toString(),
+        capturedLatitude: (item['captured_latitude'] as num?)?.toDouble(),
+        capturedLongitude: (item['captured_longitude'] as num?)?.toDouble(),
+        uploadSource: item['upload_source']?.toString() ?? 'mobile_app_retry',
+        clientCompressed: true,
+        appQueueId: item['id']?.toString(),
+      );
+
+      if (result['success'] == true) {
+        item['status'] = 'sent';
+        item['sent_at'] = DateTime.now().toIso8601String();
+        item['last_error'] = null;
+        sent++;
+      } else {
+        item['status'] = 'failed';
+        item['last_error'] = result['message']?.toString();
+      }
+
+      item['attempts'] = (item['attempts'] ?? 0) + 1;
+      processed++;
+    }
+
+    // Limpiar ítems enviados exitosamente para evitar crecimiento infinito
+    queue.removeWhere((item) => item['status'] == 'sent');
+    await _savePendingUploads(queue);
+
+    return {
+      'success': true,
+      'processed': processed,
+      'sent': sent,
+      'remaining': queue.length,
+      'message': sent > 0
+          ? 'Se enviaron $sent archivo(s) pendientes'
+          : 'No hubo envíos pendientes exitosos',
+    };
   }
 
   // Buscar clientes
   Future<List<Client>> searchClients(String query) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌❌❌ searchClients: NO HAY TOKEN');
         return [];
       }
 
-      final url = '${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}?search=$query';
+      final url =
+          '${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}?search=$query';
       // print('🌐🌐🌐 searchClients URL: $url');
       final response = await http.get(
         Uri.parse(url),
@@ -594,11 +915,11 @@ class JobService {
 
       // print('📊📊📊 searchClients Status: ${response.statusCode}');
       // print('📄📄📄 searchClients Response COMPLETO: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         // print('🔑🔑🔑 searchClients Keys en response: ${data.keys}');
-        
+
         // Intentar ambas estructuras posibles: {clients: []} o {data: []}
         List<dynamic>? clientsList;
         if (data['clients'] != null) {
@@ -613,16 +934,14 @@ class JobService {
         } else {
           print('❌❌❌ NO SE ENCONTRÓ LISTA DE CLIENTES EN LA RESPUESTA');
         }
-        
+
         if (clientsList != null) {
           // print('📝📝📝 Parseando ${clientsList.length} clientes...');
-          final clients = clientsList
-              .map((client) {
-                // print('   - Cliente: ${client['first_name']} ${client['last_name']}');
-                return Client.fromJson(client);
-              })
-              .toList();
-          
+          final clients = clientsList.map((client) {
+            // print('   - Cliente: ${client['first_name']} ${client['last_name']}');
+            return Client.fromJson(client);
+          }).toList();
+
           // print('✅✅✅ searchClients: ${clients.length} clientes parseados correctamente');
           return clients;
         }
@@ -653,14 +972,14 @@ class JobService {
   }) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         return {'success': false, 'message': 'No autenticado'};
       }
 
       // print('📡 createJob: Creando tarea para cliente $clientId en dirección $addressId');
       // print('📍 Ubicación: lat=$latitude, lon=$longitude');
-      
+
       // Construir body solo con valores no nulos
       final Map<String, dynamic> bodyData = {
         'client_id': clientId,
@@ -668,19 +987,20 @@ class JobService {
         'visit_datetime': visitDateTime.toIso8601String(),
         'job_description': description,
       };
-      
+
       if (latitude != null) bodyData['latitude'] = latitude;
       if (longitude != null) bodyData['longitude'] = longitude;
-      if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
+      if (jsonGeolocation != null)
+        bodyData['jsongeolocation'] = jsonGeolocation;
       if (technicianIds != null && technicianIds.isNotEmpty) {
         bodyData['technician_ids'] = technicianIds;
       }
       if (products != null && products.isNotEmpty) {
         bodyData['products'] = products.map((p) => p.toJson()).toList();
       }
-      
+
       // print('📦 createJob: Body: $bodyData');
-      
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}'),
         headers: ApiConfig.getHeaders(token: token),
@@ -689,15 +1009,17 @@ class JobService {
 
       // print('📥 createJob: Status ${response.statusCode}');
       // print('📄 createJob: Response: ${response.body}');
-      
-      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 302) {
+
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 302) {
         // print('✅ createJob: Tarea creada exitosamente');
         return {
           'success': true,
           'message': 'Tarea creada correctamente',
         };
       }
-      
+
       final data = jsonDecode(response.body);
       return {
         'success': false,
@@ -713,16 +1035,17 @@ class JobService {
   Future<List<Address>> getClientAddresses(int clientId) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌❌❌ getClientAddresses: NO HAY TOKEN');
         return [];
       }
 
-      final url = '${ApiConfig.baseUrl}${ApiConfig.clientAddressesEndpoint}/$clientId';
+      final url =
+          '${ApiConfig.baseUrl}${ApiConfig.clientAddressesEndpoint}/$clientId';
       // print('🌐🌐🌐 getClientAddresses URL: $url');
       // print('🔑 Token presente: ${token.substring(0, 20)}...');
-      
+
       final response = await http.get(
         Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
@@ -730,19 +1053,17 @@ class JobService {
 
       // print('📊📊📊 getClientAddresses Status: ${response.statusCode}');
       // print('📄📄📄 getClientAddresses Response COMPLETO: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         // print('🔑🔑🔑 Keys en response: ${data.keys}');
-        
+
         if (data['datos'] != null) {
-          final addresses = (data['datos'] as List)
-              .map((address) {
-                // print('   - Dirección: ${address['address_street']} ${address['address_nro']}');
-                return Address.fromJson(address);
-              })
-              .toList();
-          
+          final addresses = (data['datos'] as List).map((address) {
+            // print('   - Dirección: ${address['address_street']} ${address['address_nro']}');
+            return Address.fromJson(address);
+          }).toList();
+
           // print('✅✅✅ getClientAddresses: ${addresses.length} direcciones parseadas');
           return addresses;
         } else {
@@ -751,7 +1072,7 @@ class JobService {
       } else {
         print('❌❌❌ Status no es 200, Body: ${response.body}');
       }
-      
+
       // print('⚠️⚠️⚠️ getClientAddresses: Retornando lista vacía');
       return [];
     } catch (e, stackTrace) {
@@ -831,33 +1152,34 @@ class JobService {
   }) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ updateJob: No autenticado');
         return {'success': false, 'message': 'No autenticado'};
       }
 
       // print('📡 updateJob: Actualizando job $jobId');
-      
+
       // Construir body solo con valores no nulos
       final Map<String, dynamic> bodyData = {
         'address_id': addressId,
         'visit_datetime': visitDateTime.toIso8601String(),
         'job_description': description,
       };
-      
+
       if (latitude != null) bodyData['latitude'] = latitude;
       if (longitude != null) bodyData['longitude'] = longitude;
-      if (jsonGeolocation != null) bodyData['jsongeolocation'] = jsonGeolocation;
+      if (jsonGeolocation != null)
+        bodyData['jsongeolocation'] = jsonGeolocation;
       if (technicianIds != null) {
         bodyData['technician_ids'] = technicianIds;
       }
       if (products != null && products.isNotEmpty) {
         bodyData['products'] = products.map((p) => p.toJson()).toList();
       }
-      
+
       // print('📦 updateJob: Body: $bodyData');
-      
+
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/jobs/$jobId'),
         headers: ApiConfig.getHeaders(token: token),
@@ -892,20 +1214,20 @@ class JobService {
   ) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ updateJobTechnicians: No autenticado');
         return {'success': false, 'message': 'No autenticado'};
       }
 
       // print('📡 updateJobTechnicians: Actualizando técnicos del job $jobId');
-      
+
       final Map<String, dynamic> bodyData = {
         'technician_ids': technicianIds ?? [],
       };
-      
+
       // print('📦 updateJobTechnicians: Body: $bodyData');
-      
+
       final response = await http.patch(
         Uri.parse('${ApiConfig.baseUrl}/jobs/$jobId/technicians'),
         headers: ApiConfig.getHeaders(token: token),
@@ -937,7 +1259,7 @@ class JobService {
   Future<List<Product>> searchProducts(String query, {String? tipo}) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ searchProducts: No autenticado');
         return [];
@@ -948,13 +1270,13 @@ class JobService {
       }
 
       // print('🔍 searchProducts: Buscando productos con query: "$query"');
-      
+
       // Construir URL con parámetros
       var url = '${ApiConfig.baseUrl}/jobs/products?search=$query';
       if (tipo != null && tipo.isNotEmpty) {
         url += '&tipo=$tipo';
       }
-      
+
       final response = await http.get(
         Uri.parse(url),
         headers: ApiConfig.getHeaders(token: token),
@@ -988,7 +1310,7 @@ class JobService {
   ) async {
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
         print('❌ generateJobPDF: No autenticado');
         return {'success': false, 'message': 'No autenticado'};
@@ -998,7 +1320,8 @@ class JobService {
       // print('📄 generateJobPDF: Config: $config');
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/generate-pdf'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}${ApiConfig.jobDetailEndpoint}/$jobId/generate-pdf'),
         headers: ApiConfig.getHeaders(token: token),
         body: jsonEncode(config),
       );
@@ -1007,7 +1330,7 @@ class JobService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         if (data['success'] == true) {
           // print('✅ generateJobPDF: PDF generado exitosamente');
           return {
@@ -1033,22 +1356,21 @@ class JobService {
     } catch (e, stackTrace) {
       print('❌ generateJobPDF: Exception: $e');
       // print('📄 generateJobPDF: StackTrace: $stackTrace');
-      return {
-        'success': false,
-        'message': 'Error: ${e.toString()}'
-      };
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
   }
 
   // Obtener lista de clientes
   Future<Map<String, dynamic>> getClients({String? search}) async {
-    await DebugLogger.instance.info('👥 Obteniendo clientes...', category: 'JOBS');
-    
+    await DebugLogger.instance
+        .info('👥 Obteniendo clientes...', category: 'JOBS');
+
     try {
       final token = await _authService.getToken();
-      
+
       if (token == null) {
-        await DebugLogger.instance.error('❌ No hay token de autenticación', category: 'JOBS');
+        await DebugLogger.instance
+            .error('❌ No hay token de autenticación', category: 'JOBS');
         return {
           'success': false,
           'errorCode': ApiErrorCode.NO_TOKEN,
@@ -1078,24 +1400,24 @@ class JobService {
 
       final response = result.data as http.Response;
       final data = jsonDecode(response.body);
-      
+
       if (data['success'] == true) {
         final clients = (data['data'] as List)
             .map((client) => Client.fromJson(client))
             .toList();
-        
+
         await DebugLogger.instance.success(
           '✅ ${clients.length} clientes obtenidos',
           category: 'JOBS',
           data: {'count': clients.length},
         );
-        
+
         return {
           'success': true,
           'clients': clients,
         };
       }
-      
+
       return {
         'success': false,
         'errorCode': ApiErrorCode.UNKNOWN,

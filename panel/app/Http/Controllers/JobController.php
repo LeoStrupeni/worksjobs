@@ -464,11 +464,29 @@ class JobController extends Controller
     {
         // Soportar tanto 'images' como 'files'
         $fileField = $request->hasFile('images') ? 'images' : 'files';
+        $capturedAt = $request->input('captured_at');
+        $capturedLatitude = $request->input('captured_latitude');
+        $capturedLongitude = $request->input('captured_longitude');
+        $uploadSource = $request->input('upload_source', 'web_panel');
+        $appQueueId = $request->input('app_queue_id');
+        $clientCompressed = $request->boolean('client_compressed', false);
         
         if ($request->hasFile($fileField)) {
             $file = $request->file($fileField);
 
             foreach ($file as $attachment) {
+                $checksum = hash_file('sha256', $attachment->getRealPath());
+
+                // Evitar duplicados por reintentos: misma tarea + mismo archivo
+                $alreadyExists = Jobs_file::where('job_id', $job_id)
+                    ->where('checksum', $checksum)
+                    ->whereNull('deleted_at')
+                    ->exists();
+
+                if ($alreadyExists) {
+                    continue;
+                }
+
                 $n = 10;
                 $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
                 $randomString = '';
@@ -478,7 +496,7 @@ class JobController extends Controller
                 $filename = $job_id.'_'.time().'_'.$randomString.'.'.$extension;
                 
                 // Verificar si es una imagen y optimizarla
-                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif']) && !$clientCompressed) {
                     $optimizedPath = $this->optimizeAndSaveImage($attachment, $filename);
                 } else {
                     // Para archivos no imagen, guardar normalmente
@@ -490,6 +508,13 @@ class JobController extends Controller
                     'name' => basename($optimizedPath),
                     'original_name' => $attachment->getClientOriginalName(),
                     'original_extension' => $attachment->getClientOriginalExtension(),
+                    'checksum' => $checksum,
+                    'captured_at' => $capturedAt,
+                    'captured_latitude' => $capturedLatitude,
+                    'captured_longitude' => $capturedLongitude,
+                    'uploaded_at' => Carbon::now(),
+                    'upload_source' => $uploadSource,
+                    'app_queue_id' => $appQueueId,
                 ]);
             }
         }

@@ -36,13 +36,13 @@ class JobCard extends StatelessWidget {
       shadowColor: const Color(0xFF00274E).withOpacity(0.3),
       color: _getCardBackgroundColor(),
       child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               // Header con estado
               Row(
                 children: [
@@ -63,9 +63,9 @@ class JobCard extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Hora de visita
               if (job.visitDatetime != null)
                 Row(
@@ -81,9 +81,9 @@ class JobCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              
+
               const SizedBox(height: 4),
-              
+
               // Dirección
               if (job.fullAddress != null)
                 Padding(
@@ -91,7 +91,8 @@ class JobCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.location_on,
+                          size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Column(
@@ -130,9 +131,9 @@ class JobCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Tags de estado y productos
               Wrap(
                 spacing: 8,
@@ -140,7 +141,8 @@ class JobCard extends StatelessWidget {
                 children: [
                   // Badge de número de orden
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00274E),
                       borderRadius: BorderRadius.circular(12),
@@ -159,14 +161,14 @@ class JobCard extends StatelessWidget {
                     _buildProductsChip(),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Botones de acción
               _buildActionButtons(context),
             ],
-            ),
           ),
+        ),
       ),
     );
   }
@@ -174,9 +176,9 @@ class JobCard extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     final roles = permissions.roles;
     final isAdmin = roles.contains('sistema') || roles.contains('admin');
-    
+
     // print('🔑 JobCard buttons - Job ${job.id}: create=${permissions.create}, read=${permissions.read}, update=${permissions.update}, delete=${permissions.delete}, roles=$roles');
-    
+
     return Column(
       children: [
         // Botones principales grandes
@@ -197,10 +199,10 @@ class JobCard extends StatelessWidget {
               ),
             ),
           ),
-        
+
         if (permissions.update && !job.isInPlace && !job.isClosed)
           const SizedBox(height: 8),
-        
+
         if (permissions.read)
           SizedBox(
             width: double.infinity,
@@ -218,9 +220,9 @@ class JobCard extends StatelessWidget {
               ),
             ),
           ),
-        
+
         const SizedBox(height: 8),
-        
+
         if (permissions.update && !job.isClosed)
           SizedBox(
             width: double.infinity,
@@ -238,11 +240,11 @@ class JobCard extends StatelessWidget {
               ),
             ),
           ),
-        
+
         const SizedBox(height: 12),
         const Divider(),
         const SizedBox(height: 8),
-        
+
         // Botones secundarios pequeños en fila
         Row(
           children: [
@@ -272,7 +274,8 @@ class JobCard extends StatelessWidget {
                   child: const Icon(Icons.notes, size: 20),
                 ),
               ),
-            if ((permissions.update || permissions.read) && permissions.update) ...[
+            if ((permissions.update || permissions.read) &&
+                permissions.update) ...[
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton(
@@ -300,14 +303,14 @@ class JobCard extends StatelessWidget {
             ],
           ],
         ),
-        
+
         // Menú dropdown para opciones avanzadas
         // Solo mostrar si hay al menos una opción disponible
-        if (!job.isClosed && (
-            (permissions.update && job.isInPlace) || // Volver a pendiente
-            (permissions.update && !job.isInPlace) || // Editar
-            (isAdmin && permissions.delete && !job.isInPlace) // Eliminar
-          ))
+        if (!job.isClosed &&
+            ((permissions.update && job.isInPlace) || // Volver a pendiente
+                (permissions.update && !job.isInPlace) || // Editar
+                (isAdmin && permissions.delete && !job.isInPlace) // Eliminar
+            ))
           PopupMenuButton<String>(
             child: Container(
               margin: const EdgeInsets.only(top: 8),
@@ -354,7 +357,10 @@ class JobCard extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (isAdmin && permissions.delete && !job.isInPlace && !job.isClosed)
+              if (isAdmin &&
+                  permissions.delete &&
+                  !job.isInPlace &&
+                  !job.isClosed)
                 const PopupMenuItem(
                   value: 'delete',
                   child: Row(
@@ -398,12 +404,12 @@ class JobCard extends StatelessWidget {
   Widget _buildStatusChip() {
     Color color = _getStatusColor();
     String statusText = job.status ?? 'Desconocido';
-    
+
     // Si está pendiente y vencida, cambiar solo el texto (el color ya viene del backend)
     if (job.isOverdue) {
       statusText = 'Vencida';
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -423,7 +429,7 @@ class JobCard extends StatelessWidget {
 
   Widget _buildProductsChip() {
     final productCount = job.products?.length ?? 0;
-    
+
     return Chip(
       avatar: const Icon(
         Icons.inventory_2,
@@ -444,7 +450,7 @@ class JobCard extends StatelessWidget {
 
   Color _getStatusColor() {
     final colorStr = job.colorStatus?.toLowerCase();
-    
+
     // Si es un color hexadecimal (ej: #00274e)
     if (colorStr != null && colorStr.startsWith('#')) {
       try {
@@ -454,7 +460,7 @@ class JobCard extends StatelessWidget {
         return Colors.grey;
       }
     }
-    
+
     // Colores por nombre
     switch (colorStr) {
       case 'black':
@@ -477,17 +483,17 @@ class JobCard extends StatelessWidget {
     if (job.isClosed) {
       return const Color(0xFFE0E0E0); // Gris muy claro con tono frío
     }
-    
+
     // En lugar - Verde sutil (similar al pills pero diferente)
     if (job.isInPlace && !job.isClosed) {
       return const Color(0xFFE8F5E9); // Verde muy claro
     }
-    
+
     // Pendientes vencidas - Rojo sutil
     if (job.isOverdue) {
       return const Color(0xFFFFEBEE); // Rojo muy claro
     }
-    
+
     // Pendientes normales - Gris (color original)
     return const Color(0xFFD6DEE6);
   }
@@ -502,7 +508,7 @@ class JobCard extends StatelessWidget {
   }
 
   // HANDLERS
-  
+
   Future<void> _handleMarkArrival(BuildContext context) async {
     final confirmed = await CustomAlerts.showConfirmAlert(
       context,
@@ -514,7 +520,7 @@ class JobCard extends StatelessWidget {
 
     if (confirmed && context.mounted) {
       final jobProvider = context.read<JobProvider>();
-      
+
       final success = await CustomAlerts.executeWithLoading(
         context,
         operation: () => jobProvider.markArrival(job.id!),
@@ -522,9 +528,10 @@ class JobCard extends StatelessWidget {
         successTitle: 'Llegada registrada',
         successMessage: 'Tu llegada fue registrada exitosamente',
         errorTitle: 'Error al registrar',
-        getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo registrar la llegada',
+        getErrorMessage: () =>
+            jobProvider.errorMessage ?? 'No se pudo registrar la llegada',
       );
-      
+
       if (success && onRefresh != null) {
         onRefresh!();
       }
@@ -553,17 +560,19 @@ class JobCard extends StatelessWidget {
 
     if (confirmed == true && context.mounted) {
       final success = await context.read<JobProvider>().closeJob(job.id!);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success ? '✅ Cita cerrada exitosamente' : '❌ Error al cerrar cita',
+              success
+                  ? '✅ Cita cerrada exitosamente'
+                  : '❌ Error al cerrar cita',
             ),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
-        
+
         if (success && onRefresh != null) {
           onRefresh!();
         }
@@ -573,7 +582,7 @@ class JobCard extends StatelessWidget {
 
   Future<void> _handleAddNote(BuildContext context) async {
     final noteController = TextEditingController();
-    
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -614,9 +623,11 @@ class JobCard extends StatelessWidget {
         successTitle: 'Nota agregada',
         successMessage: 'La nota se agregó correctamente',
         errorTitle: 'Error al agregar nota',
-        getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo agregar la nota',
+        getErrorMessage: () =>
+            context.read<JobProvider>().errorMessage ??
+            'No se pudo agregar la nota',
       );
-      
+
       if (success && onRefresh != null) {
         onRefresh!();
       }
@@ -625,7 +636,7 @@ class JobCard extends StatelessWidget {
 
   Future<void> _handleAddImages(BuildContext context) async {
     final ImagePicker picker = ImagePicker();
-    
+
     // Mostrar opciones
     final source = await showDialog<ImageSource>(
       context: context,
@@ -653,43 +664,64 @@ class JobCard extends StatelessWidget {
       try {
         // Permitir selección múltiple solo desde galería
         if (source == ImageSource.gallery) {
-          final List<XFile> images = await picker.pickMultiImage();
-          
+          final List<XFile> images = await picker.pickMultiImage(
+            maxWidth: 1920,
+            maxHeight: 1080,
+            imageQuality: 85,
+          );
+
           if (images.isNotEmpty && context.mounted) {
             final filePaths = images.map((e) => e.path).toList();
             final jobProvider = context.read<JobProvider>();
-            
+
             final success = await CustomAlerts.executeWithLoading(
               context,
-              operation: () => jobProvider.uploadFiles(job.id!, filePaths),
+              operation: () async {
+                final result =
+                    await jobProvider.uploadFiles(job.id!, filePaths);
+                return result['success'] == true || result['queued'] == true;
+              },
               loadingMessage: 'Subiendo ${images.length} imagen(es)...',
-              successTitle: 'Imágenes subidas',
-              successMessage: '${images.length} imagen(es) subida(s) exitosamente',
+              successTitle: 'Imágenes procesadas',
+              successMessage:
+                  'Las imágenes se subieron o quedaron en cola automática',
               errorTitle: 'Error al subir',
-              getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudieron subir las imágenes',
+              getErrorMessage: () =>
+                  jobProvider.errorMessage ??
+                  'No se pudieron subir las imágenes',
             );
-            
+
             if (success && onRefresh != null) {
               onRefresh!();
             }
           }
         } else {
           // Tomar foto individual
-          final XFile? photo = await picker.pickImage(source: source);
-          
+          final XFile? photo = await picker.pickImage(
+            source: source,
+            maxWidth: 1920,
+            maxHeight: 1080,
+            imageQuality: 85,
+          );
+
           if (photo != null && context.mounted) {
             final jobProvider = context.read<JobProvider>();
-            
+
             final success = await CustomAlerts.executeWithLoading(
               context,
-              operation: () => jobProvider.uploadFiles(job.id!, [photo.path]),
+              operation: () async {
+                final result =
+                    await jobProvider.uploadFiles(job.id!, [photo.path]);
+                return result['success'] == true || result['queued'] == true;
+              },
               loadingMessage: 'Subiendo imagen...',
-              successTitle: 'Imagen subida',
-              successMessage: 'La imagen se subió exitosamente',
+              successTitle: 'Imagen procesada',
+              successMessage: 'La imagen se subió o quedó en cola automática',
               errorTitle: 'Error al subir',
-              getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo subir la imagen',
+              getErrorMessage: () =>
+                  jobProvider.errorMessage ?? 'No se pudo subir la imagen',
             );
-            
+
             if (success && onRefresh != null) {
               onRefresh!();
             }
@@ -712,7 +744,7 @@ class JobCard extends StatelessWidget {
       context: context,
       builder: (context) => _ProductsDialog(job: job),
     );
-    
+
     if (result == true && onRefresh != null) {
       onRefresh!();
     }
@@ -723,7 +755,8 @@ class JobCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Volver a Pendiente'),
-        content: const Text('¿Deseas desmarcar la llegada y volver esta tarea a estado pendiente?'),
+        content: const Text(
+            '¿Deseas desmarcar la llegada y volver esta tarea a estado pendiente?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -740,17 +773,19 @@ class JobCard extends StatelessWidget {
 
     if (confirmed == true && context.mounted) {
       final success = await context.read<JobProvider>().backToPending(job.id!);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success ? '✅ Tarea vuelta a pendiente' : '❌ Error al volver a pendiente',
+              success
+                  ? '✅ Tarea vuelta a pendiente'
+                  : '❌ Error al volver a pendiente',
             ),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
-        
+
         if (success && onRefresh != null) {
           onRefresh!();
         }
@@ -763,7 +798,7 @@ class JobCard extends StatelessWidget {
       context: context,
       builder: (context) => _NotesDialog(job: job, permissions: permissions),
     );
-    
+
     if (result == true && onRefresh != null) {
       onRefresh!();
     }
@@ -773,14 +808,15 @@ class JobCard extends StatelessWidget {
     final confirmed = await CustomAlerts.showConfirmAlert(
       context,
       title: 'Eliminar Tarea',
-      message: '¿Estás seguro que deseas eliminar la tarea de ${job.clientName}?',
+      message:
+          '¿Estás seguro que deseas eliminar la tarea de ${job.clientName}?',
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
     );
 
     if (confirmed && context.mounted) {
       final jobProvider = context.read<JobProvider>();
-      
+
       final success = await CustomAlerts.executeWithLoading(
         context,
         operation: () => jobProvider.deleteJob(job.id!),
@@ -788,9 +824,10 @@ class JobCard extends StatelessWidget {
         successTitle: 'Tarea eliminada',
         successMessage: 'La tarea fue eliminada exitosamente',
         errorTitle: 'Error al eliminar',
-        getErrorMessage: () => jobProvider.errorMessage ?? 'No se pudo eliminar la tarea',
+        getErrorMessage: () =>
+            jobProvider.errorMessage ?? 'No se pudo eliminar la tarea',
       );
-      
+
       if (success && onRefresh != null) {
         onRefresh!();
       }
@@ -835,16 +872,16 @@ class _ProductsDialog extends StatefulWidget {
 class _ProductsDialogState extends State<_ProductsDialog> {
   final _searchController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
-  
+
   List<Product> _searchResults = [];
   List<Product> _initialProducts = [];
   List<SelectedProduct> _selectedProducts = [];
-  
+
   Product? _selectedProduct;
   String _selectedUnitType = 'Unidad';
   bool _isSearching = false;
   bool _isLoading = true;
-  
+
   // Guardar el job completo con address_id
   Job? _fullJob;
 
@@ -864,18 +901,18 @@ class _ProductsDialogState extends State<_ProductsDialog> {
 
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       // print('🔵 MODAL GESTIONAR: Iniciando carga de productos...');
       // print('🔵 MODAL GESTIONAR: widget.job.products = ${widget.job.products}');
-      
+
       // Cargar productos iniciales desde AuthService
       final authService = AuthService();
       final productsData = await authService.getProducts();
-      
+
       // Convertir Map a Product
       final products = productsData.map((p) => Product.fromJson(p)).toList();
-      
+
       // Si no hay productos en el job, cargar el detalle completo
       List<dynamic> currentProductsData;
       if (widget.job.products == null) {
@@ -892,18 +929,18 @@ class _ProductsDialogState extends State<_ProductsDialog> {
         currentProductsData = widget.job.products!;
         _fullJob = widget.job; // Usar el job original si ya tiene productos
       }
-      
+
       // print('🔵 MODAL GESTIONAR: currentProductsData length = ${currentProductsData.length}');
       // print('🔵 MODAL GESTIONAR: currentProductsData = $currentProductsData');
-      
+
       setState(() {
         _initialProducts = products;
         _searchResults = products;
-        
+
         // Convertir los Map de productos del backend a SelectedProduct
         _selectedProducts = currentProductsData.map((pData) {
           // print('🔵 MODAL GESTIONAR: Procesando producto: $pData');
-          
+
           // Convertir quantity de manera segura (puede venir como String o num)
           double parsedQuantity = 1.0;
           final quantityValue = pData['quantity'];
@@ -912,7 +949,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
           } else if (quantityValue is String) {
             parsedQuantity = double.tryParse(quantityValue) ?? 1.0;
           }
-          
+
           // Convertir product_id de manera segura
           int productId;
           final productIdValue = pData['product_id'];
@@ -923,20 +960,23 @@ class _ProductsDialogState extends State<_ProductsDialog> {
           } else {
             productId = 0;
           }
-          
+
           return SelectedProduct(
             product: Product(
               id: productId,
               codigo: pData['codigo'] as String,
               descripcion: pData['descripcion'] as String,
-              isFromColppy: pData['is_from_colppy'] == 1 || pData['is_from_colppy'] == '1' || pData['is_from_colppy'] == true,
+              isFromColppy: pData['is_from_colppy'] == 1 ||
+                  pData['is_from_colppy'] == '1' ||
+                  pData['is_from_colppy'] == true,
             ),
             unitType: pData['unit_type'] as String? ?? 'Unidad',
             quantity: parsedQuantity,
-            uniqueId: pData['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            uniqueId: pData['id']?.toString() ??
+                DateTime.now().millisecondsSinceEpoch.toString(),
           );
         }).toList();
-        
+
         // print('🔵 MODAL GESTIONAR: _selectedProducts.length después de cargar = ${_selectedProducts.length}');
         _isLoading = false;
       });
@@ -952,7 +992,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
 
   void _onSearchChanged() {
     final query = _searchController.text.trim();
-    
+
     if (query.isEmpty) {
       setState(() {
         _searchResults = _initialProducts;
@@ -960,7 +1000,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       });
       return;
     }
-    
+
     if (query.length < 2) {
       setState(() {
         _searchResults = [];
@@ -968,17 +1008,17 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       });
       return;
     }
-    
+
     _performSearch(query);
   }
 
   Future<void> _performSearch(String query) async {
     setState(() => _isSearching = true);
-    
+
     try {
       final jobProvider = context.read<JobProvider>();
       final results = await jobProvider.searchProducts(query);
-      
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -1002,7 +1042,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       );
       return;
     }
-    
+
     final quantity = double.tryParse(_quantityController.text) ?? 1.0;
     if (quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1010,14 +1050,14 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       );
       return;
     }
-    
+
     final newProduct = SelectedProduct(
       product: _selectedProduct!,
       unitType: _selectedUnitType,
       quantity: quantity,
       uniqueId: DateTime.now().millisecondsSinceEpoch.toString(),
     );
-    
+
     setState(() {
       _selectedProducts.add(newProduct);
       _selectedProduct = null;
@@ -1036,23 +1076,24 @@ class _ProductsDialogState extends State<_ProductsDialog> {
 
   Future<void> _saveProducts() async {
     // print('🔵 SAVE: Guardando ${_selectedProducts.length} productos...');
-    
+
     // Usar el job completo que tiene todos los datos necesarios
     final jobToUse = _fullJob ?? widget.job;
-    
+
     // print('🔵 SAVE: jobToUse.id = ${jobToUse.id}');
     // print('🔵 SAVE: jobToUse.addressId = ${jobToUse.addressId}');
-    
+
     if (jobToUse.addressId == null) {
       print('❌ SAVE: addressId es NULL!');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: La tarea no tiene dirección asignada')),
+          const SnackBar(
+              content: Text('Error: La tarea no tiene dirección asignada')),
         );
       }
       return;
     }
-    
+
     // Parsear visitDatetime que viene como String
     DateTime visitDateTime;
     try {
@@ -1066,35 +1107,38 @@ class _ProductsDialogState extends State<_ProductsDialog> {
       }
       return;
     }
-    
+
     // Extraer IDs de técnicos
-    final technicianIds = jobToUse.technicians?.map((t) => t['id'] as int).toList();
+    final technicianIds =
+        jobToUse.technicians?.map((t) => t['id'] as int).toList();
     // print('🔵 SAVE: technicianIds = $technicianIds');
     // print('🔵 SAVE: addressId = ${jobToUse.addressId}');
     // print('🔵 SAVE: visitDateTime = $visitDateTime');
     // print('🔵 SAVE: description = ${jobToUse.jobDescription}');
-    
+
     final success = await CustomAlerts.executeWithLoading(
       context,
       operation: () async {
         return await context.read<JobProvider>().updateJob(
-          jobId: jobToUse.id!,
-          addressId: jobToUse.addressId!,
-          visitDateTime: visitDateTime,
-          description: jobToUse.jobDescription ?? '',
-          latitude: jobToUse.visitLatitud,
-          longitude: jobToUse.visitLongitud,
-          technicianIds: technicianIds,
-          products: _selectedProducts,
-        );
+              jobId: jobToUse.id!,
+              addressId: jobToUse.addressId!,
+              visitDateTime: visitDateTime,
+              description: jobToUse.jobDescription ?? '',
+              latitude: jobToUse.visitLatitud,
+              longitude: jobToUse.visitLongitud,
+              technicianIds: technicianIds,
+              products: _selectedProducts,
+            );
       },
       loadingMessage: 'Guardando productos...',
       successTitle: 'Productos actualizados',
       successMessage: 'Los productos se actualizaron correctamente',
       errorTitle: 'Error al actualizar productos',
-      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudieron actualizar los productos',
+      getErrorMessage: () =>
+          context.read<JobProvider>().errorMessage ??
+          'No se pudieron actualizar los productos',
     );
-    
+
     if (success && mounted) {
       Navigator.pop(context, true);
     }
@@ -1140,7 +1184,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                 ],
               ),
             ),
-            
+
             if (_isLoading)
               const Expanded(
                 child: Center(child: CircularProgressIndicator()),
@@ -1172,7 +1216,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   ),
                                 )
                               : null,
@@ -1181,7 +1226,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           ),
                         ),
                       ),
-                      
+
                       // Resultados de búsqueda
                       if (_searchResults.isNotEmpty && !_isSearching)
                         Container(
@@ -1189,7 +1234,9 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           margin: const EdgeInsets.only(top: 8),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            border: Border.all(color: const Color(0xFF00274E).withOpacity(0.3), width: 2),
+                            border: Border.all(
+                                color: const Color(0xFF00274E).withOpacity(0.3),
+                                width: 2),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -1204,9 +1251,11 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF00274E).withOpacity(0.1),
+                                  color:
+                                      const Color(0xFF00274E).withOpacity(0.1),
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(10),
                                     topRight: Radius.circular(10),
@@ -1214,7 +1263,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.inventory_2, size: 16, color: Color(0xFF00274E)),
+                                    const Icon(Icons.inventory_2,
+                                        size: 16, color: Color(0xFF00274E)),
                                     const SizedBox(width: 8),
                                     Text(
                                       '${_searchResults.length} producto${_searchResults.length != 1 ? 's' : ''} encontrado${_searchResults.length != 1 ? 's' : ''}',
@@ -1231,45 +1281,59 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                 child: ListView.separated(
                                   shrinkWrap: true,
                                   itemCount: _searchResults.length,
-                                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade300),
+                                  separatorBuilder: (context, index) => Divider(
+                                      height: 1, color: Colors.grey.shade300),
                                   itemBuilder: (context, index) {
                                     final product = _searchResults[index];
-                                    final isSelected = _selectedProduct?.id == product.id;
+                                    final isSelected =
+                                        _selectedProduct?.id == product.id;
                                     return InkWell(
                                       onTap: () {
                                         setState(() {
                                           _selectedProduct = product;
-                                          _searchController.text = product.displayName;
+                                          _searchController.text =
+                                              product.displayName;
                                           _searchResults = [];
                                         });
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                        color: isSelected ? const Color(0xFF00274E).withOpacity(0.1) : null,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 10),
+                                        color: isSelected
+                                            ? const Color(0xFF00274E)
+                                                .withOpacity(0.1)
+                                            : null,
                                         child: Row(
                                           children: [
                                             CircleAvatar(
                                               radius: 16,
-                                              backgroundColor: isSelected 
-                                                ? const Color(0xFF00274E) 
-                                                : Colors.grey.shade300,
+                                              backgroundColor: isSelected
+                                                  ? const Color(0xFF00274E)
+                                                  : Colors.grey.shade300,
                                               child: Icon(
                                                 Icons.inventory_2,
                                                 size: 16,
-                                                color: isSelected ? Colors.white : Colors.grey.shade600,
+                                                color: isSelected
+                                                    ? Colors.white
+                                                    : Colors.grey.shade600,
                                               ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     product.codigo,
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 13,
-                                                      color: isSelected ? const Color(0xFF00274E) : Colors.black87,
+                                                      color: isSelected
+                                                          ? const Color(
+                                                              0xFF00274E)
+                                                          : Colors.black87,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 2),
@@ -1277,10 +1341,12 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                                     product.descripcion,
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color: Colors.grey.shade700,
+                                                      color:
+                                                          Colors.grey.shade700,
                                                     ),
                                                     maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ],
                                               ),
@@ -1301,7 +1367,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                             ],
                           ),
                         ),
-                      
+
                       if (_selectedProduct != null) ...[
                         const SizedBox(height: 16),
                         const Text(
@@ -1318,7 +1384,9 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                               flex: 2,
                               child: TextField(
                                 controller: _quantityController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                                 decoration: const InputDecoration(
                                   labelText: 'Cantidad',
                                   border: OutlineInputBorder(),
@@ -1335,9 +1403,12 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                   border: OutlineInputBorder(),
                                 ),
                                 items: const [
-                                  DropdownMenuItem(value: 'Unidad', child: Text('Unidad')),
-                                  DropdownMenuItem(value: 'Rollo', child: Text('Rollo')),
-                                  DropdownMenuItem(value: 'Metros', child: Text('Metros')),
+                                  DropdownMenuItem(
+                                      value: 'Unidad', child: Text('Unidad')),
+                                  DropdownMenuItem(
+                                      value: 'Rollo', child: Text('Rollo')),
+                                  DropdownMenuItem(
+                                      value: 'Metros', child: Text('Metros')),
                                 ],
                                 onChanged: (value) {
                                   if (value != null) {
@@ -1363,9 +1434,9 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           ),
                         ),
                       ],
-                      
+
                       const SizedBox(height: 24),
-                      
+
                       // Lista de productos agregados
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1387,7 +1458,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      
+
                       if (_selectedProducts.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(24),
@@ -1399,7 +1470,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+                                Icon(Icons.inventory_2_outlined,
+                                    size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
                                 Text(
                                   'No hay productos agregados',
@@ -1421,11 +1493,13 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                               child: ListTile(
                                 leading: const CircleAvatar(
                                   backgroundColor: Color(0xFF00274E),
-                                  child: Icon(Icons.inventory_2, color: Colors.white, size: 20),
+                                  child: Icon(Icons.inventory_2,
+                                      color: Colors.white, size: 20),
                                 ),
                                 title: Text(
                                   selectedProduct.product.codigo,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text(
                                   '${selectedProduct.product.descripcion}\n${selectedProduct.quantity} ${selectedProduct.unitType}',
@@ -1434,7 +1508,8 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                                 ),
                                 isThreeLine: true,
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
                                   onPressed: () => _removeProduct(index),
                                 ),
                               ),
@@ -1445,7 +1520,7 @@ class _ProductsDialogState extends State<_ProductsDialog> {
                   ),
                 ),
               ),
-            
+
             // Footer con botones
             Container(
               padding: const EdgeInsets.all(16),
@@ -1492,7 +1567,7 @@ class _NotesDialog extends StatefulWidget {
 
 class _NotesDialogState extends State<_NotesDialog> {
   final _noteController = TextEditingController();
-  
+
   List<Note> _notes = [];
   bool _isLoading = true;
 
@@ -1510,11 +1585,11 @@ class _NotesDialogState extends State<_NotesDialog> {
 
   Future<void> _loadNotes() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final jobProvider = context.read<JobProvider>();
       final result = await jobProvider.jobService.getNotes(widget.job.id!);
-      
+
       if (mounted && result['success'] == true) {
         setState(() {
           _notes = result['notes'] as List<Note>;
@@ -1535,14 +1610,14 @@ class _NotesDialogState extends State<_NotesDialog> {
 
   Future<void> _addNote() async {
     final note = _noteController.text.trim();
-    
+
     if (note.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Escribe una nota')),
       );
       return;
     }
-    
+
     final success = await CustomAlerts.executeWithLoading(
       context,
       operation: () async {
@@ -1552,10 +1627,12 @@ class _NotesDialogState extends State<_NotesDialog> {
       successTitle: 'Nota agregada',
       successMessage: 'La nota se agregó correctamente',
       errorTitle: 'Error al agregar nota',
-      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo agregar la nota',
+      getErrorMessage: () =>
+          context.read<JobProvider>().errorMessage ??
+          'No se pudo agregar la nota',
       showSuccessAlert: false, // No mostrar alert, solo refrescar
     );
-    
+
     if (success) {
       _noteController.clear();
       await _loadNotes();
@@ -1576,16 +1653,20 @@ class _NotesDialogState extends State<_NotesDialog> {
     final success = await CustomAlerts.executeWithLoading(
       context,
       operation: () async {
-        return await context.read<JobProvider>().deleteNote(widget.job.id!, note.id);
+        return await context
+            .read<JobProvider>()
+            .deleteNote(widget.job.id!, note.id);
       },
       loadingMessage: 'Eliminando nota...',
       successTitle: 'Nota eliminada',
       successMessage: 'La nota se eliminó correctamente',
       errorTitle: 'Error al eliminar nota',
-      getErrorMessage: () => context.read<JobProvider>().errorMessage ?? 'No se pudo eliminar la nota',
+      getErrorMessage: () =>
+          context.read<JobProvider>().errorMessage ??
+          'No se pudo eliminar la nota',
       showSuccessAlert: false,
     );
-    
+
     if (success) {
       await _loadNotes();
     }
@@ -1631,7 +1712,7 @@ class _NotesDialogState extends State<_NotesDialog> {
                 ],
               ),
             ),
-            
+
             if (_isLoading)
               const Expanded(
                 child: Center(child: CircularProgressIndicator()),
@@ -1676,14 +1757,15 @@ class _NotesDialogState extends State<_NotesDialog> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF00274E),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 24),
                           ],
                         ),
-                      
+
                       // Lista de notas
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1705,7 +1787,7 @@ class _NotesDialogState extends State<_NotesDialog> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      
+
                       if (_notes.isEmpty)
                         Container(
                           padding: const EdgeInsets.all(24),
@@ -1717,7 +1799,8 @@ class _NotesDialogState extends State<_NotesDialog> {
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.note_outlined, size: 48, color: Colors.grey.shade400),
+                                Icon(Icons.note_outlined,
+                                    size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
                                 Text(
                                   'No hay notas',
@@ -1740,7 +1823,8 @@ class _NotesDialogState extends State<_NotesDialog> {
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: Colors.blue.shade700,
-                                  child: const Icon(Icons.note, color: Colors.white, size: 20),
+                                  child: const Icon(Icons.note,
+                                      color: Colors.white, size: 20),
                                 ),
                                 title: Text(
                                   note.note,
@@ -1755,7 +1839,8 @@ class _NotesDialogState extends State<_NotesDialog> {
                                 ),
                                 trailing: widget.permissions.delete
                                     ? IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
                                         onPressed: () => _deleteNote(note),
                                       )
                                     : null,
@@ -1767,7 +1852,7 @@ class _NotesDialogState extends State<_NotesDialog> {
                   ),
                 ),
               ),
-            
+
             // Footer con botón
             Container(
               padding: const EdgeInsets.all(16),

@@ -27,6 +27,8 @@ android {
     compileSdk 36
     ndkVersion flutter.ndkVersion
 
+    flavorDimensions "env"
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -46,6 +48,28 @@ android {
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        manifestPlaceholders["appLabel"] = "Tecnicos Strupeni"
+    }
+
+    productFlavors {
+        dev {
+            dimension "env"
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+            manifestPlaceholders["appLabel"] = "Tecnicos Strupeni DEV"
+        }
+
+        qa {
+            dimension "env"
+            applicationIdSuffix ".qa"
+            versionNameSuffix "-qa"
+            manifestPlaceholders["appLabel"] = "Tecnicos Strupeni QA"
+        }
+
+        prod {
+            dimension "env"
+            manifestPlaceholders["appLabel"] = "Tecnicos Strupeni"
+        }
     }
 
     buildTypes {

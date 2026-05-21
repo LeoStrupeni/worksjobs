@@ -65,6 +65,15 @@ cd technician_app/
 python BUILD_RELEASE.py
 ```
 
+También admite modos directos para automatizar por flavor:
+
+```bash
+python BUILD_RELEASE.py --mode run-dev
+python BUILD_RELEASE.py --mode run-qa
+python BUILD_RELEASE.py --mode run-prod
+python BUILD_RELEASE.py --mode build-prod
+```
+
 **Ventajas:**
 - ✅ Multiplataforma (Windows, Linux, macOS)
 - ✅ Manejo robusto de errores
@@ -76,6 +85,15 @@ python BUILD_RELEASE.py
 ```bash
 cd technician_app/
 BUILD_RELEASE.bat
+```
+
+Con argumentos (Windows):
+
+```bash
+BUILD_RELEASE.bat --mode run-dev
+BUILD_RELEASE.bat --mode run-qa
+BUILD_RELEASE.bat --mode run-prod
+BUILD_RELEASE.bat --mode build-prod
 ```
 
 **Ventajas:**
@@ -335,6 +353,29 @@ technician_app/
 ---
 
 ## 📚 Ejemplos de Uso
+
+## 🧪 Ejecución por Flavor
+
+Para usar configuraciones predefinidas sin pasar `--dart-define` manualmente:
+
+```bash
+# Desarrollo (reintento de cola más frecuente)
+flutter run --flavor dev -t lib/main_dev.dart
+
+# QA
+flutter run --flavor qa -t lib/main_qa.dart
+
+# Producción
+flutter run --flavor prod -t lib/main_prod.dart
+flutter build apk --flavor prod -t lib/main_prod.dart --release
+```
+
+Valores de cola configurados:
+- `dev`: retry cada 30s, batch 5
+- `qa`: retry cada 60s, batch 5
+- `prod`: retry cada 120s, batch 5
+
+El script `BUILD_RELEASE.py` ya compila usando flavor `prod`.
 
 ### Caso 1: Release de producción con nueva feature
 

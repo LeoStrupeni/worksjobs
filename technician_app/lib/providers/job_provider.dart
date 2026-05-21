@@ -11,10 +11,11 @@ import 'package:geolocator/geolocator.dart';
 
 class JobProvider with ChangeNotifier {
   final JobService _jobService = JobService();
-  
+  bool _isBackgroundUploadProcessing = false;
+
   // Getter público para acceder al servicio
   JobService get jobService => _jobService;
-  
+
   List<Job> _todayJobs = [];
   List<Job> _upcomingJobs = [];
   List<Job> _calendarJobs = [];
@@ -22,7 +23,8 @@ class JobProvider with ChangeNotifier {
   List<Note> _notes = [];
   List<JobFile> _files = [];
   JobPermissions? _permissions;
-  
+  Map<int, int> _pendingUploadsByJob = {};
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -33,8 +35,11 @@ class JobProvider with ChangeNotifier {
   List<Note> get notes => _notes;
   List<JobFile> get files => _files;
   JobPermissions? get permissions => _permissions;
+  Map<int, int> get pendingUploadsByJob => _pendingUploadsByJob;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  int getPendingUploadsForJob(int jobId) => _pendingUploadsByJob[jobId] ?? 0;
 
   // Obtener citas del día
   Future<void> fetchTodayJobs() async {
@@ -46,7 +51,7 @@ class JobProvider with ChangeNotifier {
     try {
       final result = await _jobService.getTodayJobs();
       // print('📦 JobProvider.fetchTodayJobs: Result success=${result['success']}');
-      
+
       if (result['success'] == true) {
         _todayJobs = result['jobs'];
         // print('✅ JobProvider.fetchTodayJobs: ${_todayJobs.length} citas guardadas en _todayJobs');
@@ -76,7 +81,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.getUpcomingJobs(limit: limit);
-      
+
       if (result['success'] == true) {
         _upcomingJobs = result['jobs'];
         if (result['permissions'] != null) {
@@ -101,7 +106,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.getJobsByDateRange(startDate, endDate);
-      
+
       if (result['success'] == true) {
         _calendarJobs = result['jobs'];
       } else {
@@ -124,16 +129,17 @@ class JobProvider with ChangeNotifier {
     try {
       // print('🔍 JobProvider: Solicitando detalle del job $jobId');
       final result = await _jobService.getJobDetail(jobId);
-      
+
       // print('📦 JobProvider: Resultado recibido - success: ${result['success']}');
-      
+
       if (result['success'] == true) {
         _selectedJob = result['job'];
         _notes = result['notes'] ?? [];
         _files = result['files'] ?? [];
         // print('✅ JobProvider: Job cargado correctamente - ${_selectedJob?.clientName}');
       } else {
-        _errorMessage = result['message'] ?? 'Error desconocido al cargar la cita';
+        _errorMessage =
+            result['message'] ?? 'Error desconocido al cargar la cita';
         print('❌ JobProvider: Error - $_errorMessage');
       }
     } catch (e) {
@@ -154,13 +160,13 @@ class JobProvider with ChangeNotifier {
     try {
       // Obtener ubicación actual
       Position? position = await _getCurrentLocation();
-      
+
       final result = await _jobService.markArrival(
         jobId,
         lat: position?.latitude,
         lng: position?.longitude,
       );
-      
+
       if (result['success'] == true) {
         // Refrescar la cita
         await fetchJobDetail(jobId);
@@ -189,7 +195,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.revertArrival(jobId);
-      
+
       if (result['success'] == true) {
         // Refrescar la cita
         await fetchJobDetail(jobId);
@@ -219,13 +225,13 @@ class JobProvider with ChangeNotifier {
     try {
       // Obtener ubicación actual
       Position? position = await _getCurrentLocation();
-      
+
       final result = await _jobService.closeJob(
         jobId,
         lat: position?.latitude,
         lng: position?.longitude,
       );
-      
+
       if (result['success'] == true) {
         // Refrescar la cita
         await fetchJobDetail(jobId);
@@ -254,7 +260,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.addNote(jobId, note);
-      
+
       if (result['success'] == true) {
         // Refrescar notas
         await fetchJobDetail(jobId);
@@ -283,7 +289,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.deleteNote(noteId);
-      
+
       if (result['success'] == true) {
         // Refrescar notas
         await fetchJobDetail(jobId);
@@ -312,7 +318,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.deleteFile(fileId);
-      
+
       if (result['success'] == true) {
         // Refrescar archivos
         await fetchJobDetail(jobId);
@@ -337,20 +343,20 @@ class JobProvider with ChangeNotifier {
   Future<Position?> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      
+
       if (!serviceEnabled) {
         return null;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           return null;
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         return null;
       }
@@ -383,12 +389,12 @@ class JobProvider with ChangeNotifier {
 
     try {
       final success = await _jobService.backToPending(jobId);
-      
+
       if (success) {
         // Actualizar job en las listas
         await fetchTodayJobs();
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return success;
@@ -406,12 +412,12 @@ class JobProvider with ChangeNotifier {
 
     try {
       final success = await _jobService.deleteJob(jobId);
-      
+
       if (success) {
         // Actualizar listas
         await fetchTodayJobs();
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return success;
@@ -423,25 +429,89 @@ class JobProvider with ChangeNotifier {
   }
 
   // Subir archivos
-  Future<bool> uploadFiles(int jobId, List<String> filePaths) async {
+  Future<Map<String, dynamic>> uploadFiles(
+      int jobId, List<String> filePaths) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final success = await _jobService.uploadFiles(jobId, filePaths);
-      
-      if (success && _selectedJob?.id == jobId) {
+      final position = await _getCurrentLocation();
+      final result = await _jobService.uploadFiles(
+        jobId,
+        filePaths,
+        capturedAt: DateTime.now().toIso8601String(),
+        capturedLatitude: position?.latitude,
+        capturedLongitude: position?.longitude,
+        uploadSource: 'mobile_app',
+        clientCompressed: true,
+        queueOnFailure: true,
+      );
+
+      if (result['success'] == true && _selectedJob?.id == jobId) {
         // Recargar archivos si es el job seleccionado
         await fetchJobDetail(jobId);
+        await _jobService.processPendingUploads(jobId: jobId, maxBatch: 5);
       }
-      
+
+      if (result['queued'] == true) {
+        _errorMessage = result['message']?.toString() ??
+            'Subida en cola para reintento automático';
+      }
+
+      _pendingUploadsByJob = await _jobService.getPendingUploadsCountMap();
+
       _isLoading = false;
       notifyListeners();
-      return success;
+      return result;
     } catch (e) {
       _isLoading = false;
+      _errorMessage = e.toString();
       notifyListeners();
-      return false;
+      return {
+        'success': false,
+        'queued': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  Future<void> refreshPendingUploadsState() async {
+    _pendingUploadsByJob = await _jobService.getPendingUploadsCountMap();
+    notifyListeners();
+  }
+
+  Future<Map<String, dynamic>> retryPendingUploadsForJob(int jobId) async {
+    final result =
+        await _jobService.processPendingUploads(jobId: jobId, maxBatch: 10);
+    _pendingUploadsByJob = await _jobService.getPendingUploadsCountMap();
+
+    if ((result['sent'] ?? 0) > 0 && _selectedJob?.id == jobId) {
+      await fetchJobDetail(jobId);
+    } else {
+      notifyListeners();
+    }
+
+    return result;
+  }
+
+  Future<void> processPendingUploadsInBackground({int maxBatch = 5}) async {
+    if (_isBackgroundUploadProcessing) {
+      return;
+    }
+
+    _isBackgroundUploadProcessing = true;
+    try {
+      final before = _pendingUploadsByJob;
+      await _jobService.processPendingUploads(maxBatch: maxBatch);
+      _pendingUploadsByJob = await _jobService.getPendingUploadsCountMap();
+
+      if (!mapEquals(before, _pendingUploadsByJob)) {
+        notifyListeners();
+      }
+    } catch (_) {
+      // Silenciar fallas de reintento en background para no interferir con UX.
+    } finally {
+      _isBackgroundUploadProcessing = false;
     }
   }
 
@@ -512,7 +582,7 @@ class JobProvider with ChangeNotifier {
         technicianIds: technicianIds,
         products: products,
       );
-      
+
       if (result['success'] == true) {
         // Actualizar lista de tareas
         await fetchTodayJobs();
@@ -561,7 +631,7 @@ class JobProvider with ChangeNotifier {
         technicianIds: technicianIds,
         products: products,
       );
-      
+
       if (result['success'] == true) {
         // Actualizar listas
         await fetchTodayJobs();
@@ -594,7 +664,7 @@ class JobProvider with ChangeNotifier {
         jobId,
         technicianIds.isNotEmpty ? technicianIds : null,
       );
-      
+
       if (result['success'] == true) {
         // Refrescar el detalle del job
         if (_selectedJob?.id == jobId) {
@@ -635,7 +705,7 @@ class JobProvider with ChangeNotifier {
 
     try {
       final result = await _jobService.generateJobPDF(jobId, config);
-      
+
       if (result['success'] == true) {
         return result;
       } else {
