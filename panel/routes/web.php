@@ -165,6 +165,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/jobs/files', [JobController::class,'onlyaddfiles'])->name('job.files');
     Route::get('/jobs/destroyfile/{id}', [JobController::class,'destroyfile']);
     Route::post('/jobs/{id}/generate-pdf', [JobController::class,'generatePDF'])->name('job.generate-pdf');
+    Route::post('/jobs/generate-excel', [JobController::class,'generateExcel'])->name('job.generate-excel');
     
     // Ruta de PRUEBA para generar presupuesto Colppy (desarrollo)
     Route::get('/jobs/{id}/test-generate-budget', function($id) {

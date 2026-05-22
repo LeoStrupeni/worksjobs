@@ -130,4 +130,21 @@ class Job extends Model
                 C.colppy_budget_number
             ");
     }
+
+    public static function getJobsQueryExcel()
+    {
+        return DB::table('jobs as C')
+            ->leftJoin('clients as CL', 'C.client_id', '=', 'CL.id')
+            ->leftJoin('jobs_notes as N', 'C.id', '=', 'N.jobs_id')
+            ->leftJoin('job_technicians as T', 'C.id', '=', 'T.job_id')
+            ->leftJoin('users as S', 'T.user_id', '=', 'S.id')
+            ->whereNull('C.deleted_at')
+            ->whereNull('N.deleted_at')
+            ->selectRaw("C.id , CONCAT_WS(' ', TRIM(CL.first_name), TRIM(CL.last_name)) as client, C.job_description, 
+                C.visit_datetime, C.arrival_datetime, C.closed_datetime, 
+                CONCAT('* ',GROUP_CONCAT(DISTINCT S.name SEPARATOR '\n* ')) as tecnicos,
+                CONCAT('* ',GROUP_CONCAT(DISTINCT N.note SEPARATOR '\n\n* ')) as notas
+            ")
+            ->groupBy('C.id', 'CL.first_name', 'CL.last_name', 'C.job_description', 'C.visit_datetime', 'C.arrival_datetime', 'C.closed_datetime');
+    }
 }

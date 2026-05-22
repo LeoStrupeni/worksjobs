@@ -1,4 +1,13 @@
+let tableRegisterRequest = null;
+let tableRegisterRequestSequence = 0;
+
 function callregister(url_query,page,limit,table_orden,callpaginas){
+    const requestSequence = ++tableRegisterRequestSequence;
+
+    if (tableRegisterRequest && tableRegisterRequest.readyState !== 4) {
+        tableRegisterRequest.abort();
+    }
+
     $('#table_error').addClass('d-none');
     $('#table_sindatos').addClass('d-none');
     $('#table_roller').removeClass('d-none');
@@ -7,12 +16,13 @@ function callregister(url_query,page,limit,table_orden,callpaginas){
 
     if(callpaginas=='si'){ $('#table_pagination').empty();}
 
-    $.ajax({contenttype : 'application/json; charset=utf-8',
+    tableRegisterRequest = $.ajax({contenttype : 'application/json; charset=utf-8',
         data: {
             page	    : page,
             limit 	    : limit,
             order 	    : table_orden,
-            search      : $('#table_search').val()
+            search      : $('#table_search').val(),
+            periodo     : $('#periodo').val()
         },
         headers: {
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -20,12 +30,19 @@ function callregister(url_query,page,limit,table_orden,callpaginas){
         url : $('meta[name="app_url"]').attr('content')+url_query,
         type : 'POST',
         done : function(response) { $('#table_error').removeClass('d-none'); },
-        error : function(jqXHR,textStatus,errorThrown) { $('#table_error').removeClass('d-none'); },
+        error : function(jqXHR,textStatus,errorThrown) {
+            if (textStatus === 'abort') { return; }
+            if (requestSequence !== tableRegisterRequestSequence) { return; }
+            $('#table_error').removeClass('d-none');
+        },
         success : function(data) {
+            if (requestSequence !== tableRegisterRequestSequence) { return; }
             if(data.datos.length == 0){$('#table_sindatos').removeClass('d-none');}
             else { tableregister(data, page, callpaginas, url_query);}
         }
     }).always(function() {
+        if (requestSequence !== tableRegisterRequestSequence) { return; }
+        tableRegisterRequest = null;
         $('#table_roller').addClass('d-none');
     });
 }

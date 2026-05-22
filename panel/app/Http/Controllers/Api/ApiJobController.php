@@ -36,6 +36,18 @@ class ApiJobController extends Controller
 
         // Usar query centralizado del modelo
         $query = Job::getJobsQuery();
+                
+        if (isset($request->periodo)) {
+            $fechas = explode(' - ', $request->periodo);
+            $_fechamin = explode('/', $fechas[0]);
+            $_fechamax = explode('/', $fechas[1]);
+            $fechamin = date($_fechamin[2] . "-" . $_fechamin[0] . "-" . $_fechamin[1]);
+            $fechamax = date($_fechamax[2] . "-" . $_fechamax[0] . "-" . $_fechamax[1]);
+
+            $query->whereRaw("DATE(C.visit_datetime) >= ?", [$fechamin])
+                  ->whereRaw("DATE(C.visit_datetime) <= ?", [$fechamax]);
+        }
+
 
         if ($search != '' && isset($search)) {
             $query->where(function($q) use ($search) {
@@ -64,9 +76,8 @@ class ApiJobController extends Controller
                   ;
             });
         }
-
         // Optimización: contar filtrados sin hacer get() completo
-        $filtrados = ($search != '' && isset($search)) ? $query->count() : $totales;
+        $filtrados = ($search != '' && isset($search) || isset($request->periodo)) ? $query->count() : $totales;
 
         // Aplicar ordenamiento
         if ($order) {

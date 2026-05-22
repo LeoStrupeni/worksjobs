@@ -1,4 +1,37 @@
 $(document).ready(function() {
+    $('#periodo').daterangepicker({
+        buttonClasses: ' btn',
+        applyClass: 'btn-primary',
+        cancelClass: 'btn-secondary',
+        autoUpdateInput : false,
+        locale: {"applyLabel": "Aplicar","cancelLabel": "Limpiar","fromLabel": "Desde","toLabel": "hasta",
+            "customRangeLabel": "Custom","daysOfWeek": ["Do","Lu","Ma","Mi","Ju","Vi","Sa"],
+            "monthNames": ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre",
+            "Octubre","Noviembre","Diciembre"],"firstDay": 1
+        },
+        showCustomRangeLabel: false,
+        ranges: {
+            'Este Mes': [moment().startOf('month'), moment().endOf('month')],
+            '3 Meses': [moment().subtract(3, 'month'), moment() ],
+            '6 Meses': [moment().subtract(6, 'month'), moment()],
+            'Este año': [moment().startOf('year'), moment()],
+            'Ultimo año': [moment().subtract(12, 'month'), moment()],
+            'Ultimos 2 años': [moment().subtract(24, 'month'), moment()],
+            'Ultimos 5 años': [moment().subtract(60, 'month'), moment()],
+        },
+        "alwaysShowCalendars": true,
+    });
+
+    $('#periodo').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+        callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si');
+    });
+
+    $('#periodo').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+        callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si');
+    });
+    
     callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')
 
     $('body').on('change',"#table_limit",function () {
@@ -243,3 +276,44 @@ function tableregister(data, page, callpaginas, url_query){
     })
 
 }
+
+
+$('body').on('click','#tableExcel',function() {
+    event.preventDefault();
+    showLoadingAlert('Armando el archivo ...', text = 'Por favor espera')
+    $.ajax({
+        url: "/jobs/generate-excel",
+        method: 'POST',
+        data : { 
+            search: $('#table_search').val(),
+            periodo: $('#periodo').val()
+        },
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        xhrFields: {
+            responseType: 'blob'
+        },
+        success: function (data)
+        {
+            var a = document.createElement('a');
+            var url = window.URL.createObjectURL(data);
+            a.href = url;
+            const now = new Date();
+            const pad = (value) => String(value).padStart(2, '0');
+            const fileName = `Ordenes_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xlsx`;
+
+            a.download = fileName;
+
+            document.body.append(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        },
+        done : function(response) {$('#_ovrly').remove(); Swal.fire('El proceso Fallo vuelva a intentarlo mas tarde o informe a soporte'); },
+        error : function(jqXHR,textStatus,errorThrown,data) {$('#_ovrly').remove(); Swal.fire('El proceso Fallo vuelva a intentarlo mas tarde o informe a soporte'); },
+    }).always(function() {
+        closeSwal();
+    });
+
+});

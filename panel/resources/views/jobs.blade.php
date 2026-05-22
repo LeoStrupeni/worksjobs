@@ -41,6 +41,9 @@
                                 <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1" onclick="callregister('/jobs/table',1,$('#table_limit').val(),$('#table_order').val(),'si')" title="Actualizar">
                                     <i class="fa-solid fa-arrows-rotate me-1"></i>Actualizar
                                 </button>
+                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 mx-1" id="tableExcel" title="Exportar a Excel">
+                                    <i class="fa-regular fa-file-excel me-1"></i>Excel
+                                </button>
                                 @if (in_array('create',Session::get('user')['permissions']['jobs']))
                                     <button type="button" class="btn btn-light btn-sm rounded-pill px-3 mx-1 create-job" title="Crear trabajo">
                                         <i class="fa-solid fa-plus me-1"></i>Nuevo
@@ -64,12 +67,26 @@
                                     <option value="100">100</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-4">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0" style="border-radius: 8px 0 0 8px;">
-                                        <i class="flaticon2-search-1 text-muted"></i>
-                                    </span>
-                                    <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar trabajos..." id="table_search" style="border-radius: 0 8px 8px 0;">
+
+                            <div class="col col-md-9">
+                                <div class="row align-items-center justify-content-end">
+                                    <div class="col-12 col-md-5">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0" style="border-radius: 8px 0 0 8px;">
+                                                <i class="flaticon2-calendar-1 text-muted"></i>
+                                            </span>
+                                            <?php $valorFechaRango= ''; $valorFechaRango = $fechaRango;?>
+                                            <input type="text" class="form-control border-start-0 ps-0" name="periodo" id="periodo" readonly value="{{$valorFechaRango}}" style="border-radius: 0 8px 8px 0;">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-5">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white border-end-0" style="border-radius: 8px 0 0 8px;">
+                                                <i class="flaticon2-search-1 text-muted"></i>
+                                            </span>
+                                            <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar trabajos..." id="table_search" style="border-radius: 0 8px 8px 0;">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
-
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 class JobController extends Controller
 {
     public function index()
@@ -28,7 +30,11 @@ class JobController extends Controller
             if ($val == false){
                 return redirect()->route('logout');     
             }
-            return view("jobs");
+
+            $fecha1 = date('m/01/Y', strtotime('-2 month'));
+            $fecha2 = date('m/d/Y');
+            $fechaRango = $fecha1 . ' - ' . $fecha2;
+            return view("jobs", compact('fechaRango'));
         }
        
         return redirect()->route('login');
@@ -1116,6 +1122,126 @@ class JobController extends Controller
             return $dateTime; // Retornar original en caso de error
         }
     }
+
+    public function generateExcel(Request $request)
+    {
+        $query = Job::getJobsQueryExcel();
+                
+        if (isset($request->periodo)) {
+            $fechas = explode(' - ', $request->periodo);
+            $_fechamin = explode('/', $fechas[0]);
+            $_fechamax = explode('/', $fechas[1]);
+            $fechamin = date($_fechamin[2] . "-" . $_fechamin[0] . "-" . $_fechamin[1]);
+            $fechamax = date($_fechamax[2] . "-" . $_fechamax[0] . "-" . $_fechamax[1]);
+
+            $query->whereRaw("DATE(C.visit_datetime) >= ?", [$fechamin])
+                  ->whereRaw("DATE(C.visit_datetime) <= ?", [$fechamax]);
+        }
+
+        if ($request->search != '' && isset($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereRaw("CL.first_name LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CL.last_name LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.created_at,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.visit_datetime,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.arrival_datetime,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("DATE_FORMAT(C.closed_datetime,'%d/%m/%y %H:%i') LIKE ?", ["%$search%"])
+                  // Días de la semana en español
+                  ->orWhereRaw("CASE DATE_FORMAT(C.created_at,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.visit_datetime,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.arrival_datetime,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.closed_datetime,'%W') WHEN 'Monday' THEN 'Lun' WHEN 'Tuesday' THEN 'Mar' WHEN 'Wednesday' THEN 'Mie' WHEN 'Thursday' THEN 'Jue' WHEN 'Friday' THEN 'Vie' WHEN 'Saturday' THEN 'Sab' WHEN 'Sunday' THEN 'Dom' END LIKE ?", ["%$search%"])
+                  // Meses en español
+                  ->orWhereRaw("CASE DATE_FORMAT(C.created_at,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.visit_datetime,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.arrival_datetime,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("CASE DATE_FORMAT(C.closed_datetime,'%m') WHEN '01' THEN 'Ene' WHEN '02' THEN 'Feb' WHEN '03' THEN 'Mar' WHEN '04' THEN 'Abr' WHEN '05' THEN 'May' WHEN '06' THEN 'Jun' WHEN '07' THEN 'Jul' WHEN '08' THEN 'Ago' WHEN '09' THEN 'Sep' WHEN '10' THEN 'Oct' WHEN '11' THEN 'Nov' WHEN '12' THEN 'Dic' END LIKE ?", ["%$search%"])
+                  // Status y descripciones
+                  ->orWhereRaw("CASE WHEN C.closed_datetime IS NOT NULL THEN 'Cerrado' WHEN C.arrival_datetime IS NOT NULL THEN 'En Lugar' ELSE 'Pendiente' END LIKE ?", ["%$search%"])
+                  ->orWhereRaw("IFNULL(C.job_description,'') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("IFNULL(C.closed_job_observation,'') LIKE ?", ["%$search%"])
+                  ->orWhereRaw("C.id LIKE ?", ["%$search%"])
+                  ->orWhereRaw("C.colppy_budget_number LIKE ?", ["%$search%"]);
+            });
+        }
+
+        $jobs = $query->orderBy('client', 'ASC')->orderBy('visit_datetime', 'ASC')->orderBy('id', 'ASC')->get();
+        
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet()->setTitle('Ordenes de Trabajo');
+        $sheet->getColumnDimension('A')->setWidth(80, 'px');
+        $sheet->getColumnDimension('B')->setWidth(200, 'px');
+        $sheet->getColumnDimension('C')->setWidth(200, 'px');
+        $sheet->getColumnDimension('D')->setWidth(130, 'px');
+        $sheet->getColumnDimension('E')->setWidth(130, 'px');
+        $sheet->getColumnDimension('F')->setWidth(130, 'px');
+        $sheet->getColumnDimension('G')->setWidth(130, 'px');
+        $sheet->getColumnDimension('H')->setWidth(500, 'px');
+
+        $sheet->getPageSetup()->setFitToPage(true);
+        $sheet->getPageSetup()->setFitToWidth(1);
+        $sheet->getPageSetup()->setFitToHeight(0);
+        $sheet->setCellValue('A1', '# de Orden');
+        $sheet->setCellValue('B1', 'Cliente');
+        $sheet->setCellValue('C1', 'Decripción');
+        $sheet->setCellValue('D1', 'Fecha Visita');
+        $sheet->setCellValue('E1', 'Fecha Arribo');
+        $sheet->setCellValue('F1', 'Fecha Cierre');
+        $sheet->setCellValue('G1', 'Tecnicos');
+        $sheet->setCellValue('H1', 'Notas');
+
+        $sheet->getStyle("A1:H1")->getFont()->setBold(true);
+        $sheet->getStyle('A1:H1')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('A1:H1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1:H1')->getFill()->applyFromArray(
+            [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'B4B4B4'],
+                'endColor' => ['rgb' => 'B4B4B4']
+            ]
+        );
+        $sheet->getStyle("A1:H1")->getFont();
+        $sheet->getStyle('A1:H1')->getFont()->setBold(true)->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE);
+
+        foreach ($jobs as $key => $job) {
+            $sheet->setCellValue('A' . ($key + 2), $job->id);
+            $sheet->setCellValue('B' . ($key + 2), $job->client);
+            $sheet->setCellValue('C' . ($key + 2), $job->job_description);
+            $sheet->setCellValue('D' . ($key + 2), $job->visit_datetime);
+            $sheet->setCellValue('E' . ($key + 2), $job->arrival_datetime);
+            $sheet->setCellValue('F' . ($key + 2), $job->closed_datetime);
+            $sheet->setCellValue('G' . ($key + 2), $job->tecnicos);
+            $sheet->setCellValue('H' . ($key + 2), $job->notas);
+            $sheet->getStyle('A' . ($key + 2) . ':H' . ($key + 2))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        }
+
+        $sheet->getStyle('A')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('D')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('E')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('F')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('B')->getAlignment()->setWrapText(true);
+        $sheet->getStyle('C')->getAlignment()->setWrapText(true);
+        $sheet->getStyle('G')->getAlignment()->setWrapText(true);
+        $sheet->getStyle('H')->getAlignment()->setWrapText(true);
+
+        $sheet->setSelectedCell('A1');
+        $sheet->setAutoFilter('A1:H1');
+        $sheet->freezePane('A2');
+
+        $writer = new Xlsx($spreadsheet);
+
+        $response =  new StreamedResponse(
+            function () use ($writer) {
+                $writer->save('php://output');
+            }
+        );
+        $response->headers->set('Content-Type', 'application/vnd.ms-excel');
+        $response->headers->set('Content-Disposition', 'attachment;filename="Ordenes.xlsx"');
+        $response->headers->set('Cache-Control', 'max-age=0');
+        return $response;
+
+    }            
 
     
 }
