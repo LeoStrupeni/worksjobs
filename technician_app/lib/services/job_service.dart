@@ -219,6 +219,94 @@ class JobService {
     }
   }
 
+  // Obtener listado completo de tareas con filtros y paginación
+  Future<Map<String, dynamic>> getAllJobs({
+    int page = 1,
+    int limit = 20,
+    String search = '',
+    int? clientId,
+    String? startDate,
+    String? endDate,
+    String? status,
+  }) async {
+    await DebugLogger.instance
+        .info('📋 Obteniendo listado completo de tareas...', category: 'JOBS');
+
+    try {
+      final token = await _authService.getToken();
+
+      if (token == null) {
+        return {
+          'success': false,
+          'errorCode': ApiErrorCode.NO_TOKEN,
+          'message': ApiErrorCode.getMessage(ApiErrorCode.NO_TOKEN),
+        };
+      }
+
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.allJobsEndpoint}')
+          .replace(queryParameters: {
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        if (clientId != null) 'client_id': clientId.toString(),
+        if (startDate != null && startDate.isNotEmpty) 'start_date': startDate,
+        if (endDate != null && endDate.isNotEmpty) 'end_date': endDate,
+        if (status != null && status.isNotEmpty) 'status': status,
+      });
+
+      final result = await NetworkHelper.getWithRetry(
+        uri,
+        headers: ApiConfig.getHeaders(token: token),
+        maxRetries: 2,
+        logCategory: 'JOBS',
+      );
+
+      if (!result.success) {
+        return {
+          'success': false,
+          'errorCode': result.errorCode,
+          'message': result.userMessage,
+        };
+      }
+
+      final response = result.data as http.Response;
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        final jobs =
+            (data['data'] as List).map((job) => Job.fromJson(job)).toList();
+
+        return {
+          'success': true,
+          'jobs': jobs,
+          'count': data['count'] ?? jobs.length,
+          'total': data['total'] ?? jobs.length,
+          'page': data['page'] ?? page,
+          'limit': data['limit'] ?? limit,
+          'permissions': data['permissions'],
+        };
+      }
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': data['message'] ?? 'Error al obtener tareas',
+      };
+    } catch (e, stackTrace) {
+      await DebugLogger.instance.error(
+        '❌ Exception en getAllJobs: $e',
+        category: 'JOBS',
+        data: {'error': e.toString(), 'stackTrace': stackTrace.toString()},
+      );
+
+      return {
+        'success': false,
+        'errorCode': ApiErrorCode.UNKNOWN,
+        'message': 'Error: ${e.toString()}',
+      };
+    }
+  }
+
   // Obtener detalle de una cita
   Future<Map<String, dynamic>> getJobDetail(int jobId) async {
     try {
@@ -896,7 +984,7 @@ class JobService {
   }
 
   // Buscar clientes
-  Future<List<Client>> searchClients(String query) async {
+  Future<List<Client>> searchClients(String query, {int limit = 20}) async {
     try {
       final token = await _authService.getToken();
 
@@ -905,11 +993,15 @@ class JobService {
         return [];
       }
 
-      final url =
-          '${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}?search=$query';
+      final safeLimit = limit < 5 ? 5 : (limit > 100 ? 100 : limit);
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.clientsEndpoint}')
+          .replace(queryParameters: {
+        'search': query,
+        'limit': safeLimit.toString(),
+      });
       // print('🌐🌐🌐 searchClients URL: $url');
       final response = await http.get(
-        Uri.parse(url),
+        uri,
         headers: ApiConfig.getHeaders(token: token),
       );
 

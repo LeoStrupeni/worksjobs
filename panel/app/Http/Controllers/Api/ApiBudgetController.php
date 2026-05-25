@@ -49,6 +49,26 @@ class ApiBudgetController extends Controller
             $page = $request->input('page', 1);
             $limit = $request->input('limit', 20);
             $search = $request->input('search', '');
+            $clientId = $request->input('client_id');
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+
+            // El frontend envía client_id LOCAL (tabla clients.id), pero Colppy filtra por idCliente.
+            // Convertimos local -> colppy_id para evitar falsos "sin resultados".
+            $clientColppyId = null;
+            if ($clientId !== null && $clientId !== '') {
+                $localClient = Client::select('id', 'colppy_id')
+                    ->where('id', $clientId)
+                    ->whereNull('deleted_at')
+                    ->first();
+
+                if ($localClient && !empty($localClient->colppy_id)) {
+                    $clientColppyId = (string) $localClient->colppy_id;
+                } else {
+                    // Fallback por compatibilidad: si ya viniera id de Colppy, usarlo tal cual.
+                    $clientColppyId = (string) $clientId;
+                }
+            }
             
             $colppyService = new ColppyService();
             
@@ -107,16 +127,16 @@ class ApiBudgetController extends Controller
                 $idFactura = $item['idFactura'] ?? '';
                 
                 // Convertir client_id a int o null (evitar strings vacíos)
-                $clientId = null;
+                $itemClientId = null;
                 if (isset($item['idCliente']) && $item['idCliente'] !== '' && $item['idCliente'] !== null) {
-                    $clientId = (int) $item['idCliente'];
+                    $itemClientId = (int) $item['idCliente'];
                 }
                 
                 $datosFormateados[] = [
                     'id' => null, // Budget local (no aplicable desde Colppy)
                     'id_factura' => (string) $idFactura,
                     'nro_factura' => (string) ($item['nroFactura'] ?? ''),
-                    'client_id' => $clientId,
+                    'client_id' => $itemClientId,
                     'client_name' => !empty($item['RazonSocial']) ? (string) $item['RazonSocial'] : null,
                     'client_cuit' => null, // TODO: obtener de cliente si es necesario
                     'fecha' => (string) ($item['fechaFactura'] ?? ''),
@@ -129,6 +149,63 @@ class ApiBudgetController extends Controller
                     'items' => [] // Vacío en el listado, se obtienen en el detalle
                 ];
             }
+
+            // Filtro por cliente (idCliente de Colppy)
+            if ($clientColppyId !== null && $clientColppyId !== '') {
+                $datosFormateados = array_values(array_filter($datosFormateados, function ($budget) use ($clientColppyId) {
+                    if (!isset($budget['client_id']) || $budget['client_id'] === null || $budget['client_id'] === '') {
+                        return false;
+                    }
+
+                    return (string) $budget['client_id'] === (string) $clientColppyId;
+                }));
+            }
+
+            // Filtro por rango de fechas (inclusive)
+            if (!empty($dateFrom) || !empty($dateTo)) {
+                $dateFromCarbon = null;
+                $dateToCarbon = null;
+
+                try {
+                    if (!empty($dateFrom)) {
+                        $dateFromCarbon = Carbon::parse($dateFrom)->startOfDay();
+                    }
+                } catch (\Exception $e) {
+                    $dateFromCarbon = null;
+                }
+
+                try {
+                    if (!empty($dateTo)) {
+                        $dateToCarbon = Carbon::parse($dateTo)->endOfDay();
+                    }
+                } catch (\Exception $e) {
+                    $dateToCarbon = null;
+                }
+
+                $datosFormateados = array_values(array_filter($datosFormateados, function ($budget) use ($dateFromCarbon, $dateToCarbon) {
+                    if (empty($budget['fecha'])) {
+                        return false;
+                    }
+
+                    try {
+                        $budgetDate = Carbon::parse($budget['fecha']);
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+
+                    if ($dateFromCarbon && $budgetDate->lt($dateFromCarbon)) {
+                        return false;
+                    }
+
+                    if ($dateToCarbon && $budgetDate->gt($dateToCarbon)) {
+                        return false;
+                    }
+
+                    return true;
+                }));
+            }
+
+            $totalRegistros = count($datosFormateados);
             
             // Ordenar por fecha descendente
             usort($datosFormateados, function($a, $b) {

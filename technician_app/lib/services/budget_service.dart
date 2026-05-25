@@ -29,11 +29,20 @@ class BudgetService {
   Future<Map<String, dynamic>> getBudgets({
     int page = 1,
     int limit = 20,
+    int? clientId,
+    String? dateFrom,
+    String? dateTo,
   }) async {
     await DebugLogger.instance.info(
       '📋 Obteniendo presupuestos...',
       category: 'BUDGETS',
-      data: {'page': page, 'limit': limit},
+      data: {
+        'page': page,
+        'limit': limit,
+        if (clientId != null) 'client_id': clientId,
+        if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+        if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+      },
     );
 
     try {
@@ -51,11 +60,17 @@ class BudgetService {
         };
       }
 
-      final url = '${ApiConfig.baseUrl}${ApiConfig.budgetsEndpoint}'
-          '?page=$page&limit=$limit';
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.budgetsEndpoint}')
+          .replace(queryParameters: {
+        'page': page.toString(),
+        'limit': limit.toString(),
+        if (clientId != null) 'client_id': clientId.toString(),
+        if (dateFrom != null && dateFrom.isNotEmpty) 'date_from': dateFrom,
+        if (dateTo != null && dateTo.isNotEmpty) 'date_to': dateTo,
+      });
 
       final result = await NetworkHelper.getWithRetry(
-        Uri.parse(url),
+        uri,
         headers: ApiConfig.getHeaders(token: token),
         maxRetries: 2,
         logCategory: 'BUDGETS',

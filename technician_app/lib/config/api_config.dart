@@ -19,6 +19,7 @@ class ApiConfig {
   static const String todayJobsEndpoint = '/jobs/today';
   static const String upcomingJobsEndpoint = '/jobs/upcoming';
   static const String calendarJobsEndpoint = '/jobs/calendar';
+  static const String allJobsEndpoint = '/jobs/all';
   static const String jobDetailEndpoint = '/jobs';
   static const String clientsEndpoint = '/jobs/clients';
   static const String clientAddressesEndpoint = '/client/address';

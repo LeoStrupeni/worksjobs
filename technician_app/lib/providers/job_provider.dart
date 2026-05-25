@@ -19,6 +19,7 @@ class JobProvider with ChangeNotifier {
   List<Job> _todayJobs = [];
   List<Job> _upcomingJobs = [];
   List<Job> _calendarJobs = [];
+  List<Job> _allJobs = [];
   Job? _selectedJob;
   List<Note> _notes = [];
   List<JobFile> _files = [];
@@ -28,9 +29,19 @@ class JobProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  int _allJobsPage = 1;
+  int _allJobsTotal = 0;
+  int _allJobsLimit = 20;
+  String _allJobsSearch = '';
+  int? _allJobsClientId;
+  String? _allJobsStartDate;
+  String? _allJobsEndDate;
+  String? _allJobsStatus;
+
   List<Job> get todayJobs => _todayJobs;
   List<Job> get upcomingJobs => _upcomingJobs;
   List<Job> get calendarJobs => _calendarJobs;
+  List<Job> get allJobs => _allJobs;
   Job? get selectedJob => _selectedJob;
   List<Note> get notes => _notes;
   List<JobFile> get files => _files;
@@ -38,6 +49,17 @@ class JobProvider with ChangeNotifier {
   Map<int, int> get pendingUploadsByJob => _pendingUploadsByJob;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  int get allJobsPage => _allJobsPage;
+  int get allJobsTotal => _allJobsTotal;
+  int get allJobsLimit => _allJobsLimit;
+  int get allJobsTotalPages => (_allJobsTotal / _allJobsLimit).ceil();
+  bool get hasAllJobsNextPage => _allJobsPage < allJobsTotalPages;
+  bool get hasAllJobsPreviousPage => _allJobsPage > 1;
+  String get allJobsSearch => _allJobsSearch;
+  int? get allJobsClientId => _allJobsClientId;
+  String? get allJobsStartDate => _allJobsStartDate;
+  String? get allJobsEndDate => _allJobsEndDate;
+  String? get allJobsStatus => _allJobsStatus;
 
   int getPendingUploadsForJob(int jobId) => _pendingUploadsByJob[jobId] ?? 0;
 
@@ -117,6 +139,80 @@ class JobProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Obtener listado completo de tareas con filtros y paginación
+  Future<void> fetchAllJobs({int page = 1}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _jobService.getAllJobs(
+        page: page,
+        limit: _allJobsLimit,
+        search: _allJobsSearch,
+        clientId: _allJobsClientId,
+        startDate: _allJobsStartDate,
+        endDate: _allJobsEndDate,
+        status: _allJobsStatus,
+      );
+
+      if (result['success'] == true) {
+        _allJobs = result['jobs'];
+        _allJobsPage = result['page'] ?? page;
+        _allJobsTotal = result['total'] ?? _allJobs.length;
+        _allJobsLimit = result['limit'] ?? _allJobsLimit;
+        if (result['permissions'] != null) {
+          _permissions = JobPermissions.fromJson(result['permissions']);
+        }
+      } else {
+        _errorMessage = result['message'];
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> applyAllJobsFilters({
+    String? search,
+    int? clientId,
+    String? startDate,
+    String? endDate,
+    String? status,
+  }) async {
+    _allJobsSearch = search?.trim() ?? '';
+    _allJobsClientId = clientId;
+    _allJobsStartDate = startDate;
+    _allJobsEndDate = endDate;
+    _allJobsStatus = (status == null || status.isEmpty) ? null : status;
+
+    await fetchAllJobs(page: 1);
+  }
+
+  Future<void> clearAllJobsFilters() async {
+    _allJobsSearch = '';
+    _allJobsClientId = null;
+    _allJobsStartDate = null;
+    _allJobsEndDate = null;
+    _allJobsStatus = null;
+
+    await fetchAllJobs(page: 1);
+  }
+
+  Future<void> nextAllJobsPage() async {
+    if (hasAllJobsNextPage && !_isLoading) {
+      await fetchAllJobs(page: _allJobsPage + 1);
+    }
+  }
+
+  Future<void> previousAllJobsPage() async {
+    if (hasAllJobsPreviousPage && !_isLoading) {
+      await fetchAllJobs(page: _allJobsPage - 1);
     }
   }
 
@@ -516,9 +612,9 @@ class JobProvider with ChangeNotifier {
   }
 
   // Buscar clientes
-  Future<List<Client>> searchClients(String query) async {
+  Future<List<Client>> searchClients(String query, {int limit = 20}) async {
     try {
-      return await _jobService.searchClients(query);
+      return await _jobService.searchClients(query, limit: limit);
     } catch (e) {
       return [];
     }

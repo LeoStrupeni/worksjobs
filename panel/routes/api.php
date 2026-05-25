@@ -77,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Jobs/Citas endpoints
     Route::prefix('jobs')->group(function () {
         // Lectura (GET) - ApiJobController
+        Route::get('/all', [ApiJobController::class, 'getAllJobs']);
         Route::get('/today', [ApiJobController::class, 'getTodayJobs']);
         Route::get('/upcoming', [ApiJobController::class, 'getUpcomingJobs']);
         Route::get('/calendar', [ApiJobController::class, 'getJobsByDateRange']);

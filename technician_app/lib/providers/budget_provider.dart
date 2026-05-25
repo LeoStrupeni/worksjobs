@@ -17,6 +17,11 @@ class BudgetProvider with ChangeNotifier {
   int _currentPage = 1;
   int _totalBudgets = 0;
   final int _limit = 20;
+
+  // Filtros de listado
+  int? _filterClientId;
+  String? _filterDateFrom;
+  String? _filterDateTo;
   
   // Estado para tareas
   List<Map<String, dynamic>> _availableJobs = [];
@@ -41,6 +46,13 @@ class BudgetProvider with ChangeNotifier {
   int get totalPages => (_totalBudgets / _limit).ceil();
   bool get hasNextPage => _currentPage < totalPages;
   bool get hasPreviousPage => _currentPage > 1;
+  int? get filterClientId => _filterClientId;
+  String? get filterDateFrom => _filterDateFrom;
+  String? get filterDateTo => _filterDateTo;
+  bool get hasActiveFilters =>
+      _filterClientId != null ||
+      (_filterDateFrom != null && _filterDateFrom!.isNotEmpty) ||
+      (_filterDateTo != null && _filterDateTo!.isNotEmpty);
   
   // Getters para tareas
   List<Map<String, dynamic>> get availableJobs => _availableJobs;
@@ -125,6 +137,9 @@ class BudgetProvider with ChangeNotifier {
       final result = await _budgetService.getBudgets(
         page: page,
         limit: _limit,
+        clientId: _filterClientId,
+        dateFrom: _filterDateFrom,
+        dateTo: _filterDateTo,
       );
 
       if (result['success'] == true) {
@@ -154,6 +169,31 @@ class BudgetProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Aplicar filtros y recargar listado en página 1
+  Future<void> applyFilters({
+    int? clientId,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
+    _filterClientId = clientId;
+    _filterDateFrom = dateFrom != null
+        ? '${dateFrom.year.toString().padLeft(4, '0')}-${dateFrom.month.toString().padLeft(2, '0')}-${dateFrom.day.toString().padLeft(2, '0')}'
+        : null;
+    _filterDateTo = dateTo != null
+        ? '${dateTo.year.toString().padLeft(4, '0')}-${dateTo.month.toString().padLeft(2, '0')}-${dateTo.day.toString().padLeft(2, '0')}'
+        : null;
+
+    await fetchBudgets(page: 1);
+  }
+
+  /// Limpiar filtros de listado
+  Future<void> clearFilters() async {
+    _filterClientId = null;
+    _filterDateFrom = null;
+    _filterDateTo = null;
+    await fetchBudgets(page: 1);
   }
 
   /// Cargar siguiente página

@@ -13,6 +13,7 @@ use App\Models\JobProduct;
 use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
@@ -312,6 +313,172 @@ class ApiJobController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener listado completo de tareas con filtros y paginación
+     * Usado por: App Móvil
+     */
+    public function getAllJobs(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autenticado'
+                ], 401);
+            }
+
+            if (!$user->can('read jobs')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para ver tareas'
+                ], 403);
+            }
+
+            $page = max((int) $request->input('page', 1), 1);
+            $limit = max(min((int) $request->input('limit', 20), 100), 1);
+            $search = trim((string) $request->input('search', ''));
+            $clientId = $request->input('client_id');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $status = trim((string) $request->input('status', ''));
+
+            // Para búsquedas de texto, usar páginas más livianas.
+            if (!empty($search) && $limit > 50) {
+                $limit = 50;
+            }
+
+            $cacheKey = 'api_jobs_all:' . md5(json_encode([
+                'user' => $user->id,
+                'page' => $page,
+                'limit' => $limit,
+                'search' => $search,
+                'client_id' => $clientId,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'status' => $status,
+            ]));
+
+            $cached = Cache::remember($cacheKey, now()->addSeconds(20), function () use (
+                $page,
+                $limit,
+                $search,
+                $clientId,
+                $startDate,
+                $endDate,
+                $status
+            ) {
+                $query = Job::getJobsQuery();
+
+                if (!empty($search)) {
+                    $query->where(function ($q) use ($search) {
+                        $q->whereRaw("CL.first_name LIKE ?", ["%$search%"])
+                          ->orWhereRaw("CL.last_name LIKE ?", ["%$search%"])
+                          ->orWhereRaw("IFNULL(C.job_description,'') LIKE ?", ["%$search%"])
+                          ->orWhereRaw("IFNULL(C.closed_job_observation,'') LIKE ?", ["%$search%"])
+                          ->orWhereRaw("C.id LIKE ?", ["%$search%"])
+                          ->orWhereRaw("IFNULL(C.colppy_budget_number,'') LIKE ?", ["%$search%"]);
+                    });
+                }
+
+                if ($clientId !== null && $clientId !== '') {
+                    $query->where('C.client_id', (int) $clientId);
+                }
+
+                if (!empty($startDate)) {
+                    $query->whereRaw("DATE(C.visit_datetime) >= ?", [$startDate]);
+                }
+
+                if (!empty($endDate)) {
+                    $query->whereRaw("DATE(C.visit_datetime) <= ?", [$endDate]);
+                }
+
+                if (!empty($status)) {
+                    switch ($status) {
+                        case 'pendiente':
+                            $query->whereNull('C.arrival_datetime')
+                                  ->whereNull('C.closed_datetime')
+                                  ->where(function ($q) {
+                                      $q->whereNull('C.archived')->orWhere('C.archived', 0);
+                                  });
+                            break;
+
+                        case 'en_lugar':
+                            $query->whereNotNull('C.arrival_datetime')
+                                  ->whereNull('C.closed_datetime')
+                                  ->where(function ($q) {
+                                      $q->whereNull('C.archived')->orWhere('C.archived', 0);
+                                  });
+                            break;
+
+                        case 'cerrada':
+                            $query->whereNotNull('C.closed_datetime')
+                                  ->where(function ($q) {
+                                      $q->whereNull('C.archived')->orWhere('C.archived', 0);
+                                  });
+                            break;
+
+                        case 'archivada':
+                            $query->where('C.archived', 1);
+                            break;
+                    }
+                }
+
+                $total = (clone $query)->count();
+
+                $jobs = $query->orderBy('estatusorder', 'ASC')
+                    ->orderBy('ordervisit', 'DESC')
+                    ->limit($limit)
+                    ->offset(($page - 1) * $limit)
+                    ->get();
+
+                $jobIds = $jobs->pluck('id')->toArray();
+                $notesIds = Jobs_Note::whereIn('jobs_id', $jobIds)
+                    ->select('jobs_id')
+                    ->distinct()
+                    ->pluck('jobs_id')
+                    ->toArray();
+                $filesCount = Jobs_file::whereIn('job_id', $jobIds)
+                    ->selectRaw('job_id, COUNT(*) as total')
+                    ->groupBy('job_id')
+                    ->pluck('total', 'job_id')
+                    ->toArray();
+
+                foreach ($jobs as $j) {
+                    $j->getnotes = in_array($j->id, $notesIds, true) ? 'si' : 'no';
+                    $j->images_count = (int) ($filesCount[$j->id] ?? 0);
+                }
+
+                return [
+                    'total' => $total,
+                    'jobs' => $jobs,
+                ];
+            });
+
+            $permissions = $this->getUserPermissions($user);
+
+            return response()->json([
+                'success' => true,
+                'data' => $cached['jobs'],
+                'count' => $cached['jobs']->count(),
+                'total' => $cached['total'],
+                'page' => $page,
+                'limit' => $limit,
+                'permissions' => $permissions
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ getAllJobs - Exception: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener listado de tareas',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
     
     /**
      * Buscar clientes
@@ -325,43 +492,56 @@ class ApiJobController extends Controller
     public function getClients(Request $request)
     {
         $search = $request->input('search', '');
+        $limit = max(min((int) $request->input('limit', 20), 100), 5);
         
         // Obtener modo configurado
         $modo = Config::where('name', 'colppy_clientes_modo')->value('value') ?? 'local';
-        
-        $query = Client::query()
-            ->whereNull('deleted_at')
-            ->where('is_active', 1);  // Solo clientes activos
-        
-        // Aplicar filtro según modo
-        switch ($modo) {
-            case 'api':
-                // Solo clientes de Colppy
-                $query->where('is_from_colppy', 1);
-                break;
-            case 'hibrido':
-                // Todos los clientes (no aplicar filtro adicional)
-                break;
-            default: // 'local'
-                // Solo clientes locales (no de Colppy)
-                $query->where(function($q) {
-                    $q->where('is_from_colppy', '!=', 1)
-                      ->orWhereNull('is_from_colppy');
+
+        $clientsCacheKey = 'api_jobs_clients:' . md5(json_encode([
+            'modo' => $modo,
+            'search' => $search,
+            'limit' => $limit,
+        ]));
+
+        $clients = Cache::remember($clientsCacheKey, now()->addSeconds(30), function () use ($modo, $search, $limit) {
+            $query = Client::query()
+                ->whereNull('deleted_at')
+                ->where('is_active', 1);  // Solo clientes activos
+
+            // Aplicar filtro según modo
+            switch ($modo) {
+                case 'api':
+                    // Solo clientes de Colppy
+                    $query->where('is_from_colppy', 1);
+                    break;
+                case 'hibrido':
+                    // Todos los clientes (no aplicar filtro adicional)
+                    break;
+                default: // 'local'
+                    // Solo clientes locales (no de Colppy)
+                    $query->where(function($q) {
+                        $q->where('is_from_colppy', '!=', 1)
+                          ->orWhereNull('is_from_colppy');
+                    });
+                    break;
+            }
+
+            // Aplicar búsqueda si existe
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('first_name', 'LIKE', "%$search%")
+                      ->orWhere('last_name', 'LIKE', "%$search%")
+                      ->orWhere('phone1', 'LIKE', "%$search%")
+                      ->orWhere('email', 'LIKE', "%$search%");
                 });
-                break;
-        }
-        
-        // Aplicar búsqueda si existe
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('first_name', 'LIKE', "%$search%")
-                  ->orWhere('last_name', 'LIKE', "%$search%")
-                  ->orWhere('phone1', 'LIKE', "%$search%")
-                  ->orWhere('email', 'LIKE', "%$search%");
-            });
-        }
-        
-        $clients = $query->limit(50)->get(['id', 'first_name', 'last_name', 'email', 'phone1']);
+            }
+
+            return $query
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->limit($limit)
+                ->get(['id', 'first_name', 'last_name', 'email', 'phone1']);
+        });
         
         return response()->json([
             'success' => true,
