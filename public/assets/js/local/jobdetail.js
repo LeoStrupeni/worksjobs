@@ -933,8 +933,8 @@ $(document).ready(function() {
                             onchange="updateImageSelection('${id_elemento}')" 
                             style="width: 20px; height: 20px; cursor: pointer;">
                     </div>
-                    <a class="gallery" href="/storage/${this.name}">
-                        <img src="/storage/${this.name}" style='border-radius:.5rem; height: 100px; width: 100px;'>
+                    <a class="gallery" href="${this.url_web}">
+                        <img src="${this.url_web}" style='border-radius:.5rem; height: 100px; width: 100px;'>
                     </a>`;
                     
                     // Botón de eliminar (solo en ciertos contextos) - en la esquina como antes
@@ -1251,20 +1251,21 @@ function deleteimg(e,idjob,id_elemento){
             toastr["warning"]("Archivo eliminado correctamente.");
             e.parentNode.remove();
 
-            $.each( data , function( index, value ) {
+            $.each(data, function(index, value) {
+                // CAMBIAMOS /storage/${this.name} POR ${this.url_web}
                 let imagen = `<div class="text-center" style="width: 120px;"> 
-                    <a class="gallery" href="/storage/${this.name}">
-                        <img src="/storage/${this.name}" style='border-radius:.5rem; height: 100px; width: 100px;'>
+                    <a class="gallery" href="${this.url_web}" data-src="${this.url_web}">
+                        <img src="${this.url_web}" style='border-radius:.5rem; height: 100px; width: 100px;'>
                     </a>
                     <span class="btn-danger-pro" 
-                        style=" position: relative; top: -25px; right: -40px;"
-                        onclick="deleteimg(this,${this.id},'${id_elemento}')">
+                        style="position: relative; top: -25px; right: -40px; cursor: pointer;"
+                        onclick="deleteimg(this, ${this.id}, '${id_elemento}')">
                         <i class="fas fa-trash me-2"></i>
                     </span>
-                <div>`;
+                </div>`;
                 
-                $("#"+id_elemento+"None").append(imagen);     
-            })
+                $("#" + id_elemento + "None").append(imagen);     
+            });
             var gallery = $('#'+id_elemento)
                 gallery.lightGallery();
                 gallery.data('lightGallery').destroy(true);

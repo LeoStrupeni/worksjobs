@@ -15,7 +15,7 @@ publish_to: 'none'
 #
 # IMPORTANTE: Cambiar ANTES de compilar cada nueva versión
 # v1.3.1+31: FIX pantalla gris presupuestos + debounce botones crear/editar
-version: 1.3.4+41
+version: 1.3.5+43
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

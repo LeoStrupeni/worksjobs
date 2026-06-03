@@ -145,6 +145,11 @@ class JobController extends Controller
             ->get();
         
         $files = Jobs_file::where('job_id',$id)->get();
+        // Adjuntamos la URL de la ruta puente a cada archivo antes de enviarlo
+        foreach ($files as $file) {
+            // Pasamos el ID de drive (guardado en name) a nuestra ruta para generar la URL final
+            $file->url_web = route('drive.file', ['id' => $file->name]);
+        }
         
         // Obtener técnicos asignados al job
         $jobModel = Job::find($id);
@@ -452,22 +457,32 @@ class JobController extends Controller
 
     public function onlyaddfiles(Request $request)
     {
-        // Soportar id en body o en ruta
+        // dd($request->all() );
+        // Soportar id en body o en ruta (Tu lógica intacta)
         $job_id = $request->id ?? $request->route('id');
         
-        // Log::info('onlyaddfiles: job_id=' . $job_id);
-        // Log::info('onlyaddfiles: files in request', ['files' => $request->allFiles()]);
-        
+        // Ejecuta la subida a Google Drive, la optimización y el guardado en BD 
+        // que modificamos en el método addfiles
         $this->addfiles($request, $job_id);
         
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Archivos subidos correctamente']);
+        // Respuesta al usuario
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true, 
+                'message' => 'Imágenes organizadas y subidas a Google Drive correctamente.'
+            ]);
         }
-        return back();
+        
+        return back()->with('success', 'Archivos guardados en Google Drive.');
     }
 
     protected function addfiles(Request $request, $job_id)
     {
+        // Buscamos la tarea y su cliente para pasárselos a la función centralizada
+        $job = Job::with('client')->find($job_id); 
+        $nombreCliente = $job && $job->client ? $job->client->first_name.($job->client->last_name!=null? ' '.$job->client->last_name : '') : 'cliente-desconocido';
+        $nombreTarea = 'tarea_' . $job_id;
+        
         // Soportar tanto 'images' como 'files'
         $fileField = $request->hasFile('images') ? 'images' : 'files';
         $capturedAt = $request->input('captured_at');
@@ -501,17 +516,27 @@ class JobController extends Controller
                 $extension = strtolower($attachment->getClientOriginalExtension());
                 $filename = $job_id.'_'.time().'_'.$randomString.'.'.$extension;
                 
-                // Verificar si es una imagen y optimizarla
                 if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif']) && !$clientCompressed) {
+                    // 1. Si es imagen, la optimizas local en el servidor temporalmente
                     $optimizedPath = $this->optimizeAndSaveImage($attachment, $filename);
+                    
+                    // Obtenemos el archivo optimizado real para mandarlo a Drive
+                    $fileForDrive = new \Illuminate\Http\File(storage_path('app/public/' . $filename));
+                    
+                    // LLAMADA CENTRALIZADA AL PARENT CONTROLLER
+                    $resultadoDrive = $this->subirArchivoADrive($fileForDrive, $nombreCliente, $nombreTarea, $filename);
+                    
+                    // Limpiamos el servidor local eliminando el temporal optimizado
+                    unlink(storage_path('app/public/' . $filename));
                 } else {
-                    // Para archivos no imagen, guardar normalmente
-                    $optimizedPath = $attachment->storeAs('public', $filename);
+                    // 2. Si no es imagen, se sube directo desde el request a Drive sin tocar el disco local
+                    // LLAMADA CENTRALIZADA AL PARENT CONTROLLER
+                    $resultadoDrive = $this->subirArchivoADrive($attachment, $nombreCliente, $nombreTarea, $filename);
                 }
-
+                
                 Jobs_file::create([
                     'job_id' => $job_id,
-                    'name' => basename($optimizedPath),
+                    'name' => $resultadoDrive['ruta_completa'],
                     'original_name' => $attachment->getClientOriginalName(),
                     'original_extension' => $attachment->getClientOriginalExtension(),
                     'checksum' => $checksum,
@@ -625,17 +650,22 @@ class JobController extends Controller
 
     public function destroyfile($id)
     {
+        // Buscamos el registro del archivo en la base de datos
         $file = Jobs_file::find($id);
-    
-        $path = 'storage/'.$file->name;
-        if (file_exists($path)) {
-            unlink($path);
-        }
-        $file->update([
-            'deleted_at' => Carbon::now()
-        ]);
 
-        return Jobs_file::where('job_id',$file->job_id)->wherenull('deleted_at')->get();
+        if ($file) {
+            // LLAMADA CENTRALIZADA: Eliminamos el archivo físico de Google Drive usando su ID
+            // Pasamos $file->name que es donde se guardó el ID de Drive al subirlo
+            $this->eliminarArchivoDeDrive($file->name);
+
+            // Tu lógica de borrado lógico (Soft Delete) intacta
+            $file->update([
+                'deleted_at' => \Carbon\Carbon::now() // Aseguramos el namespace de Carbon por si acaso
+            ]);
+        }
+
+        // Retornamos el listado actualizado de archivos activos de la tarea (Tu retorno intacta)
+        return Jobs_file::where('job_id', $file->job_id)->whereNull('deleted_at')->get();
     }
     
     public function destroyallfiles($id)

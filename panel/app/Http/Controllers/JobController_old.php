@@ -362,16 +362,28 @@ class JobController extends Controller
     public function destroyfile($id)
     {
         $file = Jobs_file::find($id);
-    
-        $path = 'storage/'.$file->name;
-        if (file_exists($path)) {
-            unlink($path);
-        }
-        $file->update([
-            'deleted_at' => Carbon::now()
-        ]);
 
-        return Jobs_file::where('job_id',$file->job_id)->wherenull('deleted_at')->get();
+        if ($file) {
+            // 1. LLAMADA CENTRALIZADA: Eliminamos de Google Drive usando el ID guardado en 'name'
+            $this->eliminarArchivoDeDrive($file->name);
+
+            // 2. Borrado lógico en la Base de Datos
+            $file->update([
+                'deleted_at' => \Carbon\Carbon::now()
+            ]);
+        }
+
+        // 3. Obtenemos las imágenes restantes de la tarea
+        $filesRestantes = Jobs_file::where('job_id', $file->job_id)
+            ->whereNull('deleted_at')
+            ->get();
+
+        // 4. IMPORTANTÍSIMO: Les inyectamos su url_web antes de retornar el JSON
+        foreach ($filesRestantes as $f) {
+            $f->url_web = route('drive.file', ['id' => $f->name]);
+        }
+
+        return $filesRestantes;
     }
     
     public function destroyallfiles($id)

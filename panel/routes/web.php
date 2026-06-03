@@ -23,6 +23,18 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Spatie\Permission\Guard;
 
+// use Illuminate\Support\Facades\Storage;
+
+// Route::get('/probar-drive', function () {
+//     try {
+//         // Intenta crear un archivo de texto de prueba en la raíz de tu Drive
+//         Storage::disk('google')->put('prueba.txt', 'Hola Drive desde Laravel 8!');
+//         return "¡Conexión exitosa! El archivo se creó en tu Google Drive.";
+//     } catch (\Exception $e) {
+//         return "Error en la conexión: " . $e->getMessage();
+//     }
+// });
+
 // Route::get('test', function () {
 // 	dd( base_path(). '/../public/storage/',env('APP_URL'),storage_path('app'), storage_path('app/public'));
 // });
@@ -167,6 +179,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::post('/jobs/{id}/generate-pdf', [JobController::class,'generatePDF'])->name('job.generate-pdf');
     Route::post('/jobs/generate-excel', [JobController::class,'generateExcel'])->name('job.generate-excel');
     
+    // Cambia 'TuControladorCualquiera' por el nombre del controlador que uses habitualmente para estas llamadas
+    Route::get('/drive-file/{id}', [JobController::class, 'verArchivoDesdeDrive'])->name('drive.file');
+
     // Ruta de PRUEBA para generar presupuesto Colppy (desarrollo)
     Route::get('/jobs/{id}/test-generate-budget', function($id) {
         $controller = new JobController();

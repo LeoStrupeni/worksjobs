@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/job.dart';
 import '../models/job_file.dart';
+import '../providers/auth_provider.dart';
+import '../config/api_config.dart';
 import 'package:intl/intl.dart';
 
 class PdfConfigScreen extends StatefulWidget {
@@ -364,7 +367,8 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
                         itemBuilder: (context, index) {
                           final file = widget.files[index];
                           final isSelected = _selectedImageIds.contains(file.id);
-                          final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                          final imageUrl = '${ApiConfig.baseUrl}/drive-file/${file.name}';
+                          final token = Provider.of<AuthProvider>(context, listen: false).token;
 
                           return GestureDetector(
                             onTap: () {
@@ -392,6 +396,7 @@ class _PdfConfigScreenState extends State<PdfConfigScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.network(
                                       imageUrl,
+                                      headers: token != null ? {'Authorization': 'Bearer $token'} : {},
                                       fit: BoxFit.cover,
                                       width: double.infinity,
                                       height: double.infinity,

@@ -52,6 +52,8 @@ Route::prefix('budgets')->group(function () {
     Route::get('/{idFactura}/pdf/preview', [\App\Http\Controllers\Api\ApiBudgetController::class, 'previewHtml']);
 });
 
+Route::get('/drive-file/{id}', [JobController::class, 'verArchivoDesdeDrive']);
+
 // Rutas protegidas (requieren autenticación Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     // Usuario autenticado con roles y permisos

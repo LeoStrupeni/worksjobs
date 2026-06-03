@@ -16,6 +16,7 @@ import '../models/job.dart';
 import '../models/product.dart';
 import '../models/technician.dart';
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 import '../utils/custom_alerts.dart';
 import 'edit_job_screen.dart';
 import 'pdf_config_screen.dart';
@@ -216,7 +217,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     int currentPage = initialIndex;
 
     // Obtener usuario para verificar permisos
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    final token = authProvider.token;
 
     showDialog(
       context: context,
@@ -237,11 +240,12 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 itemBuilder: (context, index) {
                   final file = files[index];
                   final imageUrl =
-                      'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                      '${ApiConfig.baseUrl}/drive-file/${file.name}';
                   return InteractiveViewer(
                     child: Center(
                       child: Image.network(
                         imageUrl,
+                        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
                           return Center(
@@ -477,7 +481,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _downloadImage(dynamic file) async {
     try {
-      final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      final imageUrl = '${ApiConfig.baseUrl}/drive-file/${file.name}';
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -502,7 +507,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       }
 
       // Descargar la imagen
-      final response = await http.get(Uri.parse(imageUrl));
+      final response = await http.get(
+        Uri.parse(imageUrl),
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      );
 
       if (response.statusCode == 200) {
         // Guardar temporalmente
@@ -546,7 +554,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _shareImage(dynamic file) async {
     try {
-      final imageUrl = 'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
+      final imageUrl = '${ApiConfig.baseUrl}/drive-file/${file.name}';
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -571,7 +580,10 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       }
 
       // Descargar la imagen
-      final response = await http.get(Uri.parse(imageUrl));
+      final response = await http.get(
+        Uri.parse(imageUrl),
+        headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+      );
 
       if (response.statusCode == 200) {
         // Guardar temporalmente
@@ -663,10 +675,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       final tempDir = await getTemporaryDirectory();
       final List<XFile> xFiles = [];
 
+      final token = Provider.of<AuthProvider>(context, listen: false).token;
       for (var file in selectedFiles) {
         final imageUrl =
-            'https://tecnicos.strupeni.com.ar/storage/${file.name}';
-        final response = await http.get(Uri.parse(imageUrl));
+            '${ApiConfig.baseUrl}/drive-file/${file.name}';
+        final response = await http.get(
+          Uri.parse(imageUrl),
+          headers: token != null ? {'Authorization': 'Bearer $token'} : {},
+        );
 
         if (response.statusCode == 200) {
           final fileName = file.originalName ??
@@ -1794,7 +1810,8 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                 itemBuilder: (context, index) {
                   final file = files[index];
                   final imageUrl =
-                      'https://tecnicos.strupeni.com.ar/storage/${file.name}';
+                      '${ApiConfig.baseUrl}/drive-file/${file.name}';
+                  final token = Provider.of<AuthProvider>(context, listen: false).token;
                   final isSelected = _selectedImageIds.contains(file.id);
 
                   return GestureDetector(
@@ -1830,6 +1847,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             borderRadius: BorderRadius.circular(12),
                             child: Image.network(
                               imageUrl,
+                              headers: token != null ? {'Authorization': 'Bearer $token'} : {},
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
