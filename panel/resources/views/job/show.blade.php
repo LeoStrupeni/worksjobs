@@ -345,7 +345,7 @@
                         </div>
                         <div class="card-body">
                             <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="include_notes" checked onchange="toggleNotesSection()">
+                                <input class="form-check-input" type="checkbox" id="include_notes" onchange="toggleNotesSection()">
                                 <label class="form-check-label" for="include_notes">
                                     <strong>Incluir notas</strong>
                                 </label>

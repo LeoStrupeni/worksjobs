@@ -1056,6 +1056,35 @@ class JobController extends Controller
                 $images = $images->whereIn('id', $selectedImageIds);
             }
 
+            // Convertir imágenes a base64 para embeber en el PDF
+            // (dompdf no puede acceder a URLs externas ni paths de Drive)
+            $imagesBase64 = [];
+            if ($includeImages) {
+                $adapter = \Illuminate\Support\Facades\Storage::disk('google')->getAdapter();
+                $service = $adapter->getService();
+                foreach ($images as $image) {
+                    try {
+                        $name = $image->name;
+                        if (pathinfo($name, PATHINFO_EXTENSION) !== '') {
+                            // Archivo local
+                            $path = storage_path('app/public/' . $name);
+                            if (file_exists($path)) {
+                                $mime = mime_content_type($path);
+                                $imagesBase64[$image->id] = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+                            }
+                        } else {
+                            // ID de Google Drive
+                            $meta = $service->files->get($name, ['fields' => 'mimeType']);
+                            $response = $service->files->get($name, ['alt' => 'media']);
+                            $content = $response->getBody()->getContents();
+                            $imagesBase64[$image->id] = 'data:' . $meta->getMimeType() . ';base64,' . base64_encode($content);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('PDF: no se pudo cargar imagen id=' . $image->id . ': ' . $e->getMessage());
+                    }
+                }
+            }
+
             // Preparar datos para la vista
             $data = [
                 'job' => $job,
@@ -1066,6 +1095,7 @@ class JobController extends Controller
                 'includeDepartureTime' => $includeDepartureTime,
                 'includeImages' => $includeImages,
                 'images' => $images,
+                'imagesBase64' => $imagesBase64,
                 'includeProducts' => $includeProducts,
                 'includeTechnicians' => $includeTechnicians,
             ];

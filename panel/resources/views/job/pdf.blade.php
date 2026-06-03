@@ -326,7 +326,9 @@
         <div class="images-grid">
             @foreach($images as $image)
                 <div class="image-item">
-                    <img src="{{ storage_path('app/public/' . $image->name) }}" alt="Imagen de trabajo">
+                    @if(isset($imagesBase64[$image->id]))
+                        <img src="{{ $imagesBase64[$image->id] }}" alt="Imagen de trabajo">
+                    @endif
                     <div class="image-caption">{{ $image->original_name ?? 'Imagen ' . $loop->iteration }}</div>
                 </div>
                 @if($loop->iteration % 3 == 0 && !$loop->last)

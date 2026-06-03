@@ -1980,7 +1980,7 @@ function populatePdfConfigModal(jobData) {
             
             const noteHtml = `
                 <div class="form-check mb-2">
-                    <input class="form-check-input note-checkbox" type="checkbox" value="${note.id}" id="note_${note.id}" checked>
+                    <input class="form-check-input note-checkbox" type="checkbox" value="${note.id}" id="note_${note.id}">
                     <label class="form-check-label" for="note_${note.id}">
                         <small class="text-muted">${formattedDate}</small><br>
                         <span class="text-truncate d-inline-block" style="max-width: 400px;">${note.note || ''}</span>
@@ -2004,7 +2004,11 @@ function populatePdfConfigModal(jobData) {
                 return; // Saltar este archivo
             }
             
-            const imageUrl = '/storage/' + imagePath.replace(/\\/g, '/');
+            // Si el nombre tiene extensión es archivo local, sino es ID de Google Drive
+            const hasExtension = imagePath.includes('.');
+            const imageUrl = hasExtension
+                ? '/storage/' + imagePath.replace(/\\/g, '/')
+                : '/api/drive-file/' + imagePath;
             const imageHtml = `
                 <div class="col-4 col-md-3">
                     <div class="position-relative image-selector" data-file-id="${file.id}">
