@@ -63,6 +63,20 @@ return [
             ]) : [],
         ],
 
+        'base_dahua' => [ // Nombre que le das a la segunda conexión
+            'driver' => 'mysql',
+            'host' => env('DB_EXTERNA_HOST'),
+            'port' => env('DB_EXTERNA_PORT'),
+            'database' => env('DB_EXTERNA_DATABASE'),
+            'username' => env('DB_USERNAME_EXTERNA'),
+            'password' => env('DB_PASSWORD_EXTERNA'),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
