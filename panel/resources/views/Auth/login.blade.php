@@ -322,7 +322,7 @@
                     <input class="form-check-input" type="checkbox" name="remember">
                     Recuerdame
                 </label><br>
-
+                <div class="cf-turnstile" data-sitekey="{{ env('CLOUDFLARE_TURNSTILE_SITE_KEY') }}" data-theme="light" data-size="normal" data-callback="onSuccess"></div>
                 <input type="submit" class="fadeIn fourth" value="Ingresar">
 
             </form>
@@ -336,19 +336,19 @@
 @endsection
 
 @section('script_by_page')
-<script src="https://www.google.com/recaptcha/api.js?render={{$recaptcha_key_site}}"></script>
-<script>
-    (function( $ ) {
-        $( document ).ready(function() {
-            grecaptcha.ready(function() {
-                grecaptcha.execute("{{$recaptcha_key_site}}", {action: 'loginform'}).then(function(token) {
-                    $('#loginForm').prepend('<input type="hidden" name="token" value="' + token + '">');
-                    $('#loginForm').prepend('<input type="hidden" name="action" value="loginform">');
-                    $('#loginForm input[type="submit"]').prop('disabled',false);
-                });
-            });                     
-        });
-        
-    })( jQuery );
-</script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script>
+        (function( $ ) {
+            $( document ).ready(function() {
+                grecaptcha.ready(function() {
+                    grecaptcha.execute("{{$recaptcha_key_site}}", {action: 'loginform'}).then(function(token) {
+                        $('#loginForm').prepend('<input type="hidden" name="token" value="' + token + '">');
+                        $('#loginForm').prepend('<input type="hidden" name="action" value="loginform">');
+                        $('#loginForm input[type="submit"]').prop('disabled',false);
+                    });
+                });                     
+            });
+            
+        })( jQuery );
+    </script>
 @endsection

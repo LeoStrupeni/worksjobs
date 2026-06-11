@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
-
-use function Symfony\Component\String\b;
+use App\Rules\Turnstile;
 
 class LoginController extends Controller
 {
@@ -31,16 +30,18 @@ class LoginController extends Controller
     
     public function login(Request $request)
     {   
-        $this->validate_recaptcha($request);
+        // $this->validate_recaptcha($request);
 
         $credentials = $request->validate([
                 'email' => ['required','string'],
-                'password' => ['required','string']
+                'password' => ['required','string'],
+                'cf-turnstile-response' => ['required', new Turnstile],
             ],
             [
                 'required' => 'El campo es requerido',
                 'string' => 'El campo debe ser de tipo alfanumérico',
                 'email' => 'El campo no es un email',
+                'cf-turnstile-response.required' => 'No se pudo verificar el desafío de seguridad. Inténtalo de nuevo.',
             ]
         );
 
