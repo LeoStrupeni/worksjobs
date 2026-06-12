@@ -135,6 +135,8 @@ $(document).ready(function() {
                         // Verificar si es un permiso sin "eliminar"
                         const hasNoDelete = noDeletePermissions.includes(val.general);
                         const disabledDelete = (isCreateOnly || hasNoDelete) ? 'disabled style="opacity: 0.3; cursor: not-allowed;"' : '';
+                        const isJobsPermission = val.general === 'jobs';
+                        const disabledTimes = isJobsPermission ? '' : 'disabled style="opacity: 0.3; cursor: not-allowed;"';
                         
                         body += `<tr id="${val.general}">
                             <td class="align-middle text-start ps-3">${val.general_es ? val.general_es : val.general}</td>
@@ -168,6 +170,14 @@ $(document).ready(function() {
                                     <input type="hidden" name="general" value="${val.general}">
                                     <input type="hidden" name="tipo" value="delete">
                                     <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="delete" ${val.p_delete == 1 ? 'checked' : ''} ${disabled} ${disabledDelete}>
+                                </form>
+                            </td>
+                            <td class="align-middle text-center">
+                                <form>
+                                    <input type="hidden" name="rolid" value="${rolid}">
+                                    <input type="hidden" name="general" value="${val.general}">
+                                    <input type="hidden" name="tipo" value="times">
+                                    <input class="form-check-input changepermission" onchange="mostrarOverlay()" type="checkbox" name="permission" value="times" ${val.p_times == 1 ? 'checked' : ''} ${disabled} ${disabledTimes}>
                                 </form>
                             </td>
                         </tr>`;

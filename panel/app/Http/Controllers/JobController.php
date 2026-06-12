@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -23,6 +24,41 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 class JobController extends Controller
 {
+    private function canEditJobTimes(): bool
+    {
+        $sessionPermissions = Session::get('user.permissions.jobs', []);
+        if (is_array($sessionPermissions) && in_array('times', $sessionPermissions, true)) {
+            return true;
+        }
+
+        $user = Auth::user();
+        return $user ? Gate::forUser($user)->allows('times jobs') : false;
+    }
+
+    private function denyEditTimes(Request $request)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tiene permisos para editar tiempos de arribo/cierre.'
+            ], 403);
+        }
+
+        return back()->with('error', 'No tiene permisos para editar tiempos de arribo/cierre.');
+    }
+
+    private function denyEditClosedTime(Request $request, string $message = 'No se puede editar fecha/hora de cierre en tareas sin cierre registrado.')
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message
+            ], 422);
+        }
+
+        return back()->with('error', $message);
+    }
+
     public function index()
     {
         if(Auth::check()){
@@ -203,28 +239,36 @@ class JobController extends Controller
     }
 
     public function update(Request $request, $id)
-    {   
-        // Log::info('Request Data: ', $request->all(),$id);
+    {
         $job = Job::find($id);
-    
-        $datos = array();
+        $canEditTimes = $this->canEditJobTimes();
+
+        if (($request->filled('arrival_datetime') || $request->filled('closed_datetime')) && !$canEditTimes) {
+            return $this->denyEditTimes($request);
+        }
+
+        $datos = [];
+
         if(isset($request->client_id)){
             $request->validate(['client_id' => ['required']],
                 [ 'required' => 'El campo es requerido.']
             );
         }
+
         if(isset($request->visit_datetime) && $request->visit_datetime != $job->visit_datetime){
             $request->validate(['visit_datetime' => ['required']],
                 [ 'required' => 'El campo es requerido.']
             );
             $datos['visit_datetime'] = $this->convertDateTimeFormat($request->visit_datetime);
         }
+
         if(isset($request->job_description) && $request->job_description != $job->job_description){
             $request->validate(['job_description' => ['required']],
                 [ 'required' => 'El campo es requerido.']
             );
             $datos['job_description'] = $request->job_description;
         }
+
         if(isset($request->address_id) && $request->address_id != $job->client_addres_id){
             $request->validate(['address_id' => ['required']],
                 [ 'required' => 'El campo es requerido.']
@@ -232,13 +276,39 @@ class JobController extends Controller
             $datos['client_addres_id'] = $request->address_id;
         }
 
-        if( (isset($request->visit_datetime) && $request->visit_datetime != $job->visit_datetime) 
+        if ($request->has('arrival_datetime') && $canEditTimes) {
+            $arrivalDatetime = trim((string) $request->input('arrival_datetime', ''));
+            $newArrivalDatetime = $arrivalDatetime === ''
+                ? null
+                : $this->convertDateTimeFormat($arrivalDatetime);
+
+            if ($newArrivalDatetime != $job->arrival_datetime) {
+                $datos['arrival_datetime'] = $newArrivalDatetime;
+            }
+        }
+
+        if ($request->has('closed_datetime') && $canEditTimes) {
+            if (empty($job->closed_datetime)) {
+                return $this->denyEditClosedTime($request);
+            }
+
+            $closedDatetime = trim((string) $request->input('closed_datetime', ''));
+            if ($closedDatetime === '') {
+                return $this->denyEditClosedTime($request, 'Debe indicar fecha/hora de cierre para editar el presupuesto asociado.');
+            }
+
+            $newClosedDatetime = $this->convertDateTimeFormat($closedDatetime);
+            if ($newClosedDatetime != $job->closed_datetime) {
+                $datos['closed_datetime'] = $newClosedDatetime;
+            }
+        }
+
+        if( (isset($request->visit_datetime) && $request->visit_datetime != $job->visit_datetime)
             || (isset($request->job_description) && $request->job_description != $job->job_description)) {
-                
-                $datos['visit_latitud'] = $request->latitude;
-                $datos['visit_longitud'] = $request->longitude;
-                $datos['visit_coords_status'] = $request->latitude != null && $request->longitude != null ? '1' : '0';
-                $datos['visit_json_coords'] = $request->jsongeolocation;
+            $datos['visit_latitud'] = $request->latitude;
+            $datos['visit_longitud'] = $request->longitude;
+            $datos['visit_coords_status'] = $request->latitude != null && $request->longitude != null ? '1' : '0';
+            $datos['visit_json_coords'] = $request->jsongeolocation;
         }
 
         if(count($datos) > 0){
@@ -251,14 +321,11 @@ class JobController extends Controller
 
         // Actualizar productos relacionados
         if ($request->has('products')) {
-            // Eliminar productos anteriores (soft delete)
             JobProduct::where('job_id', $id)->delete();
-            
-            // Agregar nuevos productos
+
             if (is_array($request->products)) {
                 foreach ($request->products as $productData) {
                     if (isset($productData['product_id'])) {
-                        // Buscar información del producto
                         $product = Product::find($productData['product_id']);
                         if ($product) {
                             JobProduct::create([
@@ -278,9 +345,21 @@ class JobController extends Controller
 
         $this->addfiles($request, $id);
 
+        $timeFieldsTouched = array_key_exists('arrival_datetime', $datos) || array_key_exists('closed_datetime', $datos);
+        $jobModel = Job::find($id);
+        $shouldSyncColppyBudget = $timeFieldsTouched
+            && !empty($jobModel->colppy_budget_id)
+            && !empty($jobModel->arrival_datetime)
+            && !empty($jobModel->closed_datetime);
+
+        if ($shouldSyncColppyBudget) {
+            $this->syncColppyBudgetFromEditedTimes($id);
+        }
+
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Tarea actualizada correctamente']);
         }
+
         return back();
     }
 
@@ -358,8 +437,13 @@ class JobController extends Controller
         $latitud = $request->latitude ?? $request->latitud;
         $longitud = $request->longitude ?? $request->longitud;
 
+        $closedDateTime = Carbon::now();
+        if ($this->canEditJobTimes() && $request->filled('closed_datetime')) {
+            $closedDateTime = $this->convertDateTimeFormat($request->closed_datetime);
+        }
+
         Job::where('id', $job_id)->update([
-            'closed_datetime' => Carbon::now(),
+            'closed_datetime' => $closedDateTime,
             'closed_latitud' => $latitud,
             'closed_longitud' => $longitud,
             'closed_coords_status' => 1,
@@ -1138,6 +1222,167 @@ class JobController extends Controller
 
             return back()->with('error', 'Error al generar PDF: ' . $e->getMessage());
         }
+    }
+
+    private function syncColppyBudgetFromEditedTimes(int $jobId): void
+    {
+        try {
+            $job = Job::with('client')->find($jobId);
+            if (!$job || empty($job->colppy_budget_id)) {
+                return;
+            }
+
+            // Si no hay ambos tiempos, no hay base para recalcular mano de obra.
+            if (empty($job->arrival_datetime) || empty($job->closed_datetime)) {
+                return;
+            }
+
+            $colppyService = new ColppyService();
+            $budgetResult = $colppyService->leerFacturaVenta((string) $job->colppy_budget_id);
+            if (!($budgetResult['success'] ?? false)) {
+                Log::warning('No se pudo leer presupuesto Colppy al editar tiempos', [
+                    'job_id' => $jobId,
+                    'colppy_budget_id' => $job->colppy_budget_id,
+                    'mensaje' => $budgetResult['mensaje'] ?? 'Error desconocido'
+                ]);
+                return;
+            }
+
+            $infofactura = $budgetResult['response']['infofactura'] ?? [];
+            $itemsFactura = $budgetResult['response']['itemsFactura'] ?? [];
+            if (empty($itemsFactura) || !is_array($itemsFactura)) {
+                return;
+            }
+
+            [$cantidadHoras, $comentarioHoras] = $this->calculateWorkedHoursForBudget($job->arrival_datetime, $job->closed_datetime);
+
+            $itemsActualizados = $this->applyLaborHoursToBudgetItems($itemsFactura, $cantidadHoras, $comentarioHoras);
+            if (empty($itemsActualizados)) {
+                return;
+            }
+
+            [$nroFactura1, $nroFactura2] = $this->extractBudgetNumberParts($infofactura);
+
+            $clientColppyId = $infofactura['idCliente']
+                ?? $job->client->colppy_id
+                ?? $job->client->idcolppy
+                ?? null;
+
+            if (empty($clientColppyId)) {
+                Log::warning('No se pudo determinar idCliente de Colppy para edición de presupuesto', [
+                    'job_id' => $jobId,
+                    'colppy_budget_id' => $job->colppy_budget_id,
+                ]);
+                return;
+            }
+
+            $payload = [
+                'idFactura' => (string) $job->colppy_budget_id,
+                'descripcion' => $infofactura['descripcion'] ?? ('Actualizado por edición de tiempos - Tarea #' . $jobId),
+                'fechaFactura' => $infofactura['fechaFactura'] ?? Carbon::now()->format('d-m-Y'),
+                'fechaPago' => $infofactura['fechaPago'] ?? ($infofactura['fechaFactura'] ?? Carbon::now()->format('d-m-Y')),
+                'idCliente' => $clientColppyId,
+                'idCondicionPago' => $infofactura['idCondicionPago'] ?? 'a 7 Dias',
+                'idEstadoFactura' => $infofactura['idEstadoFactura'] ?? 'Borrador',
+                'idEstadoAnterior' => $infofactura['idEstadoAnterior'] ?? '',
+                'idTipoFactura' => 'X',
+                'idTipoComprobante' => '4',
+                'idMoneda' => $infofactura['idMoneda'] ?? '1',
+                'valorCambio' => $infofactura['valorCambio'] ?? '1',
+                'nroFactura1' => $nroFactura1,
+                'nroFactura2' => $nroFactura2,
+                'percepcionIVA' => $infofactura['percepcionIVA'] ?? '0.00',
+                'percepcionIIBB' => $infofactura['percepcionIIBB'] ?? '0.00',
+                'orderId' => $infofactura['orderId'] ?? '',
+                'items' => $itemsActualizados,
+            ];
+
+            $updateResult = $colppyService->editarFacturaVenta($payload);
+            if (!($updateResult['success'] ?? false)) {
+                Log::warning('Falló actualización de presupuesto Colppy al editar tiempos', [
+                    'job_id' => $jobId,
+                    'colppy_budget_id' => $job->colppy_budget_id,
+                    'mensaje' => $updateResult['mensaje'] ?? ($updateResult['result']['mensaje'] ?? 'Error desconocido')
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error sincronizando presupuesto Colppy tras edición de tiempos', [
+                'job_id' => $jobId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function calculateWorkedHoursForBudget($arrivalDatetime, $closedDatetime): array
+    {
+        $start = Carbon::parse($arrivalDatetime);
+        $end = Carbon::parse($closedDatetime);
+
+        $minutes = $end->diffInMinutes($start);
+        $hours = round($minutes / 60, 2);
+
+        if ($hours <= 0 && $minutes > 0) {
+            $hours = 0.01;
+        }
+
+        $comment = sprintf(
+            'Arribo: %s - Salida: %s - %s min',
+            $start->format('d/m H:i'),
+            $end->format('d/m H:i'),
+            $minutes
+        );
+
+        return [$hours, $comment];
+    }
+
+    private function applyLaborHoursToBudgetItems(array $itemsFactura, float $hours, string $comment): array
+    {
+        $items = [];
+        $targetIndex = null;
+
+        foreach ($itemsFactura as $index => $item) {
+            $codigo = (string) ($item['codigo'] ?? '');
+            $tipoItem = strtoupper((string) ($item['tipoItem'] ?? ''));
+
+            if ($targetIndex === null && $codigo === '14') {
+                $targetIndex = $index;
+            }
+
+            if ($targetIndex === null && $tipoItem === 'S') {
+                $targetIndex = $index;
+            }
+
+            $items[] = $item;
+        }
+
+        if ($targetIndex === null) {
+            return $items;
+        }
+
+        $items[$targetIndex]['Cantidad'] = $hours;
+        $items[$targetIndex]['Comentario'] = $comment;
+
+        return $items;
+    }
+
+    private function extractBudgetNumberParts(array $infofactura): array
+    {
+        $nroFactura1 = $infofactura['nroFactura1'] ?? '';
+        $nroFactura2 = $infofactura['nroFactura2'] ?? '';
+
+        if (!empty($nroFactura1) && !empty($nroFactura2)) {
+            return [$nroFactura1, $nroFactura2];
+        }
+
+        $nroFactura = $infofactura['nroFactura'] ?? '';
+        if (!empty($nroFactura)) {
+            $parts = explode('-', $nroFactura);
+            if (count($parts) === 2) {
+                return [trim($parts[0]), trim($parts[1])];
+            }
+        }
+
+        return ['', ''];
     }
 
     /**

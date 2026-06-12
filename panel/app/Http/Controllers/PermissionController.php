@@ -71,8 +71,9 @@ class PermissionController extends Controller{
             ->selectRaw("general, 
                 IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%create%', 1, 0) as p_create,
                 IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%read%', 1, 0) as p_read,
-                IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%ùpdate%', 1, 0) as p_update,
-                IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%delete%', 1, 0) as p_delete
+                IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%update%', 1, 0) as p_update,
+                IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%delete%', 1, 0) as p_delete,
+                IF(GROUP_CONCAT(SUBSTRING_INDEX(name,' ',1)) like '%times%', 1, 0) as p_times
             ")
             ->groupby('general')
         ->get()->toArray();
@@ -89,7 +90,8 @@ class PermissionController extends Controller{
                     "p_create" => 0,
                     "p_read" => 0,
                     "p_update" => 0,
-                    "p_delete" => 0
+                    "p_delete" => 0,
+                    "p_times" => 0
                 ];
                 array_push($permisos, $newperm);
             }
@@ -150,7 +152,13 @@ class PermissionController extends Controller{
 
     public function updaterolpermission(Request $request)
     {
-        $permiso = Permission::where('general',$request->general)->whereraw("name like '%".$request->tipo."%'")->first();
+        $permiso = Permission::where('general', $request->general)
+            ->whereRaw("SUBSTRING_INDEX(name, ' ', 1) = ?", [$request->tipo])
+            ->first();
+
+        if (!$permiso) {
+            return response()->json(['message' => 'Permiso no encontrado'], 404);
+        }
 
         $rolpermission = Role_Has_Permission::where('permission_id',$permiso->id)->where('role_id',$request->rolid)->first();
         if (isset($rolpermission)) {

@@ -4,6 +4,7 @@ return [
     'read' => 'Ver',
     'update' => 'Editar',
     'delete' => 'Eliminar',
+    'times' => 'Editar tiempos',
     // Traducciones de nombres de permisos
     'client' => 'Cliente',
     'job' => 'Tarea',

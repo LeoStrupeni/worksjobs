@@ -26,22 +26,28 @@
               <i class="fas fa-ellipsis-v me-2"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              @php
+                $isPending = ($j->arrival == null && $j->closed == null);
+                $canEditPending = $isPending && in_array('update', $jobPermissions ?? []);
+                $canEditOpenOrClosed = !$isPending && in_array('times', $jobPermissions ?? []);
+              @endphp
+
+              @if ($canEditPending || $canEditOpenOrClosed)
+                <li><a class="dropdown-item update-job" href="javascript:void(0);" data-id="{{$j->id}}">
+                  <i class="flaticon-upload me-2"></i>Editar
+                </a></li>
+              @endif
+
               @if ($j->estatus != 'Cerrado')
                 @if (user_has_special_role())
-                  @if(in_array('update',Session::get('user')['permissions']['jobs']) && $j->arrival != null)
+                  @if(in_array('update', $jobPermissions ?? []) && $j->arrival != null)
                     <li><a class="dropdown-item backarrival" href="javascript:void(0);" data-id="{{$j->id}}">
                       <i class="flaticon-reply me-2"></i>Volver a pendiente
                     </a></li>
                   @endif
                 @endif
 
-                @if (in_array('update',Session::get('user')['permissions']['jobs']) && $j->arrival == null)
-                  <li><a class="dropdown-item update-job" href="javascript:void(0);" data-id="{{$j->id}}">
-                    <i class="flaticon-upload me-2"></i>Editar
-                  </a></li>
-                @endif
-
-                @if (in_array('delete',Session::get('user')['permissions']['jobs']) && $j->arrival == null)
+                @if (in_array('delete', $jobPermissions ?? []) && $j->arrival == null)
                   <li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item text-danger delete-job" href="javascript:void(0);" data-id="{{$j->id}}" 
                     data-name="{{$j->client_first_name.' '.$j->client_last_name.' del '.$j->visit_day.' '.$j->visit}}">
@@ -50,7 +56,7 @@
                 @endif
               @endif
 
-              @if ($j->estatus == 'Cerrado' && in_array('update',Session::get('user')['permissions']['jobs']))
+              @if ($j->estatus == 'Cerrado' && in_array('update', $jobPermissions ?? []))
                 <li><a class="dropdown-item archive-job" href="javascript:void(0);" data-id="{{$j->id}}">
                   <i class="fas fa-archive me-2"></i>Archivar
                 </a></li>
@@ -124,7 +130,7 @@
             </button>
           @endif
           
-          @if (in_array('read',Session::get('user')['permissions']['jobs']))
+          @if (in_array('read', $jobPermissions ?? []))
             <button data-id="{{$j->id}}" class="btn btn-primary read-job d-flex align-items-center justify-content-center">
               <i class="flaticon-eye me-2"></i>Ver Detalles
             </button>
@@ -157,7 +163,7 @@
             <i class="flaticon-notes"></i>
           </button>
 
-          @if (in_array('update',Session::get('user')['permissions']['jobs']))
+          @if (in_array('update', $jobPermissions ?? []))
             <button data-id="{{$j->id}}" class="btn btn-sm btn-outline-success addfiles flex-fill me-1"
               data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}"
               title="Agregar imágenes">
@@ -165,7 +171,7 @@
             </button>
           @endif
 
-          @if (in_array('update',Session::get('user')['permissions']['jobs']) && !($j->estatus == 'Cerrado' && $j->archived == 1))
+          @if (in_array('update', $jobPermissions ?? []) && !($j->estatus == 'Cerrado' && $j->archived == 1))
             <button data-id="{{$j->id}}" class="btn btn-sm btn-outline-primary addproducts-job flex-fill"
               data-name="{{$j->client_first_name}} {{$j->client_last_name}} del {{$j->visit_day}} {{$j->visit}}"
               title="Agregar productos">

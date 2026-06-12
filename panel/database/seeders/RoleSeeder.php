@@ -38,6 +38,7 @@ class RoleSeeder extends Seeder
         $permission_read_job = Permission::create(['name'=>'read jobs']);
         $permission_update_job = Permission::create(['name'=>'update jobs']);
         $permission_delete_job = Permission::create(['name'=>'delete jobs']);
+        $permission_times_job = Permission::create(['name'=>'times jobs']);
 
         // Permisos de presupuestos
         $permission_create_budget = Permission::create(['name'=>'create budgets']);
@@ -69,6 +70,7 @@ class RoleSeeder extends Seeder
             $permission_read_job,
             $permission_update_job,
             $permission_delete_job,
+            $permission_times_job,
             $permission_create_budget,
             $permission_read_budget,
             $permission_create_permission,

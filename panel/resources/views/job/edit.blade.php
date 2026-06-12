@@ -98,6 +98,39 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-12 d-none" id="job-times-permission-card">
+                            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                                <div class="card-header bg-white border-0 pt-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
+                                            <i class="fas fa-clock fa-lg text-warning me-2"></i>
+                                        </div>
+                                        <h6 class="mb-0 fw-bold">Edición Especial de Tiempos</h6>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="arrival_datetime_edit" class="form-label text-muted small mb-1">Fecha y hora de arribo</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-location-arrow"></i></span>
+                                                <input type="text" class="form-control" name="arrival_datetime" id="arrival_datetime_edit" placeholder="dd/mm/yyyy HH:mm" autocomplete="off">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="closed_datetime_edit" class="form-label text-muted small mb-1">Fecha y hora de cierre</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
+                                                <input type="text" class="form-control" name="closed_datetime" id="closed_datetime_edit" placeholder="dd/mm/yyyy HH:mm" autocomplete="off">
+                                            </div>
+                                            <small class="text-muted d-none" id="closed_datetime_edit_help">
+                                                Solo se puede editar si la tarea ya tiene cierre registrado.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                                 <div class="card-header bg-white border-0 pt-3">

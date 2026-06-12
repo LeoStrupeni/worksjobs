@@ -34,6 +34,7 @@
                                 <th>Leer</th>
                                 <th>Actualizar</th>
                                 <th>Eliminar</th>
+                                <th>Editar tiempos</th>
                             </tr>
                         </thead>
                         <tbody id="table_body_rolpermissions">

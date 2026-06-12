@@ -9,6 +9,7 @@ use App\Models\CmsSection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Session;
 
 class HomeController extends Controller
@@ -63,12 +64,18 @@ class HomeController extends Controller
 
             $jobs = DB::select($query);
 
+            $jobPermissions = Session::get('user')['permissions']['jobs'] ?? [];
+            $authUser = Auth::user();
+            if ($authUser && Gate::forUser($authUser)->allows('times jobs') && !in_array('times', $jobPermissions, true)) {
+                $jobPermissions[] = 'times';
+            }
+
             foreach ($jobs as $j) {
                 $note =Jobs_Note::where('jobs_id',$j->id)->first();   
                 $j->getnotes = $note ? 'si' : 'no';
             }
 
-            return view("home", compact("jobs"));
+            return view("home", compact("jobs", "jobPermissions"));
         }
         
         return $this->webPublica();

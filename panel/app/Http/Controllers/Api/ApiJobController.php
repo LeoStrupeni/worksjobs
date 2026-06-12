@@ -13,6 +13,7 @@ use App\Models\JobProduct;
 use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -26,7 +27,11 @@ class ApiJobController extends Controller
     public function getDataTable(Request $request)
     {        
         $roluser = Session::get('user')['roles'][0];
-        $permissions = Session::get('user')['permissions']['jobs'];
+        $permissions = Session::get('user')['permissions']['jobs'] ?? [];
+        $authUser = $request->user() ?? Auth::user();
+        if ($authUser && $authUser->can('times jobs') && !in_array('times', $permissions, true)) {
+            $permissions[] = 'times';
+        }
 
         $order = $request->order;
         $page = $request->page ?? 1;
@@ -665,6 +670,7 @@ class ApiJobController extends Controller
                 'read' => false,
                 'update' => false,
                 'delete' => false,
+                'times' => false,
                 'all_permissions' => [],
                 'roles' => []
             ];
@@ -678,6 +684,7 @@ class ApiJobController extends Controller
             'read' => in_array('read jobs', $permissions),
             'update' => in_array('update jobs', $permissions),
             'delete' => in_array('delete jobs', $permissions),
+            'times' => in_array('times jobs', $permissions),
             'all_permissions' => $permissions,
             'roles' => $roles
         ];

@@ -178,7 +178,11 @@ function tableregister(data, page, callpaginas, url_query){
                             </a></li>`;
                         }
 
-                        if( data.permissions.includes('update') && val.arrival == null && val.closed == null) {
+                        const isPending = (val.arrival == null && val.closed == null);
+                        const canEditPending = isPending && data.permissions.includes('update');
+                        const canEditOpenOrClosed = !isPending && data.permissions.includes('times');
+
+                        if (canEditPending || canEditOpenOrClosed) {
                             body += `<li>
                                 <a href="javascript:void(0);" data-id="${val.id}" class="dropdown-item update-job">
                                     <i class="flaticon-upload me-2"></i>Editar

@@ -116,8 +116,14 @@ $(document).ready(function() {
     });
     $('body').on('click','.update-job',function(){ 
         $("#lightgalleryEditNone").empty();
-        $("#lightgalleryEdit").empty();     
-        $('#formeditjob').attr('action',app_url+"/jobs/"+$(this).data('id'));
+        $("#lightgalleryEdit").empty();
+
+        var editJobId = $(this).data('id');
+        var baseUrl = (typeof app_url !== 'undefined' && app_url)
+            ? app_url
+            : $('meta[name="app_url"]').attr('content');
+        $('#formeditjob').attr('action', baseUrl + "/jobs/" + editJobId);
+        $('#formeditjob').attr('data-job-id', editJobId);
         
         // Resetear el array de archivos y elementos de UI para editar
         selectedFiles = [];
@@ -168,6 +174,26 @@ $(document).ready(function() {
 
                 viewjob(data,form,'editjob');
                 viewfiles(data,'lightgalleryEdit');
+
+                const canEditTimes = data.permissions
+                    && data.permissions.jobs
+                    && data.permissions.jobs.includes('times');
+                if (canEditTimes) {
+                    $('#job-times-permission-card').removeClass('d-none');
+
+                    const hasClosedDatetime = data.job && !!data.job.closed_datetime;
+                    $('#closed_datetime_edit').prop('disabled', !hasClosedDatetime);
+                    $('#closed_datetime_edit_help').toggleClass('d-none', hasClosedDatetime);
+                    if (!hasClosedDatetime) {
+                        $('#closed_datetime_edit').val('');
+                    }
+                } else {
+                    $('#job-times-permission-card').addClass('d-none');
+                    $('#arrival_datetime_edit').val('');
+                    $('#closed_datetime_edit').val('');
+                    $('#closed_datetime_edit').prop('disabled', false);
+                    $('#closed_datetime_edit_help').addClass('d-none');
+                }
 
                 // Poblar técnicos asignados en el select de edición
                 setTechnicianSelect('#technician_ids_edit', data.technicians);
@@ -288,6 +314,19 @@ $(document).ready(function() {
         showSavingAlert();
         var error = 0
         form = document.getElementById("formeditjob");
+
+        // Fallback: si por algun motivo action viene vacio, lo reconstruimos
+        var formAction = $('#formeditjob').attr('action');
+        if (!formAction || formAction === '') {
+            var fallbackJobId = $('#formeditjob').attr('data-job-id');
+            var baseUrl = (typeof app_url !== 'undefined' && app_url)
+                ? app_url
+                : $('meta[name="app_url"]').attr('content');
+
+            if (fallbackJobId && baseUrl) {
+                $('#formeditjob').attr('action', baseUrl + "/jobs/" + fallbackJobId);
+            }
+        }
 
         $( form.getElementsByClassName('validate') ).each(function( index ) {
             if($( this ).val() == ''){
@@ -1557,6 +1596,8 @@ $('#editjob').on('hidden.bs.modal', function () {
 // ============================================
 var pickerCreate = null;
 var pickerEdit = null;
+var pickerEditArrival = null;
+var pickerEditClosed = null;
 
 // Configuración común de Flatpickr
 var flatpickrConfig = {
@@ -1597,6 +1638,8 @@ $('#createjob').on('shown.bs.modal', function () {
 // Inicializar Flatpickr cuando se abra el modal de EDITAR
 $('#editjob').on('shown.bs.modal', function () {
     var inputEdit = document.getElementById('visit_datetime_edit');
+    var inputArrivalEdit = document.getElementById('arrival_datetime_edit');
+    var inputClosedEdit = document.getElementById('closed_datetime_edit');
     
     if (inputEdit && typeof flatpickr !== 'undefined') {
         if (pickerEdit) {
@@ -1604,6 +1647,22 @@ $('#editjob').on('shown.bs.modal', function () {
             pickerEdit = null;
         }
         pickerEdit = flatpickr(inputEdit, flatpickrConfig);
+    }
+
+    if (inputArrivalEdit && typeof flatpickr !== 'undefined') {
+        if (pickerEditArrival) {
+            pickerEditArrival.destroy();
+            pickerEditArrival = null;
+        }
+        pickerEditArrival = flatpickr(inputArrivalEdit, flatpickrConfig);
+    }
+
+    if (inputClosedEdit && typeof flatpickr !== 'undefined') {
+        if (pickerEditClosed) {
+            pickerEditClosed.destroy();
+            pickerEditClosed = null;
+        }
+        pickerEditClosed = flatpickr(inputClosedEdit, flatpickrConfig);
     }
 });
 
@@ -1620,6 +1679,14 @@ $('#editjob').on('hidden.bs.modal', function () {
     if (pickerEdit) {
         pickerEdit.destroy();
         pickerEdit = null;
+    }
+    if (pickerEditArrival) {
+        pickerEditArrival.destroy();
+        pickerEditArrival = null;
+    }
+    if (pickerEditClosed) {
+        pickerEditClosed.destroy();
+        pickerEditClosed = null;
     }
     selectedProducts = selectedProducts.filter(p => p.mode !== 'edit');
 });
