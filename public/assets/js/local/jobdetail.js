@@ -244,6 +244,23 @@ $(document).ready(function() {
 
                 // Mostrar productos relacionados
                 renderProductsShow(data.products);
+
+                // NOTAS
+                let body = '';
+                $.each(data.notes, function (key, val) {
+                    let userName = val.user ? val.user.name : 'Sistema';
+                    body += `<tr>
+                        <td class="text-wrap text-start">${val.note.replaceAll('\n','<br>')}</td>
+                        <td class="align-middle">${userName}</td>
+                        <td class="align-middle">${val.created}</td>
+                        <td class="align-middle">
+                            <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-sm btn-danger deletenote">
+                                <i class="flaticon-delete me-2"></i>
+                            </a>
+                        </td>
+                    </tr>`;
+                });
+                $('#tablenotes_body_d').html(body);
                 
                 // Guardar datos del trabajo para el PDF
                 currentJobDataForPdf = data;
@@ -621,8 +638,10 @@ $(document).ready(function() {
             success : function(response) {
                 body='';
                 $.each(response.data, function (key, val) {
+                    let userName = val.user ? val.user.name : 'Sistema';
                     body += `<tr>
                         <td class="text-wrap text-start">${val.note.replaceAll('\n','<br>')}</td>
+                        <td class="align-middle">${userName}</td>
                         <td class="align-middle">${val.created}</td>
                         <td class="align-middle">
                             <a href="javascript:void(0);" data-id="${val.id}" class="btn btn-sm btn-danger deletenote">
@@ -961,18 +980,25 @@ $(document).ready(function() {
         $("#"+id_elemento).append(actionButtons);
 
         $.each( data.files , function( index, value ) {
+            // Obtenemos el nombre del usuario de manera segura (por si viene null)
+            let userName = this.user ? this.user.name : 'Sistema';
+            let originalName = this.original_name || this.name;
+
+            // Estructura de HTML que se mostrará abajo de la imagen al agrandarla
+            let subHtmlContent = `<h4>${originalName}</h4><p>Subido por: <strong>${userName}</strong></p>`;
+
             let imagen = `<div class="text-center" style="width: 120px; position: relative;">
                 <div class="position-relative d-inline-block">
                     <!-- Checkbox para selección -->
                     <div class="position-absolute" style="top: 5px; left: 5px; z-index: 10;">
                         <input class="form-check-input image-checkbox" type="checkbox" 
                             data-image-url="/storage/${this.name}" 
-                            data-image-name="${this.original_name || this.name}"
+                            data-image-name="${originalName}"
                             data-element="${id_elemento}"
                             onchange="updateImageSelection('${id_elemento}')" 
                             style="width: 20px; height: 20px; cursor: pointer;">
                     </div>
-                    <a class="gallery" href="${this.url_web}">
+                    <a class="gallery" href="${this.url_web}" data-sub-html="${subHtmlContent}">
                         <img src="${this.url_web}" style='border-radius:.5rem; height: 100px; width: 100px;'>
                     </a>`;
                     
@@ -985,7 +1011,11 @@ $(document).ready(function() {
                         </span>`;
                     }
                     
-                imagen += `</div></div>`;
+                imagen += `</div>
+                <div class="text-muted mt-1" style="font-size: 11px; line-height: 1.2; word-break: break-word; padding: 0 5px;">
+                    <i class="fas fa-user me-1" style="font-size: 10px;"></i>${userName}
+                </div>
+            </div>`;
 
             $("#"+id_elemento).append(imagen);     
             if(id_elemento == 'lightgalleryEdit'){ $("#"+id_elemento+"None").append(imagen); }
@@ -2044,12 +2074,12 @@ function populatePdfConfigModal(jobData) {
         jobData.notes.forEach((note, index) => {
             // El endpoint devuelve 'created' ya formateado
             const formattedDate = note.created || '';
-            
+            let userName = note.user ? note.user.name : 'Sistema';
             const noteHtml = `
                 <div class="form-check mb-2">
                     <input class="form-check-input note-checkbox" type="checkbox" value="${note.id}" id="note_${note.id}">
                     <label class="form-check-label" for="note_${note.id}">
-                        <small class="text-muted">${formattedDate}</small><br>
+                        <small class="text-muted"><b>${userName}</b> ${formattedDate}</small><br>
                         <span class="text-truncate d-inline-block" style="max-width: 400px;">${note.note || ''}</span>
                     </label>
                 </div>
@@ -2071,6 +2101,8 @@ function populatePdfConfigModal(jobData) {
                 return; // Saltar este archivo
             }
             
+            let userName = file.user ? file.user.name : 'Sistema';
+
             // Si el nombre tiene extensión es archivo local, sino es ID de Google Drive
             const hasExtension = imagePath.includes('.');
             const imageUrl = hasExtension
@@ -2084,6 +2116,9 @@ function populatePdfConfigModal(jobData) {
                         <div class="position-absolute top-0 end-0 m-2 bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" id="check_${file.id}">
                             <i class="fas fa-check"></i>
                         </div>
+                    </div>
+                    <div class="text-muted mt-1 text-center" style="font-size: 11px; line-height: 1.2; word-break: break-word; padding: 0 5px;">
+                        <i class="fas fa-user me-1" style="font-size: 10px;"></i>${userName}
                     </div>
                 </div>
             `;

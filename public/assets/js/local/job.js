@@ -305,7 +305,7 @@ $('body').on('click','#tableExcel',function() {
             a.href = url;
             const now = new Date();
             const pad = (value) => String(value).padStart(2, '0');
-            const fileName = `Ordenes_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xlsx`;
+            const fileName = `Trabajos_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.xlsx`;
 
             a.download = fileName;
 

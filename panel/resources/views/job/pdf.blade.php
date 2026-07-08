@@ -291,7 +291,11 @@
         <div class="section-title">NOTAS</div>
         @foreach($notes as $note)
         <div class="note-item">
-            <div class="note-date">{{ \Carbon\Carbon::parse($note->created_at)->format('d/m/Y H:i') }}</div>
+            <div class="note-date">
+                <img src="{{ $usuarioIconoBase64 }}" style="width: 10px; height: 10px; vertical-align: middle; margin-right: 4px;" />
+                <b>{{ $note->user->name ?? 'Sistema' }}</b> 
+                {{ \Carbon\Carbon::parse($note->created_at)->format('d/m/Y H:i') }}
+            </div>
             <div class="note-content">{{ $note->note }}</div>
         </div>
         @endforeach
@@ -325,11 +329,18 @@
         <div class="section-title">IMÁGENES</div>
         <div class="images-grid">
             @foreach($images as $image)
+                @php
+                    $username = $image->user ? $image->user->name : 'Sistema';
+                @endphp
                 <div class="image-item">
                     @if(isset($imagesBase64[$image->id]))
                         <img src="{{ $imagesBase64[$image->id] }}" alt="Imagen de trabajo">
                     @endif
-                    <div class="image-caption">{{ $image->original_name ?? 'Imagen ' . $loop->iteration }}</div>
+                    <div class="image-caption">
+                        <img src="{{ $usuarioIconoBase64 }}" style="width: 10px; height: 10px; vertical-align: middle; margin-right: 4px;" />
+                        <b>{{ $username }}</b>
+                        {{-- <br>{{ $image->original_name ?? 'Imagen ' . $loop->iteration }} --}}
+                    </div>
                 </div>
                 @if($loop->iteration % 3 == 0 && !$loop->last)
                 @endif

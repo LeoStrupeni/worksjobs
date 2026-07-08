@@ -22,6 +22,13 @@ use Illuminate\Support\Facades\Session;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\RichText\RichText;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+
 class JobController extends Controller
 {
     private function canEditJobTimes(): bool
@@ -180,7 +187,7 @@ class JobController extends Controller
             ->whereNull('deleted_at')
             ->get();
         
-        $files = Jobs_file::where('job_id',$id)->get();
+        $files = Jobs_file::with('user:id,name')->where('job_id',$id)->get();
         // Adjuntamos la URL de la ruta puente a cada archivo antes de enviarlo
         foreach ($files as $file) {
             // Pasamos el ID de drive (guardado en name) a nuestra ruta para generar la URL final
@@ -194,6 +201,11 @@ class JobController extends Controller
         // Obtener productos relacionados
         $repuesta['products'] = JobProduct::where('job_id', $id)
             ->whereNull('deleted_at')
+            ->get();
+
+        $repuesta['notes'] = Jobs_Note::with('user:id,name')->where('jobs_id', $id)
+            ->selectraw("jobs_notes.id,jobs_notes.jobs_id, jobs_notes.note, DATE_FORMAT(jobs_notes.created_at,'%d/%m/%y %H:%i') as created, jobs_notes.created_at, jobs_notes.created_by" )
+            ->orderby('created_at','desc')
             ->get();
 
         // Convertir fechas de BD (YYYY-MM-DD HH:mm:ss) a formato frontend (DD/MM/YYYY HH:mm)
@@ -508,8 +520,8 @@ class JobController extends Controller
         // Soportar job_id como parámetro de ruta o del query string
         $job_id = $job_id ?? $request->route('id');
         
-        $notes = Jobs_Note::where('jobs_id', $job_id)
-            ->selectraw("id,jobs_id, note, DATE_FORMAT(created_at,'%d/%m/%y %H:%i') as created, created_at" )
+        $notes = Jobs_Note::with('user:id,name')->where('jobs_id', $job_id)
+            ->selectraw("jobs_notes.id,jobs_notes.jobs_id, jobs_notes.note, DATE_FORMAT(jobs_notes.created_at,'%d/%m/%y %H:%i') as created, jobs_notes.created_at, jobs_notes.created_by" )
             ->orderby('created_at','desc')
             ->get();
 
@@ -529,9 +541,11 @@ class JobController extends Controller
     
     public function destroynote(Request $request, $id)
     {
-        Jobs_Note::find($id)->update([
-            'deleted_at' => Carbon::now()
-        ]);
+        $note = Jobs_Note::find($id);
+
+        if ($note) {
+            $note->delete();
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Nota eliminada correctamente']);
@@ -1099,8 +1113,8 @@ class JobController extends Controller
             // Obtener el trabajo con sus relaciones
             $job = Job::with([
                 'client', 
-                'files', 
-                'notes', 
+                'files.user:id,name', 
+                'notes.user:id,name', 
                 'technicians',
                 'products'
             ])->find($id);
@@ -1169,12 +1183,18 @@ class JobController extends Controller
                 }
             }
 
+            // Generamos el Base64 puro del SVG de FontAwesome (Busto de usuario)
+            $usuarioIconoBase64 = 'data:image/svg+xml;base64,' . base64_encode(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="#555555"><path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512H418.3c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304H178.3z"/></svg>'
+            );
+
             // Preparar datos para la vista
             $data = [
                 'job' => $job,
                 'includeDescription' => $includeDescription,
                 'includeNotes' => $includeNotes,
                 'notes' => $notes,
+                'usuarioIconoBase64' => $usuarioIconoBase64,
                 'includeArrivalTime' => $includeArrivalTime,
                 'includeDepartureTime' => $includeDepartureTime,
                 'includeImages' => $includeImages,
@@ -1430,6 +1450,8 @@ class JobController extends Controller
 
     public function generateExcel(Request $request)
     {
+        if (ob_get_contents()) ob_end_clean();
+
         $query = Job::getJobsQueryExcel();
                 
         if (isset($request->periodo)) {
@@ -1471,70 +1493,192 @@ class JobController extends Controller
             });
         }
 
-        $jobs = $query->orderBy('client', 'ASC')->orderBy('visit_datetime', 'ASC')->orderBy('id', 'ASC')->get();
+        $jobs = $query->orderBy('client_name', 'ASC')->orderBy('visit_datetime', 'ASC')->orderBy('id', 'ASC')->get();
         
         $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet()->setTitle('Ordenes de Trabajo');
-        $sheet->getColumnDimension('A')->setWidth(80, 'px');
-        $sheet->getColumnDimension('B')->setWidth(200, 'px');
-        $sheet->getColumnDimension('C')->setWidth(200, 'px');
-        $sheet->getColumnDimension('D')->setWidth(130, 'px');
-        $sheet->getColumnDimension('E')->setWidth(130, 'px');
-        $sheet->getColumnDimension('F')->setWidth(130, 'px');
-        $sheet->getColumnDimension('G')->setWidth(130, 'px');
-        $sheet->getColumnDimension('H')->setWidth(500, 'px');
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Trabajos');
 
-        $sheet->getPageSetup()->setFitToPage(true);
-        $sheet->getPageSetup()->setFitToWidth(1);
-        $sheet->getPageSetup()->setFitToHeight(0);
-        $sheet->setCellValue('A1', '# de Orden');
-        $sheet->setCellValue('B1', 'Cliente');
-        $sheet->setCellValue('C1', 'Decripción');
-        $sheet->setCellValue('D1', 'Fecha Visita');
-        $sheet->setCellValue('E1', 'Fecha Arribo');
-        $sheet->setCellValue('F1', 'Fecha Cierre');
-        $sheet->setCellValue('G1', 'Tecnicos');
-        $sheet->setCellValue('H1', 'Notas');
+        $sheet->setCellValue('A1', 'DATOS GENERALES DE LA TAREA');
+        $sheet->mergeCells('A1:C1');
+        
+        $sheet->setCellValue('D1', 'INFORMACIÓN DEL CLIENTE');
+        $sheet->mergeCells('D1:G1');
+        
+        $sheet->setCellValue('H1', 'TIEMPOS Y ESTADOS');
+        $sheet->mergeCells('H1:K1');
+        
+        $sheet->setCellValue('L1', 'MÉTRICAS, PRODUCTOS Y SEGUIMIENTO');
+        $sheet->mergeCells('L1:P1');
 
-        $sheet->getStyle("A1:H1")->getFont()->setBold(true);
-        $sheet->getStyle('A1:H1')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('A1:H1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('A1:H1')->getFill()->applyFromArray(
-            [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'B4B4B4'],
-                'endColor' => ['rgb' => 'B4B4B4']
-            ]
-        );
-        $sheet->getStyle("A1:H1")->getFont();
-        $sheet->getStyle('A1:H1')->getFont()->setBold(true)->getColor()->setARGB(\PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE);
+        // Definición de las columnas solicitadas
+        $headers = [
+            'A' => 'Nº TRABAJO', 
+            'B' => 'DESCRIPCIÓN', 
+            'C' => 'FECHA CREACIÓN',
 
-        foreach ($jobs as $key => $job) {
-            $sheet->setCellValue('A' . ($key + 2), $job->id);
-            $sheet->setCellValue('B' . ($key + 2), $job->client);
-            $sheet->setCellValue('C' . ($key + 2), $job->job_description);
-            $sheet->setCellValue('D' . ($key + 2), $job->visit_datetime);
-            $sheet->setCellValue('E' . ($key + 2), $job->arrival_datetime);
-            $sheet->setCellValue('F' . ($key + 2), $job->closed_datetime);
-            $sheet->setCellValue('G' . ($key + 2), $job->tecnicos);
-            $sheet->setCellValue('H' . ($key + 2), $job->notas);
-            $sheet->getStyle('A' . ($key + 2) . ':H' . ($key + 2))->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            'D' => 'CLIENTE',
+            'E' => 'TELEFONO / MOVIL',
+            'F' => 'NRO. DOCUMENTO',
+            'G' => 'DIRECCION',
+
+            'H' => 'ESTADO',
+            'I' => 'VISITA', // Desde job_attachments
+            'J' => 'ARRIBO', // Desde job_attachments
+            'K' => 'CIERRE', // Desde job_attachments
+            
+            'L' => 'CANT. ARCHIVOS', // Desde job_attachments
+            'M' => 'TÉCNICOS ASOCIADOS', // Desde job_technicians (Nombres concatenados)
+            'N' => 'PRODUCTOS VINCULADOS', // Desde job_products (Concatenados)
+            'O' => 'NOTAS E HISTORIAL', // Desde job_notes (Concatenación de textos)
+            'P' => 'ÚLTIMA ACTUALIZACIÓN'
+        ];
+
+        foreach ($headers as $col => $text) {
+            $sheet->setCellValue($col . '2', $text);
         }
 
-        $sheet->getStyle('A')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('D')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('E')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('F')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle('B')->getAlignment()->setWrapText(true);
-        $sheet->getStyle('C')->getAlignment()->setWrapText(true);
-        $sheet->getStyle('G')->getAlignment()->setWrapText(true);
-        $sheet->getStyle('H')->getAlignment()->setWrapText(true);
+        $row = 3;
 
-        $sheet->setSelectedCell('A1');
-        $sheet->setAutoFilter('A1:H1');
-        $sheet->freezePane('A2');
+        foreach ($jobs as $key => $job) {
+            $sheet->setCellValueExplicit('A' . $row, $job->id, DataType::TYPE_STRING);
+            $sheet->setCellValue('B' . $row, $job->job_description);
+            $sheet->setCellValue('C' . $row, $job->created ?? '');
+            // Datos Cliente
+            $sheet->setCellValue('D' . $row, $job->client_name ?? '');
+            
+            // Unificamos Teléfono / Móvil en una sola celda separado por barra si existen ambos
+            $phoneAndMobile = array_filter([$job->client_phone1, $job->client_phone2]);
+            $sheet->setCellValueExplicit('E' . $row, implode(' / ', $phoneAndMobile), DataType::TYPE_STRING);
+            
+            $sheet->setCellValueExplicit('F' . $row, $job->client_document, DataType::TYPE_STRING);
+            $sheet->setCellValue('G' . $row, $job->client_addres_name);
+
+            // Tiempos
+            $sheet->setCellValue('H' . $row, $job->status ?? '');
+            $sheet->setCellValue('I' . $row, $job->visit ?? '');
+            $sheet->setCellValue('J' . $row, $job->arrival ?? '');
+            $sheet->setCellValue('K' . $row, $job->closed ?? '');
+
+            // Métricas y relaciones con saltos de línea ya procesados de la DB
+            $sheet->setCellValue('L' . $row, $job->cant_archivos ?? 0);
+            $sheet->setCellValue('M' . $row, $job->tecnicos ?? '');
+            $sheet->setCellValue('N' . $row, $job->productos ?? '');
+
+            $notas_repetidas = json_decode($job->notas_json);
+            $notas = [];
+
+            if (!empty($notas_repetidas) && is_array($notas_repetidas)) {
+                $textos_vistos = [];
+                foreach ($notas_repetidas as $n) {
+                    if (!empty($n->texto)) {
+                        // Usamos el texto de la nota como llave única para descartar duplicados de raíz
+                        $textoLimpio = trim((string)$n->texto);
+                        if (!in_array($textoLimpio, $textos_vistos)) {
+                            $textos_vistos[] = $textoLimpio;
+                            $notas[] = $n; // Guardamos el objeto original limpio
+                        }
+                    }
+                }
+            }
+
+            if (!empty($notas)) {
+                $richText = new RichText();
+
+                foreach ($notas as $index => $nota) {
+                    if ($index > 0) { 
+                        // Usamos el salto de línea nativo de PHP para asegurar compatibilidad en XML
+                        $richText->createText(PHP_EOL . PHP_EOL); 
+                    }
+                    // 1. Limpieza estricta y escape de caracteres para XML (Evita la corrupción)
+                    $usuarioTexto = isset($nota->usuario) ? htmlspecialchars((string)$nota->usuario, ENT_QUOTES, 'UTF-8') : 'Sistema';
+                    $fechaTexto   = isset($nota->fecha) ? htmlspecialchars((string)$nota->fecha, ENT_QUOTES, 'UTF-8') : '';
+                    $notaTexto    = isset($nota->texto) ? htmlspecialchars((string)$nota->texto, ENT_QUOTES, 'UTF-8') : '';
+
+                    // Negrita al usuario
+                    $userRun = $richText->createTextRun($usuarioTexto);
+                    $userRun->getFont()->setBold(true);
+
+                    $richText->createTextRun(" ");
+
+                    // Subrayado a la fecha
+                    $dateRun = $richText->createTextRun($fechaTexto);
+                    $dateRun->getFont()->setUnderline(Font::UNDERLINE_SINGLE);
+
+                    $richText->createTextRun(": " . $notaTexto);
+                }
+                $sheet->setCellValue('O' . $row, $richText);
+            } else {
+                $sheet->setCellValue('O' . $row, '');
+            }
+            
+            $sheet->setCellValue('P' . $row, $job->updated ?? '');
+
+            $sheet->getStyle('B' . $row )->getAlignment()->setWrapText(true);
+            $sheet->getStyle('D' . $row )->getAlignment()->setWrapText(true);
+            $sheet->getStyle('G' . $row )->getAlignment()->setWrapText(true);
+            $sheet->getStyle('M' . $row . ':O' . $row)->getAlignment()->setWrapText(true);
+
+            $sheet->getStyle('A' . $row . ':P' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle('A' . $row )->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('C' . $row )->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('E' . $row . ':F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('H' . $row . ':L' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle('P' . $row )->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $row++;
+        }
+
+        // 4. Autoajustar el ancho de las columnas (De la A a la Q)
+        foreach (range('A', 'Q') as $col) {
+            if ($col === 'B' || $col === 'D' || $col === 'G' ) {
+                // Le asignamos un ancho fijo inicial cómodo para leer párrafos largos
+                $sheet->getColumnDimension($col)->setWidth(30);
+            } else if ($col === 'O') {
+                $sheet->getColumnDimension($col)->setWidth(50);
+            } else {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+        }
+
+        // 5. Aplicación del Diseño Institucional de la Fila 1 y Fila 2
+        $styleGroup = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ];
+
+        $sheet->getStyle('A1:C1')->applyFromArray(array_merge($styleGroup, ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2E548A']]]));
+        $sheet->getStyle('D1:G1')->applyFromArray(array_merge($styleGroup, ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '0077CC']]]));
+        $sheet->getStyle('H1:K1')->applyFromArray(array_merge($styleGroup, ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B5C9']]]));
+        $sheet->getStyle('L1:P1')->applyFromArray(array_merge($styleGroup, ['fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4A5568']]]));
+
+        // Estilo de los encabezados individuales (Fila 2)
+        $sheet->getStyle('A2:P2')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '2D3748']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+
+        // Bordes de la grilla completa
+        $highestRow = $row - 1;
+        if ($highestRow >= 2) {
+            $sheet->getStyle('A1:P' . $highestRow)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => 'E2E8F0'],
+                    ],
+                ],
+            ]);
+        }
+
+        $sheet->setSelectedCell('A3');
+        $sheet->setAutoFilter('A2:P2');
+        $sheet->freezePane('A3');
 
         $writer = new Xlsx($spreadsheet);
+
+        if (ob_get_length()) ob_end_clean();
 
         $response =  new StreamedResponse(
             function () use ($writer) {
@@ -1542,7 +1686,7 @@ class JobController extends Controller
             }
         );
         $response->headers->set('Content-Type', 'application/vnd.ms-excel');
-        $response->headers->set('Content-Disposition', 'attachment;filename="Ordenes.xlsx"');
+        $response->headers->set('Content-Disposition', 'attachment;filename="jobs.xlsx"');
         $response->headers->set('Cache-Control', 'max-age=0');
         return $response;
 

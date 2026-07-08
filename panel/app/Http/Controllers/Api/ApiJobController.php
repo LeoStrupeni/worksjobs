@@ -593,12 +593,12 @@ class ApiJobController extends Controller
             ], 404);
         }
         
-        $notes = Jobs_Note::where('jobs_id', $id)
+        $notes = Jobs_Note::with('user:id,name')->where('jobs_id', $id)
             ->selectraw("id, jobs_id, note, DATE_FORMAT(created_at,'%d/%m/%y %H:%i') as created, created_at")
             ->orderby('created_at', 'desc')
             ->get();
         
-        $files = Jobs_file::where('job_id', $id)->get();
+        $files = Jobs_file::with('user:id,name')->where('job_id', $id)->get();
         
         // Obtener técnicos asignados
         $jobModel = Job::find($id);

@@ -34,6 +34,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="column_orden">Nota</th>
+                                        <th class="column_orden">Usuario</th>
                                         <th class="column_orden">Fecha</th>
                                         <th class="sorttable_nosort" style="width:3%;"></th>
                                     </tr>

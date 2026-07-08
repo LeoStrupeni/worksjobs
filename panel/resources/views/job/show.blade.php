@@ -39,6 +39,11 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes-content" type="button">
+                                <i class="fas fa-sticky-note me-2"></i>Notas
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images-content" type="button">
                                 <i class="fas fa-images me-2"></i>Imágenes
                             </button>
@@ -236,7 +241,28 @@
                             </div>
                         </div>
 
-                        {{-- Tab 3: Imágenes --}}
+                        {{-- Tab 3: Notas --}}
+                        <div class="tab-pane fade" id="notes-content" role="tabpanel">
+                            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover text-center sortable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="column_orden">Nota</th>
+                                                    <th class="column_orden">Usuario</th>
+                                                    <th class="column_orden">Fecha</th>
+                                                    <th class="sorttable_nosort" style="width:3%;"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tablenotes_body_d"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Tab 4: Imágenes --}}
                         <div class="tab-pane fade" id="images-content" role="tabpanel">
                             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                                 <div class="card-header bg-white border-0 pt-3">
